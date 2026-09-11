@@ -9658,6 +9658,25 @@ export class CheckColumnConstraintExpr extends ColumnConstraintKindExpr {
   }
 }
 
+export type AssumeColumnConstraintExprArgs = Merge<[
+  ColumnConstraintKindExprArgs,
+  {
+    this?: Expression;
+  },
+]>;
+
+export class AssumeColumnConstraintExpr extends ColumnConstraintKindExpr {
+  static key = ExpressionKey.ASSUME_COLUMN_CONSTRAINT;
+
+  static availableArgs = new Set(['this']);
+
+  declare args: AssumeColumnConstraintExprArgs;
+
+  constructor (args: AssumeColumnConstraintExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type ClusteredColumnConstraintExprArgs = Merge<[
   ColumnConstraintKindExprArgs,
 ]>;

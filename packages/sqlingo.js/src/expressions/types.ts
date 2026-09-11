@@ -122,6 +122,7 @@ export enum ExpressionKey {
   ATTACH = 'attach',
   ATTACH_OPTION = 'attachOption',
   AT_INDEX = 'atIndex',
+  ASSUME_COLUMN_CONSTRAINT = 'assumeColumnConstraint',
   AT_TIME_ZONE = 'atTimeZone',
   AUTO_INCREMENT_COLUMN_CONSTRAINT = 'autoIncrementColumnConstraint',
   AUTO_INCREMENT_PROPERTY = 'autoIncrementProperty',

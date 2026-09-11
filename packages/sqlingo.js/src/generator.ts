@@ -354,6 +354,7 @@ import {
   AnalyzeWithExpr,
   ArrayContainsAllExpr,
   ArrayOverlapsExpr,
+  AssumeColumnConstraintExpr,
   AutoRefreshPropertyExpr,
   BackupPropertyExpr,
   CaseSpecificColumnConstraintExpr,
@@ -1195,6 +1196,12 @@ export class Generator {
           ArrayOverlapsExpr,
           function (this: Generator, e) {
             return this.binary(e, '&&');
+          },
+        ],
+        [
+          AssumeColumnConstraintExpr,
+          function (this: Generator, e) {
+            return `ASSUME (${this.sql(e, 'this')})`;
           },
         ],
         [

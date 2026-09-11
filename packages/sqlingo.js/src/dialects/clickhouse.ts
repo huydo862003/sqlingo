@@ -64,6 +64,8 @@ import {
   TsOrDsToTimestampExpr,
   NestedJsonSelectExpr,
   AlterModifySqlSecurityExpr,
+  AssumeColumnConstraintExpr,
+  CheckColumnConstraintExpr,
   DefinerPropertyExpr,
   DotExpr,
   ExplodeExpr,
@@ -1064,6 +1066,9 @@ class ClickHouseParser extends Parser {
       CODEC: function (this: Parser) {
         return (this as ClickHouseParser).parseCompress();
       },
+      ASSUME: function (this: Parser) {
+        return (this as ClickHouseParser).parseAssumeConstraint();
+      },
     };
   }
 
@@ -1082,10 +1087,12 @@ class ClickHouseParser extends Parser {
 
   @cache
   static get SCHEMA_UNNAMED_CONSTRAINTS (): Set<string> {
-    return new Set([
+    const s = new Set([
       ...Parser.SCHEMA_UNNAMED_CONSTRAINTS,
       'INDEX',
     ]);
+    s.delete('CHECK');
+    return s;
   }
 
   @cache
@@ -1513,6 +1520,22 @@ class ClickHouseParser extends Parser {
   parseWrappedIdVars (): Expression[] {
     return super.parseWrappedIdVars({
       optional: true,
+    });
+  }
+
+  parseWrappedSelectOrAssignment (): Expression | undefined {
+    return this.parseWrapped(() => this.parseSelect() || this.parseAssignment(), { optional: true });
+  }
+
+  parseCheckConstraint (): CheckColumnConstraintExpr | undefined {
+    return this.expression(CheckColumnConstraintExpr, {
+      this: this.parseWrappedSelectOrAssignment(),
+    });
+  }
+
+  parseAssumeConstraint (): AssumeColumnConstraintExpr | undefined {
+    return this.expression(AssumeColumnConstraintExpr, {
+      this: this.parseWrappedSelectOrAssignment(),
     });
   }
 

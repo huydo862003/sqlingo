@@ -271,6 +271,18 @@ class TestClickHouse extends Validator {
     this.validateIdentity(
       'CREATE TABLE t (foo String CODEC(LZ4HC(9), ZSTD, DELTA), size String ALIAS formatReadableSize(size_bytes), INDEX idx1 a TYPE bloom_filter(0.001) GRANULARITY 1, INDEX idx2 a TYPE set(100) GRANULARITY 2, INDEX idx3 a TYPE minmax GRANULARITY 3)',
     );
+    this.validateIdentity('CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK (a < 10)) ENGINE=MergeTree ORDER BY a');
+    this.validateIdentity('CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME (a > 5)) ENGINE=MergeTree ORDER BY a');
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK a < 10) ENGINE=MergeTree ORDER BY a',
+      'CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK (a < 10)) ENGINE=MergeTree ORDER BY a',
+    );
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME a > 5) ENGINE=MergeTree ORDER BY a',
+      'CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME (a > 5)) ENGINE=MergeTree ORDER BY a',
+    );
+    this.validateIdentity('CREATE TABLE t (check UInt32)');
+    this.validateIdentity('CREATE TABLE t (assume UInt32)');
     this.validateIdentity(
       'SELECT generate_series FROM generate_series(0, 10) AS g(x)',
     );
