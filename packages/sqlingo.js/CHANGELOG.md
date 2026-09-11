@@ -1,5 +1,13 @@
 # @hdnax/sqlingo.js
 
+## 0.7.1
+
+### Patch Changes
+
+- b453c63: Sync to sqlglot 29.0.1:
+  - feat(duckdb): support GET_CURRENT_TIME() mapping to CURRENT_TIME
+  - reorder JARO_WINKLER_SIMILARITY alphabetically in DuckDB FUNCTIONS
+
 ## 0.7.0
 
 ### Minor Changes
