@@ -907,6 +907,7 @@ export enum ExpressionKey {
   TO_MAP = 'toMap',
   TO_NUMBER = 'toNumber',
   TO_TABLE_PROPERTY = 'toTableProperty',
+  TO_VARIANT = 'toVariant',
   TRANSACTION = 'transaction',
   TRANSFORM = 'transform',
   TRANSFORM_MODEL_PROPERTY = 'transformModelProperty',

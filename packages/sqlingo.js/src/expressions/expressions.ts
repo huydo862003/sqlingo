@@ -17543,6 +17543,31 @@ export class ToBooleanExpr extends FuncExpr {
   }
 }
 
+export type ToVariantExprArgs = Merge<[
+  FuncExprArgs,
+  {
+    this?: Expression;
+  },
+]>;
+
+export class ToVariantExpr extends FuncExpr {
+  static key = ExpressionKey.TO_VARIANT;
+
+  static availableArgs = new Set(['this']);
+
+  static argOrder = ['this'];
+
+  declare args: ToVariantExprArgs;
+
+  constructor (args: ToVariantExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
 export type ListExprArgs = Merge<[
   FuncExprArgs,
   {

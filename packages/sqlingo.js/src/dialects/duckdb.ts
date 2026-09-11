@@ -178,6 +178,7 @@ import {
   TimeStrToUnixExpr,
   TimeSubExpr,
   ToBooleanExpr,
+  ToVariantExpr,
   TsOrDiToDiExpr,
   TsOrDsDiffExpr,
   UnixMicrosExpr,
@@ -3728,6 +3729,12 @@ class DuckDBGenerator extends Generator {
       [
         ToBooleanExpr,
         toBooleanSql,
+      ],
+      [
+        ToVariantExpr,
+        function (this: Generator, e: ToVariantExpr) {
+          return this.sql(cast(e.args.this, DataTypeExpr.build('VARIANT', { dialect: 'duckdb' })));
+        },
       ],
       [
         TimeToUnixExpr,
