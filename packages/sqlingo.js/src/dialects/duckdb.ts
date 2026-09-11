@@ -199,8 +199,10 @@ import {
   ArrayContainsExpr,
   ArrayFilterExpr,
   DotExpr,
+  HexExpr,
   MapDeleteExpr,
   MapSizeExpr,
+  RightExpr,
   BitwiseXorAggExpr,
   BitwiseXorExpr,
   CosineDistanceExpr,
@@ -5950,6 +5952,25 @@ class DuckDBGenerator extends Generator {
    * DuckDB TO_BASE64 requires BLOB input.
    * Snowflake BASE64_ENCODE implicitly encodes UTF-8 bytes for VARCHAR
    */
+  rightSql (expression: RightExpr): string {
+    const arg = expression.args.this;
+    const length = expression.args.expression;
+
+    if (isBinary(arg)) {
+      const hexArg = new HexExpr({ this: arg });
+      const hexLength = new MulExpr({
+        this: length,
+        expression: LiteralExpr.number(2),
+      });
+      const hexRight = this.func('RIGHT', [hexArg, hexLength]);
+      const result = new UnhexExpr({ this: hexRight });
+
+      return this.sql(result);
+    }
+
+    return this.func('RIGHT', [arg, length]);
+  }
+
   base64EncodeSql (expression: Base64EncodeExpr): string {
     let result = expression.args.this;
 
