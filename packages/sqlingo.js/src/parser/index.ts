@@ -364,7 +364,6 @@ import {
   SchemaExpr,
   ScopeResolutionExpr,
   SecurePropertyExpr,
-  SecurityPropertyExpr,
   SelectExpr,
   SemicolonExpr,
   SequencePropertiesExpr,
@@ -1357,7 +1356,6 @@ export class Parser {
   @cache
   static get STRUCT_TYPE_TOKENS (): Set<TokenType> {
     return new Set([
-      TokenType.FILE,
       TokenType.NESTED,
       TokenType.OBJECT,
       TokenType.STRUCT,
@@ -1647,6 +1645,7 @@ export class Parser {
         TokenType.ESCAPE,
         TokenType.FALSE,
         TokenType.FIRST,
+        TokenType.FILE,
         TokenType.FILTER,
         TokenType.FINAL,
         TokenType.FORMAT,
@@ -2813,7 +2812,10 @@ export class Parser {
         return this.expression(SecurePropertyExpr, {});
       },
       'SECURITY': function (this: Parser) {
-        return this.parseSecurity();
+        return this.parseSqlSecurity();
+      },
+      'SQL SECURITY': function (this: Parser) {
+        return this.parseSqlSecurity();
       },
       'SET': function (this: Parser) {
         return this.expression(SetPropertyExpr, {
@@ -3955,6 +3957,8 @@ export class Parser {
     'CYCLE',
   ]);
 
+  static SECURITY_PROPERTY_KEYWORDS: string[] = ['DEFINER', 'INVOKER', 'NONE'];
+
   @cache
   static get MODIFIABLES (): (typeof Expression)[] {
     return [
@@ -5056,22 +5060,6 @@ export class Parser {
     }
 
     if (this.matchTextSeq([
-      'SQL',
-      'SECURITY',
-    ])) {
-      return this.expression(
-        SqlSecurityPropertyExpr,
-        {
-          this: this.matchTexts([
-            'DEFINER',
-            'INVOKER',
-            'NONE',
-          ]) && (this.prev?.text ?? '').toUpperCase(),
-        },
-      );
-    }
-
-    if (this.matchTextSeq([
       'PARAMETER',
       'STYLE',
       'PANDAS',
@@ -5212,20 +5200,10 @@ export class Parser {
     );
   }
 
-  parseSecurity (): SecurityPropertyExpr | undefined {
-    if (this.matchTexts([
-      'NONE',
-      'DEFINER',
-      'INVOKER',
-    ])) {
-      const securitySpecifier = this.prev?.text.toUpperCase();
-
-      return this.expression(SecurityPropertyExpr, {
-        this: securitySpecifier,
-      });
-    }
-
-    return undefined;
+  parseSqlSecurity (): SqlSecurityPropertyExpr {
+    return this.expression(SqlSecurityPropertyExpr, {
+      this: this.matchTexts(this._constructor.SECURITY_PROPERTY_KEYWORDS) && (this.prev?.text ?? '').toUpperCase(),
+    });
   }
 
   parseSettingsProperty (): SettingsPropertyExpr {
@@ -12413,7 +12391,7 @@ export class Parser {
     const kind = (this.matchSet(new Set([
       TokenType.ROWS,
       TokenType.RANGE,
-    ])) || undefined) && this.prev?.text;
+    ])) || this.matchTextSeq('GROUPS') || undefined) && this.prev?.text;
 
     let spec: WindowSpecExpr | undefined;
 

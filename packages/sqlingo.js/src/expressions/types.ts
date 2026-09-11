@@ -785,7 +785,6 @@ export enum ExpressionKey {
   SECH = 'sech',
   SECOND = 'second',
   SECURE_PROPERTY = 'secureProperty',
-  SECURITY_PROPERTY = 'securityProperty',
   SELECT = 'select',
   SEMANTIC_VIEW = 'semanticView',
   SEMICOLON = 'semicolon',

@@ -8,7 +8,7 @@ import {
 import {
   TruncExpr, ArrayOverlapsExpr,
   InstallExpr, ShowExpr,
-  AnonymousExpr,
+  AnonymousExpr, ColumnExpr,
 } from '../../../src/expressions';
 import {
   Validator,
@@ -142,6 +142,9 @@ class TestDuckDB extends Validator {
         mysql: 'SELECT SUM(X) OVER (ORDER BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)',
       },
     });
+    this.validateIdentity('SELECT SUM(x) OVER (ORDER BY x GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t');
+    this.validateIdentity("SELECT file[:256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
+    this.validateIdentity("SELECT file[256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
     this.validateAll('SELECT * FROM x ORDER BY 1 NULLS LAST', {
       write: {
         duckdb: 'SELECT * FROM x ORDER BY 1',

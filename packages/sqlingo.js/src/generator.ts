@@ -425,7 +425,6 @@ import {
   SafeFuncExpr,
   SamplePropertyExpr,
   SecurePropertyExpr,
-  SecurityPropertyExpr,
   SessionUserExpr,
   SetConfigPropertyExpr,
   SetPropertyExpr,
@@ -1659,12 +1658,6 @@ export class Generator {
           () => 'SECURE',
         ],
         [
-          SecurityPropertyExpr,
-          function (this: Generator, e) {
-            return `SECURITY ${this.sql(e, 'this')}`;
-          },
-        ],
-        [
           SetConfigPropertyExpr,
           function (this: Generator, e) {
             return this.sql(e, 'this');
@@ -2166,10 +2159,6 @@ export class Generator {
         PropertiesLocation.POST_CREATE,
       ],
       [
-        SecurityPropertyExpr,
-        PropertiesLocation.POST_SCHEMA,
-      ],
-      [
         SerdePropertiesExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -2211,7 +2200,7 @@ export class Generator {
       ],
       [
         SqlSecurityPropertyExpr,
-        PropertiesLocation.POST_CREATE,
+        PropertiesLocation.POST_SCHEMA,
       ],
       [
         StabilityPropertyExpr,

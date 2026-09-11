@@ -87,7 +87,10 @@ import {
   ArrayAggExpr,
   ChrExpr,
   IntervalExpr,
+  CreateExpr,
+  PropertiesExpr,
   PropertiesLocation,
+  SqlSecurityPropertyExpr,
   TransientPropertyExpr,
   VolatilePropertyExpr,
   PartitionedByPropertyExpr,
@@ -1942,6 +1945,8 @@ class MySQLGenerator extends Generator {
     return map;
   }
 
+  static SQL_SECURITY_VIEW_LOCATION: PropertiesLocation = PropertiesLocation.POST_CREATE;
+
   static LIMIT_FETCH: string = 'LIMIT';
   static LIMIT_ONLY_LITERALS: boolean = true;
 
@@ -2277,6 +2282,31 @@ class MySQLGenerator extends Generator {
       'year_month',
       'zerofill',
     ]);
+  }
+
+  locateProperties (properties: PropertiesExpr): Map<PropertiesLocation, Expression[]> {
+    const locations = super.locateProperties(properties);
+
+    // MySQL puts SQL SECURITY before VIEW but after the schema for functions/procedures
+    const create = properties.parent;
+    if (create instanceof CreateExpr && create.args.kind?.toUpperCase() === 'VIEW') {
+      const postSchema = locations.get(PropertiesLocation.POST_SCHEMA);
+      if (postSchema) {
+        for (let i = 0; i < postSchema.length; i++) {
+          if (postSchema[i] instanceof SqlSecurityPropertyExpr) {
+            const [p] = postSchema.splice(i, 1);
+            const loc = (this._constructor as typeof MySQLGenerator).SQL_SECURITY_VIEW_LOCATION;
+            if (!locations.has(loc)) {
+              locations.set(loc, []);
+            }
+            locations.get(loc)!.push(p);
+            break;
+          }
+        }
+      }
+    }
+
+    return locations;
   }
 
   public computedColumnConstraintSql (expression: ComputedColumnConstraintExpr): string {

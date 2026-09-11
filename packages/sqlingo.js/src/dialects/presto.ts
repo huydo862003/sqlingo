@@ -68,6 +68,7 @@ import {
   PropertiesLocation,
   InitcapExpr,
   SortArrayExpr,
+  SqlSecurityPropertyExpr,
   QuantileExpr,
   StrToDateExpr,
   StrToTimeExpr,
@@ -1226,6 +1227,12 @@ class PrestoGenerator extends Generator {
       [
         SortArrayExpr,
         noSortArray,
+      ],
+      [
+        SqlSecurityPropertyExpr,
+        function (this: Generator, e: SqlSecurityPropertyExpr) {
+          return `SECURITY ${this.sql(e, 'this')}`;
+        },
       ],
       [
         StrPositionExpr,

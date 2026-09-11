@@ -12177,26 +12177,6 @@ export class SamplePropertyExpr extends PropertyExpr {
   }
 }
 
-export type SecurityPropertyExprArgs = Merge<[
-  PropertyExprArgs,
-  {
-    this?: Expression;
-  },
-]>;
-
-export class SecurityPropertyExpr extends PropertyExpr {
-  static key = ExpressionKey.SECURITY_PROPERTY;
-
-  static requiredArgs = new Set(['this']);
-
-  static availableArgs = new Set(['this']);
-
-  declare args: SecurityPropertyExprArgs;
-
-  constructor (args: SecurityPropertyExprArgs = {}) {
-    super(args);
-  }
-}
 
 export type SchemaCommentPropertyExprArgs = Merge<[
   PropertyExprArgs,

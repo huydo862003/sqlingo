@@ -1270,6 +1270,21 @@ class SnowflakeParser extends Parser {
   static JSON_EXTRACT_REQUIRES_JSON_EXPRESSION = true;
 
   @cache
+  static get TYPE_TOKENS (): Set<TokenType> {
+    return new Set([...Parser.TYPE_TOKENS, TokenType.FILE]);
+  }
+
+  @cache
+  static get STRUCT_TYPE_TOKENS (): Set<TokenType> {
+    return new Set([...Parser.STRUCT_TYPE_TOKENS, TokenType.FILE]);
+  }
+
+  @cache
+  static get NESTED_TYPE_TOKENS (): Set<TokenType> {
+    return new Set([...Parser.NESTED_TYPE_TOKENS, TokenType.FILE]);
+  }
+
+  @cache
   static get TABLE_ALIAS_TOKENS (): Set<TokenType> {
     return (() => {
       const s = new Set([

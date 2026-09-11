@@ -65,7 +65,6 @@ import {
   NestedJsonSelectExpr,
   AlterModifySqlSecurityExpr,
   DefinerPropertyExpr,
-  SqlSecurityPropertyExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -2451,10 +2450,6 @@ export class ClickHouseGenerator extends Generator {
       ],
       [
         PartitionedByPropertyExpr,
-        PropertiesLocation.POST_SCHEMA,
-      ],
-      [
-        SqlSecurityPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
       [
