@@ -4371,7 +4371,7 @@ export class Parser {
     } else {
       thisExpr = this.parseTableParts({
         schema: true,
-        isDbReference: this.prev?.tokenType === TokenType.SCHEMA,
+        isDbReference: kind === 'SCHEMA',
       });
     }
 
