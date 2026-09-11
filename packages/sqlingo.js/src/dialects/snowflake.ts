@@ -40,7 +40,10 @@ import {
   ProjectionPolicyColumnConstraintExpr,
   TagsExpr,
   UseExpr,
-  NthValueExpr, RegexpILikeExpr,
+  FirstValueExpr,
+  LastValueExpr,
+  NthValueExpr,
+  RegexpILikeExpr,
   SetExpr,
   SetItemExpr,
   ShowExpr,
@@ -230,6 +233,10 @@ import {
   WithinGroupExpr,
   AliasExpr,
   ConvertTimezoneExpr,
+  WindowExpr,
+  WindowSpecExpr,
+  RespectNullsExpr,
+  IgnoreNullsExpr,
   true_,
 } from '../expressions';
 import {
@@ -2515,7 +2522,24 @@ class SnowflakeParser extends Parser {
       }
     }
 
-    return super.parseWindow(thisNode, options);
+    const result = super.parseWindow(thisNode, options);
+
+    // Set default window frame for ranking functions if not present
+    if (
+      result instanceof WindowExpr
+      && (thisNode instanceof FirstValueExpr || thisNode instanceof LastValueExpr || thisNode instanceof NthValueExpr)
+      && !result.args.spec
+    ) {
+      result.setArgKey('spec', new WindowSpecExpr({
+        kind: 'ROWS',
+        start: 'UNBOUNDED',
+        startSide: 'PRECEDING',
+        end: 'UNBOUNDED',
+        endSide: 'FOLLOWING',
+      }));
+    }
+
+    return result;
   }
 }
 
@@ -3951,6 +3975,42 @@ class SnowflakeGenerator extends Generator {
       expression.args.expression,
       gen,
     ]);
+  }
+
+  windowSql (expression: WindowExpr): string {
+    const spec = expression.args.spec;
+    const thisExpr = expression.args.this;
+
+    const isRankingFunc = thisExpr instanceof FirstValueExpr
+      || thisExpr instanceof LastValueExpr
+      || thisExpr instanceof NthValueExpr
+      || (
+        (thisExpr instanceof RespectNullsExpr || thisExpr instanceof IgnoreNullsExpr)
+        && (thisExpr.args.this instanceof FirstValueExpr
+          || thisExpr.args.this instanceof LastValueExpr
+          || thisExpr.args.this instanceof NthValueExpr)
+      );
+
+    if (isRankingFunc && spec instanceof WindowSpecExpr) {
+      const text = (v: unknown) => String(v ?? '').toUpperCase();
+      const kind = text(spec.args.kind);
+      const start = text(spec.args.start);
+      const startSide = text(spec.args.startSide);
+      const end = text(spec.args.end);
+      const endSide = text(spec.args.endSide);
+
+      if (
+        kind === 'ROWS'
+        && start === 'UNBOUNDED'
+        && startSide === 'PRECEDING'
+        && end === 'UNBOUNDED'
+        && endSide === 'FOLLOWING'
+      ) {
+        expression.setArgKey('spec', undefined);
+      }
+    }
+
+    return super.windowSql(expression);
   }
 }
 
