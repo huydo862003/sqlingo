@@ -18115,7 +18115,7 @@ export type GeneratorExprArgs = Merge<[
   FuncExprArgs,
   {
     rowcount?: Expression;
-    timeLimit?: Expression;
+    timelimit?: Expression;
     alias?: Expression;
   },
 ]>;

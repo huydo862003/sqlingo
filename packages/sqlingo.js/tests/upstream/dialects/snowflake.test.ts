@@ -7197,6 +7197,18 @@ FROM SEMANTIC_VIEW(
   }
 
   testGenerator () {
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10))');
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(TIMELIMIT => 5))');
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10, TIMELIMIT => 5))');
+    // Positional args are mapped to ROWCOUNT, TIMELIMIT in order
+    this.validateIdentity(
+      'SELECT 1 FROM TABLE(GENERATOR(10))',
+      'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10))',
+    );
+    this.validateIdentity(
+      'SELECT 1 FROM TABLE(GENERATOR(10, 5))',
+      'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10, TIMELIMIT => 5))',
+    );
     // Basic ROWCOUNT transpilation
     this.validateAll(
       'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 5))',

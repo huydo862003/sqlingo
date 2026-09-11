@@ -1108,16 +1108,18 @@ function buildRound (args: Expression[]): RoundExpr {
 
 /**
  * Build Generator expression, unwrapping Snowflake's named parameters.
- * Maps ROWCOUNT => rowcount, TIMELIMIT => time_limit
+ * Maps ROWCOUNT => rowcount, TIMELIMIT => timelimit.
  */
 function buildGenerator (args: Expression[]): GeneratorExpr {
   const kwargMap: Record<string, string> = {
     ROWCOUNT: 'rowcount',
-    TIMELIMIT: 'timeLimit',
+    TIMELIMIT: 'timelimit',
   };
   const genArgs: Record<string, unknown> = {};
+  const positionalKeys = ['rowcount', 'timelimit'];
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg instanceof KwargExpr) {
       const key = arg.args.this?.name.toUpperCase();
       const genKey = key !== undefined ? kwargMap[key] : undefined;
@@ -1125,6 +1127,8 @@ function buildGenerator (args: Expression[]): GeneratorExpr {
       if (genKey) {
         genArgs[genKey] = arg.args.expression;
       }
+    } else if (i < positionalKeys.length) {
+      genArgs[positionalKeys[i]] = arg;
     }
   }
 
@@ -3480,7 +3484,7 @@ class SnowflakeGenerator extends Generator {
   generatorSql (expression: GeneratorExpr): string {
     const args: Expression[] = [];
     const rowcount = expression.args.rowcount;
-    const timeLimit = expression.args.timeLimit;
+    const timelimit = expression.args.timelimit;
 
     if (rowcount) {
       args.push(new KwargExpr({
@@ -3490,12 +3494,12 @@ class SnowflakeGenerator extends Generator {
         expression: rowcount,
       }));
     }
-    if (timeLimit) {
+    if (timelimit) {
       args.push(new KwargExpr({
         this: new VarExpr({
           this: 'TIMELIMIT',
         }),
-        expression: timeLimit,
+        expression: timelimit,
       }));
     }
 
