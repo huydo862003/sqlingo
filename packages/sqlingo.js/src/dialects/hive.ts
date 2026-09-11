@@ -165,6 +165,9 @@ import {
   Tokenizer, TokenType,
 } from '../tokens';
 import {
+  JsonPathTokenizer,
+} from '../jsonpath/tokenizer';
+import {
   anyToExists,
   ctasWithTmpTablesToCreateTmpView,
   eliminateDistinctOn,
@@ -463,6 +466,13 @@ function buildDateAdd (args: Expression[]): TsOrDsAddExpr {
     expression: expression,
     unit: var_('DAY'),
   });
+}
+
+export class HiveJsonPathTokenizer extends JsonPathTokenizer {
+  @cache
+  static get VAR_TOKENS (): Set<TokenType> {
+    return new Set([...JsonPathTokenizer.VAR_TOKENS, TokenType.DASH]);
+  }
 }
 
 class HiveTokenizer extends Tokenizer {
@@ -935,6 +945,7 @@ class HiveGenerator extends Generator {
   static NVL2_SUPPORTED = false;
   static LAST_DAY_SUPPORTS_DATE_PART = false;
   static JSON_PATH_SINGLE_QUOTE_ESCAPE = true;
+  static SAFE_JSON_PATH_KEY_RE = /^[_\-a-zA-Z][\-\w]*$/;
   static SUPPORTS_TO_NUMBER = false;
   static WITH_PROPERTIES_PREFIX = 'TBLPROPERTIES';
   static PARSE_JSON_NAME?: string = undefined;
@@ -1797,6 +1808,8 @@ export class Hive extends Dialect {
 
     return coercesTo;
   }
+
+  static JsonPathTokenizer = HiveJsonPathTokenizer;
 
   static SAFE_DIVISION = true;
   static ARRAY_AGG_INCLUDES_NULLS = undefined;
