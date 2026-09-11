@@ -19,6 +19,7 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   minify: true,
+  keepNames: true,
   external: ['luxon'],
   clean: true,
   splitting: true,
