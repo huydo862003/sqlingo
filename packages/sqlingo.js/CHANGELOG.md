@@ -6,13 +6,13 @@
 
 - a87134d: Minification mangles class names, causing emitted SQL to be gibberish
 
-## 0.6.1
+## 0.6.1 (retracted)
 
 ### Patch Changes
 
 - e6fdbfa: Update new API in readme
 
-## 0.6.0
+## 0.6.0 (retracted)
 
 ### BREAKING CHANGES
 
@@ -64,26 +64,26 @@
 - Add `TsOrDsAddExpr` type annotation in Spark2/Hive typing for `ADD_MONTHS` transpilation
 - Fix test porting issues: BigQuery byte strings, MySQL escape sequences, raw string newlines, hex byte chars, bracket assertions, `from_` to `from` property access
 
-## 0.5.0
+## 0.5.0 (retracted)
 
 ### Minor Changes
 
 - 920aef4: Sync to sqlglot 29.0.0
 
-## 0.4.2
+## 0.4.2 (retracted)
 
 ### Patch Changes
 
 - cd3a34c: Bump deps to resolve dependabot security alerts: `vite` ^8.0.10 to ^8.1.0, `dompurify` override to ^3.4.11, add `ws` ^8.21.0 and `js-yaml` ^4.2.0 overrides
 - f0d9075: Override read-yaml-file to fix changeset js-yaml compatibility
 
-## 0.4.1
+## 0.4.1 (retracted)
 
 ### Patch Changes
 
 - 13e61b1: Fix various porting bugs in BigQuery, DuckDB, ClickHouse, and other dialects. All tests are now passing.
 
-## 0.4.0
+## 0.4.0 (retracted)
 
 ### Minor Changes
 
@@ -91,39 +91,39 @@
 - 7ad6584: Annotate FORMAT_STRING(expr) for Spark ([upstream commit](https://github.com/tobymao/sqlglot/commit/1418494f777358f4b6bd1e05ee5cb02591d92c74))
 - 7ad6584: Add numeric TRUNC output for additional dialects: ClickHouse, Presto, Hive, SQLite ([upstream commit](https://github.com/tobymao/sqlglot/commit/ff1fd521147cb66acc36f2da7b1590d9e7f8140f))
 
-## 0.3.2
+## 0.3.2 (retracted)
 
 ### Patch Changes
 
 - 92777d6: Update README.md copywriting
 
-## 0.3.1
+## 0.3.1 (retracted)
 
 ### Patch Changes
 
 - Pin upstream sqlglot to 87250100 to include exp.Trunc for numeric truncation
 
-## 0.3.0
+## 0.3.0 (retracted)
 
 ### Minor Changes
 
 - cdd20a2: Bump vitest to 4.1.0 & pin vite to 7.3.5 (to support esm decorators)
 - 067de4d: Reorganize the packages to split the lockfile of playground from the sqlingo.js package
 
-## 0.2.3
+## 0.2.3 (retracted)
 
 ### Patch Changes
 
 - e9855e1: Sync with [sqlglot@28.10.1](https://github.com/tobymao/sqlglot/pull/7032)
   - Support missing meta when updating position metadata for an expression ([sqglot#7032](https://github.com/tobymao/sqlglot/pull/7032))
 
-## 0.2.2
+## 0.2.2 (retracted)
 
 ### Patch Changes
 
 - 98abe58: Guard against prototype-polluting assignment in `Expression.setArgKey` [#2](https://github.com/huydo862003/sqlingo.js/pull/2)
 
-## 0.2.1
+## 0.2.1 (retracted)
 
 ### Patch Changes
 
@@ -132,87 +132,87 @@
   - Update `picomatch` from 2.3.1 to 4.0.4 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
   - Update `postcss` from 8.5.8 to 8.5.14 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
 
-## 0.2.0
+## 0.2.0 (retracted)
 
 ### Minor Changes
 
 - 62626fd: Complete AI migration. Most code are human-generated now.
 
-## 0.1.7
+## 0.1.7 (retracted)
 
 ### Patch Changes
 
 - 29256e1: Fix vulnerability issues
 - b4924ce: Bump flatted to 3.4.2 to fix vulnerability issue
 
-## 0.1.6
+## 0.1.6 (retracted)
 
 ### Patch Changes
 
 - 8967932: Fix copywriting of README
 
-## 0.1.5
+## 0.1.5 (retracted)
 
 ### Patch Changes
 
 - Redesign homepage with genuix design system; bump to v0.1.5.
 
-## 0.1.4
+## 0.1.4 (retracted)
 
 ### Patch Changes
 
 - 1ad4d3e: (fck-AI-slop) Migrating from AI slops
 
-## 0.1.3
+## 0.1.3 (retracted)
 
 ### Patch Changes
 
 - 6aeadaa: Add disclaimer about AI usage
 
-## 0.1.2
+## 0.1.2 (retracted)
 
 ### Patch Changes
 
 - a0cbe60: Add warnings to npm doc page
 
-## 0.1.1
+## 0.1.1 (retracted)
 
 ### Patch Changes
 
 - c90ac1e: Update API doc for npm package
 
-## 0.1.0
+## 0.1.0 (retracted)
 
 ### Minor Changes
 
 - Add lazy dialect entrypoints (`@hdnax/sqlingo.js/postgres`, `/mysql`, `/tsql`, `/mssql`, etc.). Import core without loading any dialect; register only what you need.
 
-## 0.0.5
+## 0.0.5 (retracted)
 
 ### Patch Changes
 
 - dc5780a: Update copywriting
 
-## 0.0.4
+## 0.0.4 (retracted)
 
 ### Patch Changes
 
 - 4667ffe: Update README
 
-## 0.0.3
+## 0.0.3 (retracted)
 
 ### Patch Changes
 
 - cdf377d: Include CHANGELOG.md to package
 
-## 0.0.2
+## 0.0.2 (retracted)
 
 ### Patch Changes
 
 - Add GitHub repository info to package.json
 - Add npm-specific README with usage guide and copyright notice
 
-## 0.0.1
+## 0.0.1 (retracted)
 
 ### Patch Changes
 
