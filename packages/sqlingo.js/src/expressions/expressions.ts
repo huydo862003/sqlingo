@@ -18695,12 +18695,23 @@ export class ArrayFilterExpr extends FuncExpr {
 
 export type ArrayFirstExprArgs = Merge<[
   FuncExprArgs,
+  {
+    expression?: Expression;
+  },
 ]>;
 
 export class ArrayFirstExpr extends FuncExpr {
   static key = ExpressionKey.ARRAY_FIRST;
 
-  static argOrder = ['this'];
+  static availableArgs = new Set([
+    'this',
+    'expression',
+  ]);
+
+  static argOrder = [
+    'this',
+    'expression',
+  ];
 
   declare args: ArrayFirstExprArgs;
 
