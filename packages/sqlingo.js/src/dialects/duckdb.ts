@@ -244,6 +244,7 @@ import {
   AnonymousExpr,
   ArrayExpr,
   ArrayPrependExpr,
+  ArraySliceExpr,
   AtTimeZoneExpr,
   BitwiseAndAggExpr,
   BitwiseOrAggExpr,
@@ -251,6 +252,7 @@ import {
   BinaryExpr,
   BracketExpr,
   CaseExpr,
+  case_,
   cast,
   CastExpr,
   DataTypeExpr,
@@ -263,6 +265,7 @@ import {
   FromBase64Expr,
   GenerateDateArrayExpr,
   GenerateSeriesExpr,
+  GteExpr,
   HavingExpr,
   HavingMaxExpr,
   HexStringExpr,
@@ -276,6 +279,7 @@ import {
   JsonValueArrayExpr,
   LengthExpr,
   LiteralExpr,
+  LtExpr,
   ModExpr,
   MulExpr,
   NextDayExpr,
@@ -5869,6 +5873,32 @@ class DuckDBGenerator extends Generator {
     });
 
     return `(${this.sql(result)})`;
+  }
+
+  arraySliceSql (expression: ArraySliceExpr): string {
+    let start: Expression | undefined = expression.args.start;
+    let end: Expression | undefined = expression.args.end;
+
+    if (expression.args.zeroBased) {
+      if (start) {
+        start = case_().when(
+          new GteExpr({ this: start.copy(), expression: LiteralExpr.number(0) }),
+          new AddExpr({ this: start.copy(), expression: LiteralExpr.number(1) }),
+          { copy: false },
+        );
+        (start as CaseExpr).setArgKey('default', expression.args.start);
+      }
+      if (end) {
+        end = case_().when(
+          new LtExpr({ this: end.copy(), expression: LiteralExpr.number(0) }),
+          new SubExpr({ this: end.copy(), expression: LiteralExpr.number(1) }),
+          { copy: false },
+        );
+        (end as CaseExpr).setArgKey('default', expression.args.end);
+      }
+    }
+
+    return this.func('ARRAY_SLICE', [expression.args.this, start, end, expression.args.step]);
   }
 
   arraysZipSql (expression: ArraysZipExpr): string {

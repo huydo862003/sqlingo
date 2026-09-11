@@ -18845,6 +18845,7 @@ export type ArraySliceExprArgs = Merge<[
     start?: Expression;
     end?: Expression;
     step?: Expression;
+    zeroBased?: boolean;
   },
 ]>;
 
@@ -18861,6 +18862,7 @@ export class ArraySliceExpr extends FuncExpr {
     'start',
     'end',
     'step',
+    'zeroBased',
   ]);
 
   static argOrder = [

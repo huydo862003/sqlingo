@@ -168,6 +168,7 @@ import {
   ArrayPrependExpr,
   ArrayIntersectExpr,
   ArrayPositionExpr,
+  ArraySliceExpr,
   AtTimeZoneExpr,
   LocaltimestampExpr,
   DatetimeAddExpr,
@@ -1361,6 +1362,12 @@ class SnowflakeParser extends Parser {
             step: seqGet(args, 2),
             isEndExclusive: true,
           }),
+        ARRAY_SLICE: (args: Expression[]) => new ArraySliceExpr({
+          this: seqGet(args, 0),
+          start: seqGet(args, 1),
+          end: seqGet(args, 2),
+          zeroBased: true,
+        }),
         ARRAY_POSITION: (args: Expression[]) => new ArrayPositionExpr({
           this: seqGet(args, 1),
           expression: seqGet(args, 0),

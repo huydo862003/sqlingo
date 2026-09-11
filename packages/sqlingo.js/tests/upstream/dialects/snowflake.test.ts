@@ -7432,6 +7432,15 @@ FROM SEMANTIC_VIEW(
 
   }
 
+  testArraySlice () {
+    this.validateAll('ARRAY_SLICE(arr, s, e)', {
+      write: {
+        snowflake: 'ARRAY_SLICE(arr, s, e)',
+        duckdb: 'ARRAY_SLICE(arr, CASE WHEN s >= 0 THEN s + 1 ELSE s END, CASE WHEN e < 0 THEN e - 1 ELSE e END)',
+      },
+    });
+  }
+
   testSpace () {
     // Integer literal
     this.validateAll(
@@ -7837,6 +7846,10 @@ describe('TestSnowflake', () => {
 
   test('test array flatten', () => {
     validator.testArrayFlatten();
+  });
+
+  test('test array slice', () => {
+    validator.testArraySlice();
   });
 
   test('test space', () => {
