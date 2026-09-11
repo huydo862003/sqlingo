@@ -9874,6 +9874,22 @@ export class Generator {
     return this.ceilFloor(expression);
   }
 
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    const start = expression.args.start;
+    const end = expression.args.end;
+    const step = expression.args.step;
+
+    if (expression.args.isEndExclusive) {
+      const adjustedEnd = end instanceof Expression
+        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        : end;
+
+      return this.func((expression._constructor as typeof FuncExpr).sqlName(), [start, adjustedEnd, step]);
+    }
+
+    return this.functionFallbackSql(expression);
+  }
+
   offsetLimitModifiers (expression: Expression, options: {
     fetch: boolean;
   }, limit: Expression | undefined): string[] {

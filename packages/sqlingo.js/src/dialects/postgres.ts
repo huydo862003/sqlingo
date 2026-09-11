@@ -114,6 +114,7 @@ import {
   ColumnConstraintExpr,
   NotNullColumnConstraintExpr,
   LiteralExpr,
+  SubExpr,
   CaseExpr,
   IsExpr,
   CoalesceExpr,
@@ -1882,6 +1883,22 @@ class PostgresGenerator extends Generator {
       .else(coalesceExpr);
 
     return this.sql(caseExpr);
+  }
+
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    const start = expression.args.start;
+    const end = expression.args.end;
+    const step = expression.args.step;
+
+    if (expression.args.isEndExclusive) {
+      const adjustedEnd = end instanceof Expression
+        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        : end;
+
+      return this.func('GENERATE_SERIES', [start, adjustedEnd, step]);
+    }
+
+    return this.func('GENERATE_SERIES', [start, end, step]);
   }
 }
 

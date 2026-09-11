@@ -66,6 +66,7 @@ import {
   DatetimeSubExpr,
   DateFromUnixDateExpr,
   GenerateSeriesExpr,
+  SubExpr,
   DivExpr,
   GroupConcatExpr,
   IfExpr,
@@ -2014,10 +2015,6 @@ export class BigQueryGenerator extends Generator {
         },
       ],
       [
-        GenerateSeriesExpr,
-        renameFunc('GENERATE_ARRAY'),
-      ],
-      [
         GroupConcatExpr,
         function (this: Generator, e: GroupConcatExpr) {
           return groupConcatSql.call(this, e, {
@@ -2774,6 +2771,22 @@ export class BigQueryGenerator extends Generator {
       expression.args.this,
       expression.args.expression,
     ]);
+  }
+
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    const start = expression.args.start;
+    const end = expression.args.end;
+    const step = expression.args.step;
+
+    if (expression.args.isEndExclusive) {
+      const adjustedEnd = end instanceof Expression
+        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        : end;
+
+      return this.func('GENERATE_ARRAY', [start, adjustedEnd, step]);
+    }
+
+    return this.func('GENERATE_ARRAY', [start, end, step]);
   }
 
   castSql (expression: CastExpr, options: {

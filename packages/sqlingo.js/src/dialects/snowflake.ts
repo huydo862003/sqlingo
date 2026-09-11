@@ -1341,11 +1341,9 @@ class SnowflakeParser extends Parser {
         ARRAY_GENERATE_RANGE: (args: Expression[]) =>
           new GenerateSeriesExpr({
             start: seqGet(args, 0),
-            end: new SubExpr({
-              this: seqGet(args, 1),
-              expression: LiteralExpr.number(1),
-            }),
+            end: seqGet(args, 1),
             step: seqGet(args, 2),
+            isEndExclusive: true,
           }),
         ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
@@ -2785,7 +2783,7 @@ class SnowflakeGenerator extends Generator {
         function (this: Generator, e: GenerateSeriesExpr) {
           return this.func('ARRAY_GENERATE_RANGE', [
             e.args.start,
-            e.args.end?.add(1),
+            e.args.isEndExclusive ? e.args.end : e.args.end?.add(1),
             e.args.step,
           ]);
         },

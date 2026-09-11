@@ -5592,9 +5592,13 @@ class DuckDBGenerator extends Generator {
   }
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
-    // GENERATE_SERIES(a, b) -> [a, b], RANGE(a, b) -> [a, b)
+    // GENERATE_SERIES(a, b) -> [a, b] (inclusive), RANGE(a, b) -> [a, b) (exclusive)
+    const start = expression.args.start;
+    const end = expression.args.end;
+    const step = expression.args.step;
+
     if (expression.args.isEndExclusive) {
-      return renameFunc('RANGE').call(this, expression);
+      return this.func('RANGE', [start, end, step]);
     }
 
     return this.functionFallbackSql(expression);
