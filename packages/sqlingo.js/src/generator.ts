@@ -294,6 +294,7 @@ import {
   FilterExpr,
   JsonExtractExpr,
   ConnectorExpr,
+  AlterModifySqlSecurityExpr,
   AlterRenameExpr,
   BracketExpr,
   DateAddExpr,
@@ -9937,6 +9938,14 @@ export class Generator {
     this.unsupported('Unsupported Execute syntax');
 
     return '';
+  }
+
+  alterModifySqlSecuritySql (expression: AlterModifySqlSecurityExpr): string {
+    const props = this.expressions(expression, {
+      sep: ' ',
+    });
+
+    return `MODIFY ${props}`;
   }
 }
 

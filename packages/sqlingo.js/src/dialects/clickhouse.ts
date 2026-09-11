@@ -63,6 +63,9 @@ import {
   TimeToStrExpr,
   TsOrDsToTimestampExpr,
   NestedJsonSelectExpr,
+  AlterModifySqlSecurityExpr,
+  DefinerPropertyExpr,
+  SqlSecurityPropertyExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -1066,6 +1069,9 @@ class ClickHouseParser extends Parser {
   static get ALTER_PARSERS (): Record<string, (this: Parser) => Expression> {
     return {
       ...Parser.ALTER_PARSERS,
+      MODIFY: function (this: Parser) {
+        return (this as ClickHouseParser).parseAlterTableModify()!;
+      },
       REPLACE: function (this: Parser) {
         return (this as ClickHouseParser).parseAlterTableReplace()!;
       },
@@ -1566,6 +1572,18 @@ class ClickHouseParser extends Parser {
     return this.expression(PartitionExpr, {
       expressions,
     });
+  }
+
+  parseAlterTableModify (): Expression | undefined {
+    const properties = this.parseProperties();
+
+    if (properties) {
+      return this.expression(AlterModifySqlSecurityExpr, {
+        expressions: properties.args.expressions,
+      });
+    }
+
+    return undefined;
   }
 
   parseAlterTableReplace (): Expression | undefined {
@@ -2422,11 +2440,19 @@ export class ClickHouseGenerator extends Generator {
     return new Map<typeof Expression, PropertiesLocation>([
       ...Generator.PROPERTIES_LOCATION,
       [
+        DefinerPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
         OnClusterExpr,
         PropertiesLocation.POST_NAME,
       ],
       [
         PartitionedByPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        SqlSecurityPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
       [

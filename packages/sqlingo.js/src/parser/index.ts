@@ -5059,6 +5059,7 @@ export class Parser {
           this: this.matchTexts([
             'DEFINER',
             'INVOKER',
+            'NONE',
           ]) && (this.prev?.text ?? '').toUpperCase(),
         },
       );

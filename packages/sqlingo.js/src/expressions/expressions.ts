@@ -3847,6 +3847,27 @@ export class AlterRenameExpr extends Expression {
   }
 }
 
+export type AlterModifySqlSecurityExprArgs = Merge<[
+  BaseExpressionArgs,
+  {
+    expressions?: Expression[];
+  },
+]>;
+
+export class AlterModifySqlSecurityExpr extends Expression {
+  static key = ExpressionKey.ALTER_MODIFY_SQL_SECURITY;
+
+  static requiredArgs = new Set(['expressions']);
+
+  static availableArgs = new Set(['expressions']);
+
+  declare args: AlterModifySqlSecurityExprArgs;
+
+  constructor (args: AlterModifySqlSecurityExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type SwapTableExprArgs = Merge<[
   BaseExpressionArgs,
 ]>;

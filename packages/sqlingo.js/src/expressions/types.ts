@@ -45,6 +45,7 @@ export enum ExpressionKey {
   ALTER_COLUMN = 'alterColumn',
   ALTER_DIST_STYLE = 'alterDistStyle',
   ALTER_INDEX = 'alterIndex',
+  ALTER_MODIFY_SQL_SECURITY = 'alterModifySqlSecurity',
   ALTER_RENAME = 'alterRename',
   ALTER_SESSION = 'alterSession',
   ALTER_SET = 'alterSet',
