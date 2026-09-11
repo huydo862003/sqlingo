@@ -61,6 +61,7 @@ import {
   TimestampTruncExpr,
   ArrayContainsExpr,
   TimeToStrExpr,
+  TsOrDsToTimestampExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -2239,8 +2240,10 @@ export class ClickHouseGenerator extends Generator {
       [
         TimeToStrExpr,
         function (this: Generator, e: TimeToStrExpr) {
+          const thisArg = e.args.this instanceof TsOrDsToTimestampExpr ? e.args.this.args.this : e.args.this;
+
           return this.func('formatDateTime', [
-            e.args.this,
+            thisArg,
             this.formatTime(e),
             e.args.zone,
           ]);

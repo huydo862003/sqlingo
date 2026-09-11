@@ -1450,6 +1450,15 @@ class ExasolGenerator extends Generator {
         },
       ],
       [
+        TimeToStrExpr,
+        function (this: Generator, e: TimeToStrExpr) {
+          return this.func('TO_CHAR', [
+            e.args.this,
+            this.formatTime(e),
+          ]);
+        },
+      ],
+      [
         ToCharExpr,
         function (this: Generator, e: ToCharExpr) {
           return this.func('TO_CHAR', [
@@ -1462,15 +1471,6 @@ class ExasolGenerator extends Generator {
         TsOrDsToDateExpr,
         function (this: Generator, e: TsOrDsToDateExpr) {
           return this.func('TO_DATE', [
-            e.args.this,
-            this.formatTime(e),
-          ]);
-        },
-      ],
-      [
-        TimeToStrExpr,
-        function (this: Generator, e: TimeToStrExpr) {
-          return this.func('TO_CHAR', [
             e.args.this,
             this.formatTime(e),
           ]);

@@ -34,6 +34,7 @@ import {
   SoundexExpr,
   TimeToStrExpr,
   TsOrDsToDateExpr,
+  TsOrDsToTimestampExpr,
   Expression,
   StrToDateExpr,
   StrToTimeExpr,
@@ -366,7 +367,7 @@ export function removeTsOrDsToDate<T extends FuncExpr> (
     for (const argKey of args) {
       const arg = expression.getArgKey(argKey);
 
-      if (arg instanceof TsOrDsToDateExpr && !arg.args.format) {
+      if ((arg instanceof TsOrDsToDateExpr || arg instanceof TsOrDsToTimestampExpr) && !arg.args.format) {
         expression.setArgKey(argKey, arg.args.this);
       }
     }
@@ -630,8 +631,9 @@ class MySQLParser extends Parser {
           this: seqGet(args, 0),
         }),
       DATE_ADD: (args: Expression[]) => buildDateDeltaWithInterval(DateAddExpr)(args),
-      DATE_FORMAT: buildFormattedTime(TimeToStrExpr, {
-        dialect: Dialects.MYSQL,
+      DATE_FORMAT: (args: Expression[]) => new TimeToStrExpr({
+        this: new TsOrDsToTimestampExpr({ this: seqGet(args, 0) }),
+        format: Dialect.getOrRaise(Dialects.MYSQL)._constructor.formatTime(seqGet(args, 1)),
       }),
       DATE_SUB: (args: Expression[]) => buildDateDeltaWithInterval(DateSubExpr)(args),
       DAY: (args: Expression[]): DayExpr =>
