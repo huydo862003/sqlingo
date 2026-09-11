@@ -292,6 +292,7 @@ import {
   SelectExpr,
   SliceExpr,
   SortArrayExpr,
+  SplitPartExpr,
   SubExpr,
   TimestampFromPartsExpr,
   UnhexExpr,
@@ -6257,6 +6258,60 @@ class DuckDBGenerator extends Generator {
     }
 
     return this.sql(node);
+  }
+
+  splitPartSql (expression: SplitPartExpr): string {
+    const stringArg = expression.args.this;
+    const delimiterArg = expression.args.delimiter;
+    let partIndexArg: Expression | undefined = expression.args.partIndex;
+
+    if (delimiterArg && partIndexArg) {
+      if (expression.args.partIndexZeroAsOne) {
+        partIndexArg = new ParenExpr({
+          this: case_().when(
+            new EqExpr({ this: partIndexArg.copy(), expression: LiteralExpr.number(0) }),
+            LiteralExpr.number(1),
+            { copy: false },
+          ),
+        });
+        const caseExpr = (partIndexArg as ParenExpr).args.this as CaseExpr;
+        caseExpr.setArgKey('default', expression.args.partIndex);
+      }
+
+      let baseFuncExpr: Expression = new AnonymousExpr({
+        this: 'SPLIT_PART',
+        expressions: [stringArg, delimiterArg, partIndexArg].filter(Boolean) as Expression[],
+      });
+      let needsCaseTransform = false;
+      let caseExpr = case_();
+      caseExpr.setArgKey('default', baseFuncExpr);
+
+      if (expression.args.emptyDelimiterReturnsWhole) {
+        const emptyCase = new ParenExpr({
+          this: case_().when(
+            new OrExpr({
+              this: new EqExpr({ this: partIndexArg!.copy(), expression: LiteralExpr.number(1) }),
+              expression: new EqExpr({ this: partIndexArg!.copy(), expression: LiteralExpr.number(-1) }),
+            }),
+            stringArg!,
+            { copy: false },
+          ),
+        });
+        const innerCase = (emptyCase.args.this as CaseExpr);
+        innerCase.setArgKey('default', LiteralExpr.string(''));
+
+        caseExpr = caseExpr.when(
+          new EqExpr({ this: delimiterArg!.copy(), expression: LiteralExpr.string('') }),
+          emptyCase,
+          { copy: false },
+        );
+        needsCaseTransform = true;
+      }
+
+      return this.sql(needsCaseTransform ? caseExpr : baseFuncExpr);
+    }
+
+    return this.functionFallbackSql(expression);
   }
 
   respectNullsSql (expression: RespectNullsExpr): string {

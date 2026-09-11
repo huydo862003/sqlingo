@@ -225,7 +225,12 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT TRANSLATE(column_name, \'abc\', \'123\')');
     this.validateIdentity('SELECT UNICODE(column_name)');
     this.validateIdentity('SELECT WIDTH_BUCKET(col, 0, 100, 10)');
-    this.validateIdentity('SELECT SPLIT_PART(\'11.22.33\', \'.\', 1)');
+    this.validateAll("SELECT SPLIT_PART('11.22.33', '.', 2)", {
+      write: {
+        snowflake: "SELECT SPLIT_PART('11.22.33', '.', 2)",
+        duckdb: "SELECT CASE WHEN '.' = '' THEN (CASE WHEN (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = 1 OR (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = -1 THEN '11.22.33' ELSE '' END) ELSE SPLIT_PART('11.22.33', '.', (CASE WHEN 2 = 0 THEN 1 ELSE 2 END)) END",
+      },
+    });
     this.validateIdentity('SELECT PI()');
     this.validateIdentity('SELECT DEGREES(PI() / 3)');
     this.validateIdentity('SELECT DEGREES(1)');

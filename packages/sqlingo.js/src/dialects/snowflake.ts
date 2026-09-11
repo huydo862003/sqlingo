@@ -1705,6 +1705,13 @@ class SnowflakeParser extends Parser {
         ILIKE: buildLike(ILikeExpr),
         SEARCH: buildSearch,
         SKEW: (args: unknown[]) => SkewnessExpr.fromArgList(args),
+        SPLIT_PART: (args: Expression[]) => new SplitPartExpr({
+          this: seqGet(args, 0),
+          delimiter: seqGet(args, 1),
+          partIndex: seqGet(args, 2),
+          partIndexZeroAsOne: true,
+          emptyDelimiterReturnsWhole: true,
+        }),
         SYSTIMESTAMP: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
         WEEKISO: (args: unknown[]) => WeekOfYearExpr.fromArgList(args),
         WEEKOFYEAR: (args: unknown[]) => WeekExpr.fromArgList(args),
