@@ -186,7 +186,7 @@ function pushdown (
   if (cnfLike) {
     pushdownCnf(predicates, sources, scopeRefCount, joinIndex);
   } else {
-    pushdownDnf(predicates, sources, scopeRefCount);
+    pushdownDnf(predicates, sources, scopeRefCount, joinIndex);
   }
 }
 
@@ -199,8 +199,6 @@ function pushdownCnf (
   /**
    * If the predicates are in CNF like form, we can simply replace each block in the parent
    */
-  const joinIndexMap = joinIndex || new Map();
-
   for (const predicate of predicates) {
     const nodes = nodesForPredicate(predicate, sources, scopeRefCount);
 
@@ -213,20 +211,22 @@ function pushdownCnf (
           exclude: name,
         });
 
-        // Don't push the predicate if it references tables that appear in later joins
-        const thisIndex = joinIndexMap.get(name) ?? -1;
-        const canPush = Array.from(predicateTables).every((table) => {
-          const tableIndex = joinIndexMap.get(table) ?? -1;
+        if (joinIndex) {
+          // Don't push the predicate if it references tables that appear in later joins
+          const thisIndex = joinIndex.get(name) ?? -1;
+          const canPush = Array.from(predicateTables).every((table) => {
+            const tableIndex = joinIndex.get(table) ?? -1;
 
-          return tableIndex < thisIndex;
-        });
-
-        if (canPush) {
-          predicate.replace(trueExpr());
-          node.on(predicate, {
-            copy: false,
+            return tableIndex < thisIndex;
           });
-          break;
+
+          if (canPush) {
+            predicate.replace(trueExpr());
+            node.on(predicate, {
+              copy: false,
+            });
+            break;
+          }
         }
       } else if (node instanceof SelectExpr) {
         predicate.replace(trueExpr());
@@ -251,6 +251,7 @@ function pushdownDnf (
   predicates: Iterable<Expression>,
   sources: Record<string, [Expression, Scope | Expression]>,
   scopeRefCount: Map<Scope | Expression, number>,
+  joinIndex?: Map<string, number>,
 ): void {
   /**
    * If the predicates are in DNF form, we can only push down conditions that are in all blocks.
@@ -308,6 +309,13 @@ function pushdownDnf (
       }
 
       if (node instanceof JoinExpr) {
+        if (joinIndex) {
+          const thisIndex = joinIndex.get(name) ?? -1;
+          const predicateTables = columnTableNames(condition, { exclude: name });
+          if (!Array.from(predicateTables).every((t) => (joinIndex.get(t) ?? -1) < thisIndex)) {
+            continue;
+          }
+        }
         node.on(condition, {
           copy: false,
         });
