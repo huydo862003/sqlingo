@@ -396,7 +396,7 @@ function groupByAll (expression: Expression): Expression {
   }
 
   group.setArgKey('expressions', groupPositions);
-  group.setArgKey('all', false);
+  group.setArgKey('all', undefined);
 
   return expression;
 }
