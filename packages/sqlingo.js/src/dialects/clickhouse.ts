@@ -2069,6 +2069,10 @@ export class ClickHouseGenerator extends Generator {
         renameFunc('uniq'),
       ],
       [
+        ArrayDistinctExpr,
+        renameFunc('arrayDistinct'),
+      ],
+      [
         ArrayConcatExpr,
         renameFunc('arrayConcat'),
       ],

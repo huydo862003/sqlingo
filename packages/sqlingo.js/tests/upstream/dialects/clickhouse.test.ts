@@ -863,6 +863,7 @@ class TestClickHouse extends Validator {
       'SELECT COUNT(1) FROM table SETTINGS additional_table_filters = {\'a\': \'b\', \'c\': \'d\'}',
     );
     this.validateIdentity('SELECT arrayConcat([1, 2], [3, 4])');
+    this.validateIdentity('SELECT ARRAY_DISTINCT([1, 2, 2, 3, 1])', 'SELECT arrayDistinct([1, 2, 2, 3, 1])');
 
     this.validateIdentity('SELECT parseDateTime(\'2021-01-04+23:00:00\', \'%Y-%m-%d+%H:%i:%s\')');
     this.validateIdentity(
