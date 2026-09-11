@@ -10826,15 +10826,36 @@ export class Parser {
     return thisExpr;
   }
 
+  buildJsonExtract (
+    thisExpr: Expression | undefined,
+    jsonPath: string[],
+    escape: boolean | undefined,
+  ): JsonExtractExpr {
+    const jsonPathExpr = this.dialect.toJsonPath?.(LiteralExpr.string(jsonPath.join('.')));
+
+    if (jsonPathExpr) {
+      jsonPathExpr.setArgKey('escape', escape);
+    }
+
+    return this.expression(
+      JsonExtractExpr,
+      {
+        this: thisExpr,
+        expression: jsonPathExpr,
+        variantExtract: true,
+        requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
+      },
+    );
+  }
+
   parseColonAsVariantExtract (thisExpr?: Expression): Expression | undefined {
     const casts: DataTypeExpr[] = [];
-    const jsonPath: string[] = [];
+    let jsonPath: string[] = [];
     let escape: boolean | undefined;
 
     while (this.match(TokenType.COLON)) {
       const startIndex = this.index;
 
-      // Snowflake allows reserved keywords as json keys but advance_any() excludes TokenType.SELECT from any_tokens=True
       let path: ExpressionValue | undefined = this.parseColumnOps(
         this.parseField({
           anyToken: true,
@@ -10842,8 +10863,6 @@ export class Parser {
         }),
       );
 
-      // The cast :: operator has a lower precedence than the extraction operator :, so
-      // we rearrange the AST appropriately to avoid casting the JSON path
       while (path instanceof CastExpr) {
         casts.push(path.args.to as DataTypeExpr);
         path = path.args.this;
@@ -10862,35 +10881,55 @@ export class Parser {
       }
 
       if (path) {
-        // Escape single quotes from Snowflake's colon extraction (e.g. col:"a'b") as
-        // it'll roundtrip to a string literal in GET_PATH
         if (path instanceof IdentifierExpr && path.args.quoted) {
           escape = true;
+        }
+
+        // Dynamic brackets (e.g. value:a[s.x].b.c) can't be in the JSON path string
+        // since the index is a column reference. Traverse Dot/Bracket layers collecting
+        // segments, then process them inside out.
+        const segments: [BracketExpr, string[]][] = [];
+        let node: Expression | undefined = path as Expression;
+        while (true) {
+          const suffixes: string[] = [];
+          while (node instanceof DotExpr) {
+            suffixes.push(node.args.expression?.sql({ dialect: this.dialect }) ?? '');
+            node = node.args.this;
+          }
+
+          if (node instanceof BracketExpr && (node.args.expressions ?? []).some(
+            (e: Expression) => e.find(ColumnExpr),
+          )) {
+            suffixes.reverse();
+            segments.push([node, suffixes]);
+            node = node.args.this;
+          } else {
+            break;
+          }
+        }
+
+        if (segments.length > 0) {
+          jsonPath.push(segments[segments.length - 1][0].args.this?.sql({ dialect: this.dialect }) ?? '');
+          for (const [bracket, suffixes] of [...segments].reverse()) {
+            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
+            thisExpr = new BracketExpr({ this: thisExpr, expressions: bracket.args.expressions });
+            jsonPath = suffixes;
+          }
+
+          if (jsonPath.length > 0) {
+            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, undefined);
+          }
+
+          jsonPath = [];
+          continue;
         }
 
         jsonPath.push(this.findSql(this.tokens[startIndex], endToken));
       }
     }
 
-    // The VARIANT extract in Snowflake/Databricks is parsed as a JsonExtract; Snowflake uses the json_path in GET_PATH() while
-    // Databricks transforms it back to the colon/dot notation
     if (0 < jsonPath.length) {
-      const jsonPathStr = jsonPath.join('.');
-      const jsonPathExpr = this.dialect.toJsonPath?.(LiteralExpr.string(jsonPathStr));
-
-      if (jsonPathExpr) {
-        jsonPathExpr.setArgKey('escape', escape);
-      }
-
-      thisExpr = this.expression(
-        JsonExtractExpr,
-        {
-          this: thisExpr,
-          expression: jsonPathExpr,
-          variantExtract: true,
-          requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
-        },
-      );
+      thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
 
       while (0 < casts.length) {
         thisExpr = this.expression(CastExpr, {
