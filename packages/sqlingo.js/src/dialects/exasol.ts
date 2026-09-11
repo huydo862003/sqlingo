@@ -43,6 +43,7 @@ import {
   RegexpExtractExpr,
   RegexpLikeExpr,
   RegexpReplaceExpr,
+  UnixToTimeExpr,
   ParenExpr,
   ConcatExpr,
   VariancePopExpr,
@@ -542,6 +543,7 @@ class ExasolParser extends Parser {
           this: seqGet(args, 0),
         }),
         EDIT_DISTANCE: (args: unknown[]) => LevenshteinExpr.fromArgList(args),
+        FROM_POSIX_TIME: (args: unknown[]) => UnixToTimeExpr.fromArgList(args),
         CURDATE: (args: unknown[]) => CurrentDateExpr.fromArgList(args),
         NOW: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
         HASH_SHA: (args: unknown[]) => ShaExpr.fromArgList(args),
@@ -1401,6 +1403,12 @@ class ExasolGenerator extends Generator {
       [
         ModExpr,
         renameFunc('MOD'),
+      ],
+      [
+        UnixToTimeExpr,
+        function (this: Generator, e: UnixToTimeExpr) {
+          return this.func('FROM_POSIX_TIME', [e.args.this]);
+        },
       ],
       [
         ConvertTimezoneExpr,
