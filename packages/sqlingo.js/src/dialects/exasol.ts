@@ -15,6 +15,8 @@ import {
   toIdentifier,
   SelectExpr,
   AliasExpr,
+  AggFuncExpr,
+  DistinctExpr,
   IdentifierExpr,
   TableExpr,
   ColumnExpr,
@@ -87,6 +89,9 @@ import {
   type SelectExprArgs,
   null_,
 } from '../expressions';
+import {
+  UnsupportedError,
+} from '../errors';
 import {
   seqGet,
 } from '../helper';
@@ -353,6 +358,47 @@ function substringIndexSql (this: ExasolGenerator, expression: SubstringIndexExp
     direction,
     length,
   ]);
+}
+
+function groupByAll (expression: Expression): Expression {
+  if (!(expression instanceof SelectExpr)) {
+    return expression;
+  }
+
+  const group = expression.args.group;
+
+  if (!group || !group.args.all) {
+    return expression;
+  }
+
+  if (expression.isStar) {
+    if ((expression.args.expressions ?? []).some((proj: Expression) => proj.find(AggFuncExpr))) {
+      throw new UnsupportedError(
+        'GROUP BY ALL with star projection and aggregates is not supported by Exasol',
+      );
+    }
+
+    expression.setArgKey('distinct', new DistinctExpr({}));
+    expression.setArgKey('group', undefined);
+
+    return expression;
+  }
+
+  const groupPositions = (expression.args.expressions ?? [])
+    .map((proj: Expression, i: number) =>
+      !proj.find(AggFuncExpr) ? LiteralExpr.number(i + 1) : undefined)
+    .filter(Boolean);
+
+  if (groupPositions.length === 0) {
+    expression.setArgKey('group', undefined);
+
+    return expression;
+  }
+
+  group.setArgKey('expressions', groupPositions);
+  group.setArgKey('all', false);
+
+  return expression;
 }
 
 /**
@@ -1580,6 +1626,7 @@ class ExasolGenerator extends Generator {
         preprocess([
           qualifyUnscopedStar,
           addLocalPrefixForAliases,
+          groupByAll,
         ]),
       ],
       [
