@@ -202,6 +202,7 @@ import {
   ArrayPositionExpr,
   HexExpr,
   MapDeleteExpr,
+  MapInsertExpr,
   MapSizeExpr,
   RightExpr,
   BitwiseXorAggExpr,
@@ -6177,6 +6178,32 @@ class DuckDBGenerator extends Generator {
 
   mapSizeSql (expression: MapSizeExpr): string {
     return this.func('CARDINALITY', [expression.args.this]);
+  }
+
+  mapInsertSql (expression: MapInsertExpr): string {
+    if (expression.args.updateFlag) {
+      this.unsupported('MAP_INSERT update_flag is not supported in DuckDB');
+    }
+
+    const mapArg = expression.args.this;
+    const key = expression.args.key;
+    let value: Expression | undefined = expression.args.value as unknown as Expression;
+
+    if (value !== undefined && mapArg) {
+      const mapType = mapArg.type;
+      if (mapType instanceof DataTypeExpr && mapType.args.expressions?.length > 1) {
+        const valueType = mapType.args.expressions[1];
+        value = cast(value, valueType);
+      }
+    }
+
+    const newEntryStruct = new StructExpr({
+      expressions: [new PropertyEqExpr({ this: key, expression: value })],
+    });
+    const newEntry = new ToMapExpr({ this: newEntryStruct });
+    const result = func('MAP_CONCAT', mapArg, newEntry);
+
+    return this.sql(result);
   }
 
   startsWithSql (expression: StartsWithExpr): string {
