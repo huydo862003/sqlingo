@@ -41,7 +41,10 @@ import {
   Md5Expr,
   Md5DigestExpr,
   RegexpExtractExpr,
+  RegexpLikeExpr,
   RegexpReplaceExpr,
+  ParenExpr,
+  ConcatExpr,
   VariancePopExpr,
   ApproxDistinctExpr,
   ToCharExpr,
@@ -478,6 +481,7 @@ class ExasolTokenizer extends Tokenizer {
       'USER': TokenType.CURRENT_USER,
       'ENDIF': TokenType.END,
       'LONG VARCHAR': TokenType.TEXT,
+      'REGEXP_LIKE': TokenType.RLIKE,
       'SEPARATOR': TokenType.SEPARATOR,
       'SYSTIMESTAMP': TokenType.SYSTIMESTAMP,
     };
@@ -544,6 +548,12 @@ class ExasolParser extends Parser {
         HASH_SHA1: (args: unknown[]) => ShaExpr.fromArgList(args),
         HASH_MD5: (args: unknown[]) => Md5Expr.fromArgList(args),
         HASHTYPE_MD5: (args: unknown[]) => Md5DigestExpr.fromArgList(args),
+        REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          flag: seqGet(args, 2),
+          fullMatch: true,
+        }),
         REGEXP_SUBSTR: (args: unknown[]) => RegexpExtractExpr.fromArgList(args),
         REGEXP_REPLACE: (args: Expression[]) => new RegexpReplaceExpr({
           this: seqGet(args, 0),
@@ -610,6 +620,20 @@ class ExasolParser extends Parser {
             this: (this as ExasolParser).match(TokenType.IS) && this.parseString(),
           },
         );
+      },
+    };
+  }
+
+  @cache
+  static get RANGE_PARSERS (): Partial<Record<TokenType, (this: Parser, thisExpr: Expression) => Expression | undefined>> {
+    return {
+      ...Parser.RANGE_PARSERS,
+      [TokenType.RLIKE]: function (this: Parser, thisExpr: Expression) {
+        return this.expression(RegexpLikeExpr, {
+          this: thisExpr,
+          expression: this.parseBitwise(),
+          fullMatch: true,
+        });
       },
     };
   }
@@ -1567,6 +1591,32 @@ class ExasolGenerator extends Generator {
 
   collateSql (expression: CollateExpr): string {
     return this.sql(expression.args.this);
+  }
+
+  regexpLikeSql (expression: RegexpLikeExpr): string {
+    if (expression.args.flag) {
+      this.unsupported('REGEXP_LIKE flag is not supported by Exasol');
+    }
+
+    if (!expression.args.fullMatch) {
+      const pattern = expression.args.expression;
+
+      if (pattern instanceof Expression && pattern.isString) {
+        expression.setArgKey('expression', LiteralExpr.string(`.*${pattern.name}.*`));
+      } else if (pattern instanceof Expression) {
+        expression.setArgKey('expression', new ParenExpr({
+          this: new ConcatExpr({
+            expressions: [
+              LiteralExpr.string('.*'),
+              pattern,
+              LiteralExpr.string('.*'),
+            ],
+          }),
+        }));
+      }
+    }
+
+    return this.binary(expression, 'REGEXP_LIKE');
   }
 
   private noArgWindowFunc (expression: Expression, name: string): string {

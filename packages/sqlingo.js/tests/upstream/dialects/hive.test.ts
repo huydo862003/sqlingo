@@ -446,6 +446,7 @@ class TestHive extends Validator {
       {
         write: {
           duckdb: 'REGEXP_MATCHES(a, \'x\')',
+          exasol: 'a REGEXP_LIKE \'.*x.*\'',
           presto: 'REGEXP_LIKE(a, \'x\')',
           hive: 'a RLIKE \'x\'',
           spark: 'a RLIKE \'x\'',
@@ -457,6 +458,7 @@ class TestHive extends Validator {
       {
         write: {
           duckdb: 'REGEXP_MATCHES(a, \'x\')',
+          exasol: 'a REGEXP_LIKE \'.*x.*\'',
           presto: 'REGEXP_LIKE(a, \'x\')',
           hive: 'a RLIKE \'x\'',
           spark: 'a RLIKE \'x\'',

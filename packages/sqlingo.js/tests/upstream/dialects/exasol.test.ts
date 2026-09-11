@@ -954,6 +954,25 @@ class TestExasol extends Validator {
       });
     }
   }
+
+  testRegexpLike () {
+    this.validateIdentity('SELECT x REGEXP_LIKE \'.*pattern.*\'');
+
+    this.validateAll(
+      'SELECT a REGEXP_LIKE \'.*x.*\'',
+      {
+        read: {
+          hive: 'SELECT a RLIKE \'x\'',
+          presto: 'SELECT REGEXP_LIKE(a, \'x\')',
+        },
+        write: {
+          exasol: 'SELECT a REGEXP_LIKE \'.*x.*\'',
+          hive: 'SELECT a RLIKE \'.*x.*\'',
+          presto: 'SELECT REGEXP_LIKE(a, \'.*x.*\')',
+        },
+      },
+    );
+  }
 }
 
 const t = new TestExasol();
@@ -971,4 +990,5 @@ describe('TestExasol', () => {
   test('testScalar', () => t.testScalar());
   test('testOdbcDateLiterals', () => t.testOdbcDateLiterals());
   test('testLocalPrefixForAlias', () => t.testLocalPrefixForAlias());
+  test('testRegexpLike', () => t.testRegexpLike());
 });
