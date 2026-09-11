@@ -16790,6 +16790,10 @@ export class Parser {
 
   parseDeclare (): DeclareExpr | CommandExpr {
     const start = this.prev;
+    const replace = this.matchTextSeq([
+      'OR',
+      'REPLACE',
+    ]);
     const expressions = this.tryParse(() => this.parseCsv(this.parseDeclareitem.bind(this)));
 
     if (!expressions || this.curr) {
@@ -16798,6 +16802,7 @@ export class Parser {
 
     return this.expression(DeclareExpr, {
       expressions,
+      replace: replace || undefined,
     });
   }
 

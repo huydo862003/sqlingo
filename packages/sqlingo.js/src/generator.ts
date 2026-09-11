@@ -9443,7 +9443,9 @@ export class Generator {
   }
 
   declareSql (expression: DeclareExpr): string {
-    return `DECLARE ${this.expressions(expression, {
+    const replace = expression.args.replace ? 'OR REPLACE ' : '';
+
+    return `DECLARE ${replace}${this.expressions(expression, {
       flat: true,
     })}`;
   }

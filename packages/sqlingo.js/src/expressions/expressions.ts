@@ -3125,6 +3125,7 @@ export type DeclareExprArgs = Merge<[
   BaseExpressionArgs,
   {
     expressions?: Expression[];
+    replace?: boolean;
   },
 ]>;
 
@@ -3133,7 +3134,10 @@ export class DeclareExpr extends Expression {
 
   static requiredArgs = new Set(['expressions']);
 
-  static availableArgs = new Set(['expressions']);
+  static availableArgs = new Set([
+    'expressions',
+    'replace',
+  ]);
 
   declare args: DeclareExprArgs;
 
