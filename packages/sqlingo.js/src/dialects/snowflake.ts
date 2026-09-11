@@ -170,6 +170,7 @@ import {
   ArrayConcatExpr,
   ArrayAppendExpr,
   ArrayPrependExpr,
+  ArrayExceptExpr,
   ArrayIntersectExpr,
   ArrayPositionExpr,
   ArraySliceExpr,
@@ -1381,6 +1382,15 @@ class SnowflakeParser extends Parser {
           start: seqGet(args, 1),
           end: seqGet(args, 2),
           zeroBased: true,
+        }),
+        ARRAY_EXCEPT: (args: Expression[]) => new ArrayExceptExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          isMultiset: true,
+        }),
+        ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({
+          expressions: args,
+          isMultiset: true,
         }),
         ARRAY_POSITION: (args: Expression[]) => new ArrayPositionExpr({
           this: seqGet(args, 1),

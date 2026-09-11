@@ -18486,6 +18486,7 @@ export type ArrayExceptExprArgs = Merge<[
   {
     this?: Expression;
     expression?: Expression;
+    isMultiset?: boolean;
   },
 ]>;
 
@@ -18495,6 +18496,7 @@ export class ArrayExceptExpr extends FuncExpr {
   static availableArgs = new Set([
     'this',
     'expression',
+    'isMultiset',
   ]);
 
   static argOrder = [
@@ -18976,6 +18978,7 @@ export type ArrayIntersectExprArgs = Merge<[
   FuncExprArgs,
   {
     expressions?: Expression[];
+    isMultiset?: boolean;
   },
 ]>;
 
@@ -18991,7 +18994,7 @@ export class ArrayIntersectExpr extends FuncExpr {
 
   static requiredArgs = new Set(['expressions']);
 
-  static availableArgs = new Set(['expressions']);
+  static availableArgs = new Set(['expressions', 'isMultiset']);
 
   static argOrder = ['expressions'];
 
