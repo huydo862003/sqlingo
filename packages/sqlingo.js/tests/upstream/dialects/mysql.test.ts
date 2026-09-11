@@ -819,10 +819,12 @@ class TestMySQL extends Validator {
       'SELECT DATEDIFF(x, y)',
       {
         read: {
+          exasol: 'SELECT DAYS_BETWEEN(x, y)',
           presto: 'SELECT DATE_DIFF(\'DAY\', y, x)',
           redshift: 'SELECT DATEDIFF(DAY, y, x)',
         },
         write: {
+          exasol: 'SELECT DAYS_BETWEEN(x, y)',
           mysql: 'SELECT DATEDIFF(x, y)',
           presto: 'SELECT DATE_DIFF(\'DAY\', y, x)',
           redshift: 'SELECT DATEDIFF(DAY, y, x)',
