@@ -231,6 +231,12 @@ class TestSnowflake extends Validator {
         duckdb: "SELECT CASE WHEN '.' = '' THEN (CASE WHEN (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = 1 OR (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = -1 THEN '11.22.33' ELSE '' END) ELSE SPLIT_PART('11.22.33', '.', (CASE WHEN 2 = 0 THEN 1 ELSE 2 END)) END",
       },
     });
+    this.validateAll("SELECT SPLIT('127.0.0.1', '.')", {
+      write: {
+        snowflake: "SELECT SPLIT('127.0.0.1', '.')",
+        duckdb: "SELECT CASE WHEN '.' IS NULL THEN NULL WHEN '.' = '' THEN ['127.0.0.1'] ELSE STR_SPLIT('127.0.0.1', '.') END",
+      },
+    });
     this.validateIdentity('SELECT PI()');
     this.validateIdentity('SELECT DEGREES(PI() / 3)');
     this.validateIdentity('SELECT DEGREES(1)');

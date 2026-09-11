@@ -84,6 +84,7 @@ import {
   NegExpr,
   null_,
   PropertyEqExpr,
+  SplitExpr,
   SplitPartExpr,
   StarMapExpr,
   StrToTimeExpr,
@@ -1552,6 +1553,12 @@ class SnowflakeParser extends Parser {
         SHA1_HEX: (args: unknown[]) => ShaExpr.fromArgList(args),
         SHA2_BINARY: (args: unknown[]) => Sha2DigestExpr.fromArgList(args),
         SHA2_HEX: (args: unknown[]) => Sha2Expr.fromArgList(args),
+        SPLIT: (args: Expression[]) => new SplitExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullReturnsNull: true,
+          emptyDelimiterReturnsWhole: true,
+        }),
         SQUARE: (args: Expression[]) =>
           new PowExpr({
             this: seqGet(args, 0),

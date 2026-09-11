@@ -28296,6 +28296,8 @@ export type SplitExprArgs = Merge<[
     this?: Expression;
     expression?: Expression;
     limit?: number | Expression;
+    nullReturnsNull?: boolean;
+    emptyDelimiterReturnsWhole?: boolean;
   },
 ]>;
 
@@ -28311,6 +28313,8 @@ export class SplitExpr extends FuncExpr {
     'this',
     'expression',
     'limit',
+    'nullReturnsNull',
+    'emptyDelimiterReturnsWhole',
   ]);
 
   static argOrder = [

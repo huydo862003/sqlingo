@@ -364,6 +364,7 @@ import {
   JoinExprKind,
   CurrentCatalogExpr,
   SessionUserExpr,
+  array,
   func,
   wrap,
   var_,
@@ -3626,10 +3627,6 @@ class DuckDBGenerator extends Generator {
         renameFunc('RANDOM'),
       ],
       [
-        SplitExpr,
-        renameFunc('STR_SPLIT'),
-      ],
-      [
         StrPositionExpr,
         strPositionSql,
       ],
@@ -6278,6 +6275,34 @@ class DuckDBGenerator extends Generator {
     }
 
     return this.sql(node);
+  }
+
+  splitSql (expression: SplitExpr): string {
+    const baseFunc = func('STR_SPLIT', expression.args.this, expression.args.expression);
+
+    let caseExpr = case_();
+    caseExpr.setArgKey('default', baseFunc);
+    let needsCase = false;
+
+    if (expression.args.nullReturnsNull) {
+      caseExpr = caseExpr.when(
+        new IsExpr({ this: expression.args.expression, expression: new NullExpr({}) }),
+        new NullExpr({}),
+        { copy: false },
+      );
+      needsCase = true;
+    }
+
+    if (expression.args.emptyDelimiterReturnsWhole) {
+      caseExpr = caseExpr.when(
+        new EqExpr({ this: expression.args.expression!.copy(), expression: LiteralExpr.string('') }),
+        array([expression.args.this!]),
+        { copy: false },
+      );
+      needsCase = true;
+    }
+
+    return this.sql(needsCase ? caseExpr : baseFunc);
   }
 
   splitPartSql (expression: SplitPartExpr): string {
