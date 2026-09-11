@@ -73,6 +73,9 @@ import {
   dateDeltaSql,
 } from './dialect';
 import {
+  RedshiftTyping,
+} from '../typing/redshift';
+import {
   Postgres,
 } from './postgres';
 
@@ -891,6 +894,11 @@ export class Redshift extends Postgres {
   @cache
   static get NORMALIZATION_STRATEGY () {
     return NormalizationStrategy.CASE_INSENSITIVE;
+  }
+
+  @cache
+  static get EXPRESSION_METADATA () {
+    return new Map(RedshiftTyping.EXPRESSION_METADATA);
   }
 
   static SUPPORTS_USER_DEFINED_TYPES = false;
