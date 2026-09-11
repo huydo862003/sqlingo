@@ -162,6 +162,8 @@ import {
   ExceptExpr,
   ExcludeColumnConstraintExpr,
   ExecuteAsPropertyExpr,
+  HandlerPropertyExpr,
+  ParameterStylePropertyExpr,
   ExistsExpr,
   Expression, GrantPrivilegeExpr, OverlayExpr, RevokeExpr,
   ExpressionKey,
@@ -2640,6 +2642,9 @@ export class Parser {
           },
         );
       },
+      'HANDLER': function (this: Parser) {
+        return this.parsePropertyAssignment(HandlerPropertyExpr);
+      },
       'EXECUTE': function (this: Parser) {
         return this.parsePropertyAssignment(ExecuteAsPropertyExpr);
       },
@@ -5063,6 +5068,16 @@ export class Parser {
           ]) && (this.prev?.text ?? '').toUpperCase(),
         },
       );
+    }
+
+    if (this.matchTextSeq([
+      'PARAMETER',
+      'STYLE',
+      'PANDAS',
+    ])) {
+      return this.expression(ParameterStylePropertyExpr, {
+        this: 'PANDAS',
+      });
     }
 
     const index = this.index;

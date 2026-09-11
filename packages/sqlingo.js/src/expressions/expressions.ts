@@ -10898,6 +10898,40 @@ export type HeapPropertyExprArgs = Merge<[
   },
 ]>;
 
+export type HandlerPropertyExprArgs = Merge<[
+  PropertyExprArgs,
+]>;
+
+export class HandlerPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.HANDLER_PROPERTY;
+
+  static requiredArgs = new Set(['this']);
+  static availableArgs = new Set(['this']);
+
+  declare args: HandlerPropertyExprArgs;
+
+  constructor (args: HandlerPropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
+export type ParameterStylePropertyExprArgs = Merge<[
+  PropertyExprArgs,
+]>;
+
+export class ParameterStylePropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.PARAMETER_STYLE_PROPERTY;
+
+  static requiredArgs = new Set(['this']);
+  static availableArgs = new Set(['this']);
+
+  declare args: ParameterStylePropertyExprArgs;
+
+  constructor (args: ParameterStylePropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
 export class HeapPropertyExpr extends PropertyExpr {
   static key = ExpressionKey.HEAP_PROPERTY;
 

@@ -378,6 +378,8 @@ import {
   EndStatementExpr,
   EncodeColumnConstraintExpr,
   EnviromentPropertyExpr,
+  HandlerPropertyExpr,
+  ParameterStylePropertyExpr,
   EphemeralColumnConstraintExpr,
   ExcludeColumnConstraintExpr,
   ExceptExpr,
@@ -1321,6 +1323,18 @@ export class Generator {
           },
         ],
         [
+          HandlerPropertyExpr,
+          function (this: Generator, e) {
+            return `HANDLER ${this.sql(e, 'this')}`;
+          },
+        ],
+        [
+          ParameterStylePropertyExpr,
+          function (this: Generator, e) {
+            return `PARAMETER STYLE ${this.sql(e, 'this')}`;
+          },
+        ],
+        [
           EphemeralColumnConstraintExpr,
           function (this: Generator, e: Expression) {
             return `EPHEMERAL${e.args.this ? ' ' + this.sql(e, 'this') : ''}`;
@@ -1981,6 +1995,14 @@ export class Generator {
       ],
       [
         EnviromentPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        HandlerPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        ParameterStylePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
       [
