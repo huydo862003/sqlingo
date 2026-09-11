@@ -28,7 +28,6 @@ import {
   ReverseExpr,
   RepeatExpr,
   Md5Expr,
-  Sha2Expr,
   ExpExpr,
   LnExpr,
   LogExpr,
@@ -44,42 +43,147 @@ import {
 } from '../src/expressions';
 
 describe('sqlNames() must not depend on minified class names', () => {
-  for (const [cls, name] of [
-    [CountExpr, 'COUNT'],
-    [FloorExpr, 'FLOOR'],
-    [CeilExpr, 'CEIL'],
-    [SumExpr, 'SUM'],
-    [AvgExpr, 'AVG'],
-    [MaxExpr, 'MAX'],
-    [MinExpr, 'MIN'],
-    [AbsExpr, 'ABS'],
-    [RoundExpr, 'ROUND'],
-    [CoalesceExpr, 'COALESCE'],
-    [ConcatExpr, 'CONCAT'],
-    [UpperExpr, 'UPPER'],
-    [LowerExpr, 'LOWER'],
-    [LengthExpr, 'LENGTH'],
-    [TrimExpr, 'TRIM'],
-    [LeftExpr, 'LEFT'],
-    [RightExpr, 'RIGHT'],
-    [SubstringExpr, 'SUBSTRING'],
-    [ReplaceExpr, 'REPLACE'],
-    [ReverseExpr, 'REVERSE'],
-    [RepeatExpr, 'REPEAT'],
-    [Md5Expr, 'MD5'],
-    [ExpExpr, 'EXP'],
-    [LnExpr, 'LN'],
-    [LogExpr, 'LOG'],
-    [SqrtExpr, 'SQRT'],
-    [StddevExpr, 'STDDEV'],
-    [VarianceExpr, 'VARIANCE'],
-    [DateAddExpr, 'DATE_ADD'],
-    [DateSubExpr, 'DATE_SUB'],
-    [DateDiffExpr, 'DATE_DIFF'],
-    [YearExpr, 'YEAR'],
-    [MonthExpr, 'MONTH'],
-    [DayExpr, 'DAY'],
-  ] as const) {
+  for (const [
+    cls,
+    name,
+  ] of [
+      [
+        CountExpr,
+        'COUNT',
+      ],
+      [
+        FloorExpr,
+        'FLOOR',
+      ],
+      [
+        CeilExpr,
+        'CEIL',
+      ],
+      [
+        SumExpr,
+        'SUM',
+      ],
+      [
+        AvgExpr,
+        'AVG',
+      ],
+      [
+        MaxExpr,
+        'MAX',
+      ],
+      [
+        MinExpr,
+        'MIN',
+      ],
+      [
+        AbsExpr,
+        'ABS',
+      ],
+      [
+        RoundExpr,
+        'ROUND',
+      ],
+      [
+        CoalesceExpr,
+        'COALESCE',
+      ],
+      [
+        ConcatExpr,
+        'CONCAT',
+      ],
+      [
+        UpperExpr,
+        'UPPER',
+      ],
+      [
+        LowerExpr,
+        'LOWER',
+      ],
+      [
+        LengthExpr,
+        'LENGTH',
+      ],
+      [
+        TrimExpr,
+        'TRIM',
+      ],
+      [
+        LeftExpr,
+        'LEFT',
+      ],
+      [
+        RightExpr,
+        'RIGHT',
+      ],
+      [
+        SubstringExpr,
+        'SUBSTRING',
+      ],
+      [
+        ReplaceExpr,
+        'REPLACE',
+      ],
+      [
+        ReverseExpr,
+        'REVERSE',
+      ],
+      [
+        RepeatExpr,
+        'REPEAT',
+      ],
+      [
+        Md5Expr,
+        'MD5',
+      ],
+      [
+        ExpExpr,
+        'EXP',
+      ],
+      [
+        LnExpr,
+        'LN',
+      ],
+      [
+        LogExpr,
+        'LOG',
+      ],
+      [
+        SqrtExpr,
+        'SQRT',
+      ],
+      [
+        StddevExpr,
+        'STDDEV',
+      ],
+      [
+        VarianceExpr,
+        'VARIANCE',
+      ],
+      [
+        DateAddExpr,
+        'DATE_ADD',
+      ],
+      [
+        DateSubExpr,
+        'DATE_SUB',
+      ],
+      [
+        DateDiffExpr,
+        'DATE_DIFF',
+      ],
+      [
+        YearExpr,
+        'YEAR',
+      ],
+      [
+        MonthExpr,
+        'MONTH',
+      ],
+      [
+        DayExpr,
+        'DAY',
+      ],
+    ] as const) {
     test(`${name}`, () => {
       expect(cls.sqlNames()).toContain(name);
     });
