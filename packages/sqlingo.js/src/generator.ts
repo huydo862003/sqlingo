@@ -666,6 +666,9 @@ export class Generator {
   // Whether ignore nulls is inside the agg or outside
   // FIRST(x IGNORE NULLS) OVER vs FIRST (x) IGNORE NULLS OVER
   static IGNORE_NULLS_IN_FUNC = false;
+  // Whether IGNORE NULLS is placed before ORDER BY in the agg.
+  // FIRST(x IGNORE NULLS ORDER BY y) vs FIRST(x ORDER BY y IGNORE NULLS)
+  static IGNORE_NULLS_BEFORE_ORDER = true;
   static RESPECT_IGNORE_NULLS_UNSUPPORTED_EXPRESSIONS: (typeof Expression)[] = [];
 
   // Whether locking reads (i.e. SELECT ... FOR UPDATE/SHARE) are supported
@@ -8461,37 +8464,39 @@ export class Generator {
     }
 
     if (this._constructor.IGNORE_NULLS_IN_FUNC && !expression.meta?.inline) {
-      // Sort modifiers: HavingMax -> Order -> Limit
-      const mods = [
-        ...expression.findAll<HavingMaxExpr | OrderExpr | LimitExpr>([
-          HavingMaxExpr,
-          OrderExpr,
-          LimitExpr,
-        ]),
-      ].sort((a, b) => {
-        const getPriority = (x: Expression) => {
-          if (x instanceof HavingMaxExpr) return 0;
-          if (x instanceof OrderExpr) return 1;
+      if (this._constructor.IGNORE_NULLS_BEFORE_ORDER) {
+        // Sort modifiers: HavingMax -> Order -> Limit
+        const mods = [
+          ...expression.findAll<HavingMaxExpr | OrderExpr | LimitExpr>([
+            HavingMaxExpr,
+            OrderExpr,
+            LimitExpr,
+          ]),
+        ].sort((a, b) => {
+          const getPriority = (x: Expression) => {
+            if (x instanceof HavingMaxExpr) return 0;
+            if (x instanceof OrderExpr) return 1;
 
-          return 2;
-        };
+            return 2;
+          };
 
-        return getPriority(a) - getPriority(b);
-      });
-
-      if (0 < mods.length) {
-        const mod = mods[0];
-        const newThis = new expression._constructor({
-          this: mod.args.this?.copy(),
+          return getPriority(a) - getPriority(b);
         });
 
-        newThis.meta = {
-          ...newThis.meta,
-          inline: true,
-        };
-        mod.args.this?.replace(newThis);
+        if (0 < mods.length) {
+          const mod = mods[0];
+          const newThis = new expression._constructor({
+            this: mod.args.this?.copy(),
+          });
 
-        return this.sql(expression.args.this);
+          newThis.meta = {
+            ...newThis.meta,
+            inline: true,
+          };
+          mod.args.this?.replace(newThis);
+
+          return this.sql(expression.args.this);
+        }
       }
 
       const aggFunc = expression.find(AggFuncExpr);

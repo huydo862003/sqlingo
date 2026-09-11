@@ -2928,6 +2928,7 @@ class DuckDBGenerator extends Generator {
   static LAST_DAY_SUPPORTS_DATE_PART = false;
   static JSON_KEY_VALUE_PAIR_SEP = ',';
   static IGNORE_NULLS_IN_FUNC = true;
+  static IGNORE_NULLS_BEFORE_ORDER = false;
   static JSON_PATH_BRACKETED_KEY_SUPPORTED = false;
   static SUPPORTS_CREATE_TABLE_LIKE = false;
   static MULTI_ARG_DISTINCT = false;

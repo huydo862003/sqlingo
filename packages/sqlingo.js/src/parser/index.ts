@@ -14679,9 +14679,11 @@ export class Parser {
     }
 
     return this.parseLimit(
-      this.parseOrder({
-        thisExpr: this.parseHavingMax(this.parseRespectOrIgnoreNulls(thisExpr)),
-      }),
+      this.parseRespectOrIgnoreNulls(
+        this.parseOrder({
+          thisExpr: this.parseHavingMax(this.parseRespectOrIgnoreNulls(thisExpr)),
+        }),
+      ),
     );
   }
 

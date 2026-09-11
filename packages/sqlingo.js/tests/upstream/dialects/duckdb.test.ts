@@ -145,6 +145,8 @@ class TestDuckDB extends Validator {
     this.validateIdentity('SELECT SUM(x) OVER (ORDER BY x GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t');
     this.validateIdentity("SELECT file[:256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
     this.validateIdentity("SELECT file[256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
+    this.validateIdentity('SELECT LAST_VALUE(x ORDER BY x IGNORE NULLS) OVER (ORDER BY x) FROM t');
+    this.validateIdentity('SELECT LAST_VALUE(x ORDER BY x RESPECT NULLS) OVER (ORDER BY x) FROM t');
     this.validateAll('SELECT * FROM x ORDER BY 1 NULLS LAST', {
       write: {
         duckdb: 'SELECT * FROM x ORDER BY 1',
