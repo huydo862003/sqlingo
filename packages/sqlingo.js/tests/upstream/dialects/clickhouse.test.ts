@@ -2049,6 +2049,10 @@ LIFETIME(MIN 0 MAX 0)`,
     );
     this.validateIdentity('splitByChar(\'\', x)');
   }
+
+  testJsonNested () {
+    this.validateIdentity('SELECT col.^nested, t.col2.^nested, t.col3.^nested.twice FROM t');
+  }
 }
 
 const t = new TestClickHouse();
@@ -2079,4 +2083,5 @@ describe('TestClickHouse', () => {
   test('arrayOffset', () => t.testArrayOffset());
   test('toStartOf', () => t.testToStartOf());
   test('stringSplit', () => t.testStringSplit());
+  test('testJsonNested', () => t.testJsonNested());
 });

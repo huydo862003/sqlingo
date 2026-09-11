@@ -62,6 +62,7 @@ import {
   ArrayContainsExpr,
   TimeToStrExpr,
   TsOrDsToTimestampExpr,
+  NestedJsonSelectExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -529,6 +530,7 @@ class ClickHouseTokenizer extends Tokenizer {
     const keywords: Record<string, TokenType> = {
       ...Tokenizer.KEYWORDS,
       '.:': TokenType.DOTCOLON,
+      '.^': TokenType.DOTCARET,
       'ATTACH': TokenType.COMMAND,
       'DATE32': TokenType.DATE32,
       'DATETIME64': TokenType.DATETIME64,
@@ -984,6 +986,12 @@ class ClickHouseParser extends Parser {
   static get COLUMN_OPERATORS (): Partial<Record<TokenType, undefined | ((this: Parser, this_?: Expression, to?: Expression) => Expression)>> {
     const parsers = {
       ...Parser.COLUMN_OPERATORS,
+      [TokenType.DOTCARET]: function (this: Parser, thisExpr?: Expression, field?: Expression) {
+        return this.expression(NestedJsonSelectExpr, {
+          this: thisExpr,
+          expression: field,
+        });
+      },
     };
 
     delete parsers[TokenType.PLACEHOLDER];
@@ -2736,6 +2744,10 @@ export class ClickHouseGenerator extends Generator {
 
   projectionDefSql (expression: ProjectionDefExpr): string {
     return `PROJECTION ${this.sql(expression.args.this)} ${this.wrap(expression.args.expression ?? '')}`;
+  }
+
+  nestedJsonSelectSql (expression: NestedJsonSelectExpr): string {
+    return `${this.sql(expression, 'this')}.^${this.sql(expression, 'expression')}`;
   }
 
   isSql (expression: IsExpr): string {

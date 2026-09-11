@@ -605,6 +605,7 @@ export enum ExpressionKey {
   NATIONAL = 'national',
   NEG = 'neg',
   NEQ = 'neq',
+  NESTED_JSON_SELECT = 'nestedJsonSelect',
   NET_FUNC = 'netFunc',
   NEXT_DAY = 'nextDay',
   NEXT_VALUE_FOR = 'nextValueFor',

@@ -29,6 +29,7 @@ export enum TokenType {
   PLUS = 'plus',
   COLON = 'colon',
   DOTCOLON = 'dotcolon',
+  DOTCARET = 'dotcaret',
   DCOLON = 'dcolon',
   DCOLONDOLLAR = 'dcolondollar',
   DCOLONPERCENT = 'dcolonpercent',

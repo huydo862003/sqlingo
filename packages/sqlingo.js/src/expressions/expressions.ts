@@ -15881,6 +15881,21 @@ export class NeqExpr extends multiInherit(BinaryExpr, PredicateExpr) {
   }
 }
 
+// ClickHouse nested JSON subcolumn access: col.^nested
+export type NestedJsonSelectExprArgs = Merge<[
+  BinaryExprArgs,
+]>;
+
+export class NestedJsonSelectExpr extends BinaryExpr {
+  static key = ExpressionKey.NESTED_JSON_SELECT;
+
+  declare args: NestedJsonSelectExprArgs;
+
+  constructor (args: NestedJsonSelectExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type OperatorExprArgs = Merge<[
   BinaryExprArgs,
   {
