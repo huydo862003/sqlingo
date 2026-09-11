@@ -14426,7 +14426,9 @@ export class Parser {
         thisExpr.addComments(comments);
       }
 
-      this.matchRParen(thisExpr);
+      this.match(TokenType.R_PAREN, {
+        expression: thisExpr instanceof Expression ? thisExpr : undefined,
+      });
 
       return this.parseWindow(thisExpr);
     } else {

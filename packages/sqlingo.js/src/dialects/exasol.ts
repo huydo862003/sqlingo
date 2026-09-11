@@ -41,6 +41,7 @@ import {
   Md5Expr,
   Md5DigestExpr,
   RegexpExtractExpr,
+  JsonExtractExpr,
   RegexpLikeExpr,
   RegexpReplaceExpr,
   UnixToTimeExpr,
@@ -664,6 +665,9 @@ class ExasolParser extends Parser {
       JSON_VALUE: function (this: Parser) {
         return this.parseJsonValue();
       },
+      JSON_EXTRACT: function (this: Parser) {
+        return (this as ExasolParser).parseJsonExtract();
+      },
     };
   }
 
@@ -691,6 +695,28 @@ class ExasolParser extends Parser {
     }
 
     return column;
+  }
+
+  parseJsonExtract (): JsonExtractExpr {
+    const args = this.parseExpressions();
+
+    this.matchRParen();
+
+    const expression = this.expression(JsonExtractExpr, {
+      expressions: args,
+    });
+
+    if (this.matchTexts('EMITS')) {
+      const schema = this.parseSchema();
+
+      if (schema) {
+        expression.setArgKey('emits', schema.args.expressions);
+      } else {
+        this.raiseError('Expected schema after EMITS');
+      }
+    }
+
+    return expression;
   }
 
   // port from _Dialect metaclass logic
@@ -1599,6 +1625,25 @@ class ExasolGenerator extends Generator {
 
   collateSql (expression: CollateExpr): string {
     return this.sql(expression.args.this);
+  }
+
+  jsonExtractSql (expression: JsonExtractExpr): string {
+    let sql = this.func('JSON_EXTRACT', [
+      expression.args.this,
+      expression.args.expression,
+      ...(expression.args.expressions ?? []),
+    ]);
+    const columns = expression.args.emits;
+
+    if (Array.isArray(columns) && columns.length > 0) {
+      const emits = this.expressions(undefined, {
+        sqls: columns,
+      });
+
+      sql = `${sql} EMITS (${emits})`;
+    }
+
+    return sql;
   }
 
   regexpLikeSql (expression: RegexpLikeExpr): string {
