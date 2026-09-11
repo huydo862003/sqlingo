@@ -1487,6 +1487,36 @@ class TestSnowflake extends Validator {
     );
 
     this.validateAll(
+      'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+          'duckdb': 'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAG(amount, 2) IGNORE NULLS OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount, 2) IGNORE NULLS OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+          'duckdb': 'SELECT LAG(amount, 2 IGNORE NULLS) OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAG(amount, 2, -777) RESPECT NULLS OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount, 2, -777) RESPECT NULLS OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
+          'duckdb': 'SELECT LAG(amount, 2, -777 RESPECT NULLS) OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
+        },
+      },
+    );
+
+    this.validateAll(
       'SELECT BOOLOR_AGG(c1), BOOLOR_AGG(c2) FROM test',
       {
         write: {
