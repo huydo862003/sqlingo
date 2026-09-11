@@ -663,6 +663,9 @@ export class Generator {
     return NullOrderingSupported.SUPPORTED;
   }
 
+  // Window functions that support NULLS FIRST/LAST
+  static WINDOW_FUNCS_WITH_NULL_ORDERING: (typeof Expression)[] = [];
+
   // Whether ignore nulls is inside the agg or outside
   // FIRST(x IGNORE NULLS) OVER vs FIRST (x) IGNORE NULLS OVER
   static IGNORE_NULLS_IN_FUNC = false;
@@ -5371,40 +5374,58 @@ export class Generator {
     if (nullsSortChange && this._constructor.NULL_ORDERING_SUPPORTED !== NullOrderingSupported.SUPPORTED) {
       const window = expression.findAncestor<WindowExpr | SelectExpr>(WindowExpr, SelectExpr);
 
-      if (window instanceof WindowExpr && window.args.spec) {
-        this.unsupported(
-          `'${nullsSortChange.trim()}' translation not supported in window functions`,
-        );
-        nullsSortChange = '';
-      } else if (
-        this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.PARTIAL
-        && ((asc && nullsSortChange === ' NULLS LAST') || (desc && nullsSortChange === ' NULLS FIRST'))
-      ) {
-        // BigQuery does not allow these ordering/nulls combinations when used under
-        // an aggregation func or under a window containing one
-        let ancestor: Expression | undefined = expression.findAncestor<AggFuncExpr | WindowExpr | SelectExpr>(AggFuncExpr, WindowExpr, SelectExpr);
+      let windowThis: Expression | undefined;
+      let spec: Expression | undefined;
 
-        if (ancestor instanceof WindowExpr) {
-          ancestor = ancestor.args.this;
-        }
+      if (window instanceof WindowExpr) {
+        windowThis = window.args.this;
+        spec = window.args.spec;
+      }
 
-        if (ancestor instanceof AggFuncExpr) {
+      // Some window functions (e.g. LAST_VALUE, RANK) support NULLS FIRST/LAST
+      // without a spec or with a ROWS spec, but not with RANGE
+      const isWindowFuncWithNullOrdering = windowThis instanceof Expression
+        && this._constructor.WINDOW_FUNCS_WITH_NULL_ORDERING.some(
+          (cls: typeof Expression) => windowThis instanceof cls,
+        )
+        && (!spec || (spec instanceof WindowSpecExpr && String(spec.args.kind).toUpperCase() === 'ROWS'));
+
+      if (!isWindowFuncWithNullOrdering) {
+        if (windowThis && spec) {
           this.unsupported(
-            `'${nullsSortChange.trim()}' translation not supported for aggregate functions with ${sortOrder} sort order`,
+            `'${nullsSortChange.trim()}' translation not supported in window function ${windowThis._constructor.name}`,
           );
           nullsSortChange = '';
-        }
-      } else if (this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.UNSUPPORTED) {
-        if (expression.args.this?.isInteger) {
-          this.unsupported(
-            `'${nullsSortChange.trim()}' translation not supported with positional ordering`,
-          );
-        } else if (!(expression.args.this instanceof RandExpr)) {
-          const nullSortOrder = nullsSortChange === ' NULLS FIRST' ? ' DESC' : '';
+        } else if (
+          this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.PARTIAL
+          && ((asc && nullsSortChange === ' NULLS LAST') || (desc && nullsSortChange === ' NULLS FIRST'))
+        ) {
+          // BigQuery does not allow these ordering/nulls combinations when used under
+          // an aggregation func or under a window containing one
+          let ancestor: Expression | undefined = expression.findAncestor<AggFuncExpr | WindowExpr | SelectExpr>(AggFuncExpr, WindowExpr, SelectExpr);
 
-          thisStr = `CASE WHEN ${thisStr} IS NULL THEN 1 ELSE 0 END${nullSortOrder}, ${thisStr}`;
+          if (ancestor instanceof WindowExpr) {
+            ancestor = ancestor.args.this;
+          }
+
+          if (ancestor instanceof AggFuncExpr) {
+            this.unsupported(
+              `'${nullsSortChange.trim()}' translation not supported for aggregate function ${ancestor._constructor.name} with ${sortOrder} sort order`,
+            );
+            nullsSortChange = '';
+          }
+        } else if (this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.UNSUPPORTED) {
+          if (expression.args.this?.isInteger) {
+            this.unsupported(
+              `'${nullsSortChange.trim()}' translation not supported with positional ordering`,
+            );
+          } else if (!(expression.args.this instanceof RandExpr)) {
+            const nullSortOrder = nullsSortChange === ' NULLS FIRST' ? ' DESC' : '';
+
+            thisStr = `CASE WHEN ${thisStr} IS NULL THEN 1 ELSE 0 END${nullSortOrder}, ${thisStr}`;
+          }
+          nullsSortChange = '';
         }
-        nullsSortChange = '';
       }
     }
 

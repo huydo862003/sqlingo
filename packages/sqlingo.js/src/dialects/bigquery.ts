@@ -186,6 +186,17 @@ import {
   UpdateExpr,
   DataTypeExpr,
   func,
+  CumeDistExpr,
+  DenseRankExpr,
+  FirstValueExpr,
+  LagExpr,
+  LastValueExpr,
+  LeadExpr,
+  NthValueExpr,
+  NtileExpr,
+  PercentRankExpr,
+  RankExpr,
+  RowNumberExpr,
 } from '../expressions';
 import {
   annotateTypes, TypeAnnotator,
@@ -1866,6 +1877,20 @@ export class BigQueryGenerator extends Generator {
   static SUPPORTS_UNIX_SECONDS = true;
 
   static SAFE_JSON_PATH_KEY_RE = /^[_\-a-zA-Z][\-\w]*$/;
+
+  static WINDOW_FUNCS_WITH_NULL_ORDERING: (typeof Expression)[] = [
+    CumeDistExpr,
+    DenseRankExpr,
+    FirstValueExpr,
+    LagExpr,
+    LastValueExpr,
+    LeadExpr,
+    NthValueExpr,
+    NtileExpr,
+    PercentRankExpr,
+    RankExpr,
+    RowNumberExpr,
+  ];
 
   @cache
   static get TS_OR_DS_TYPES () {

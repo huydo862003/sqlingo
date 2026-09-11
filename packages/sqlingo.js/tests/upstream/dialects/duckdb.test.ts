@@ -253,7 +253,7 @@ class TestDuckDB extends Validator {
     this.validateAll('WITH t AS (SELECT 5 AS c) SELECT RANGE(1, c) FROM t', {
       write: {
         duckdb: 'WITH t AS (SELECT 5 AS c) SELECT RANGE(1, c) FROM t',
-        spark: 'WITH t AS (SELECT 5 AS c) SELECT IF((c - 1) <= 1, ARRAY(), SEQUENCE(1, (c - 1))) FROM t',
+        spark: 'WITH t AS (SELECT 5 AS c) SELECT IF((c - 1) < 1, ARRAY(), SEQUENCE(1, (c - 1))) FROM t',
       },
     });
     this.validateAll('SELECT JSON_EXTRACT(\'{"duck": [1, 2, 3]}\', \'/duck/0\')', {
