@@ -1411,28 +1411,34 @@ function weekUnitToDow (unit: Expression | undefined): number | undefined {
 }
 
 /** Custom DATE_TRUNC logic for non-Monday week starts */
-function buildWeekTruncExpression (dateExpr: Expression, startDow: number): Expression {
+function buildWeekTruncExpression (dateExpr: Expression, startDow: number, options: { preserveStartDay?: boolean } = {}): Expression {
+  const { preserveStartDay = false } = options;
   const shiftDays = startDow === 7 ? 1 : 1 - startDow;
+  const truncated = func('DATE_TRUNC', new VarExpr({ this: 'WEEK' }), dateExpr);
 
-  const shiftedDate =
-    shiftDays !== 0
-      ? new DateAddExpr({
-        this: dateExpr,
-        expression: new IntervalExpr({
-          this: LiteralExpr.string(shiftDays.toString()),
-          unit: new VarExpr({
-            this: 'DAY',
-          }),
-        }),
-      })
-      : dateExpr;
+  if (shiftDays === 0) {
+    return truncated;
+  }
 
-  return new DateTruncExpr({
-    unit: new VarExpr({
-      this: 'WEEK',
-    }),
-    this: shiftedDate,
+  const shift = new IntervalExpr({
+    this: LiteralExpr.string(shiftDays.toString()),
+    unit: new VarExpr({ this: 'DAY' }),
   });
+  const shiftedDate = new DateAddExpr({ this: dateExpr, expression: shift });
+  (truncated as Expression).setArgKey('this', shiftedDate);
+
+  if (preserveStartDay) {
+    const interval = new IntervalExpr({
+      this: LiteralExpr.string((-shiftDays).toString()),
+      unit: new VarExpr({ this: 'DAY' }),
+    });
+    return cast(
+      new DateAddExpr({ this: truncated, expression: interval }),
+      DataTypeExprKind.DATE,
+    ) as Expression;
+  }
+
+  return truncated;
 }
 
 /** Transpile DATE_DIFF with boundary-aware week logic */
@@ -6718,12 +6724,18 @@ class DuckDBGenerator extends Generator {
   }
 
   dateTruncSql (expression: DateTruncExpr): string {
-    const unit = unitToStr(expression);
+    const unitExpr = expression.args.unit;
     const dateNode = expression.args.this;
-    const result = this.func('DATE_TRUNC', [
-      unit,
-      dateNode,
-    ]);
+
+    const weekStart = weekUnitToDow(unitExpr);
+    const unit = unitToStr(expression);
+
+    let result: string;
+    if (weekStart) {
+      result = this.sql(buildWeekTruncExpression(dateNode!, weekStart, { preserveStartDay: true }));
+    } else {
+      result = this.func('DATE_TRUNC', [unit, dateNode]);
+    }
 
     if (
       expression.args.inputTypePreserved
