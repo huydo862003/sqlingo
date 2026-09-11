@@ -1208,6 +1208,23 @@ class ClickHouseParser extends Parser {
   }
 
   parseBracket (thisNode?: Expression): Expression | undefined {
+    let bracketJsonType: DataTypeExpr | undefined;
+
+    while (this.matchPair(TokenType.L_BRACKET, TokenType.R_BRACKET)) {
+      bracketJsonType = new DataTypeExpr({
+        this: DataTypeExprKind.ARRAY,
+        expressions: [
+          bracketJsonType
+            || DataTypeExpr.build(DataTypeExprKind.JSON, { dialect: this.dialect, nullable: false }),
+        ],
+        nested: true,
+      });
+    }
+
+    if (bracketJsonType) {
+      return this.expression(JsonCastExpr, { this: thisNode, to: bracketJsonType });
+    }
+
     const lBrace = this.match(TokenType.L_BRACE, {
       advance: false,
     });
@@ -2168,7 +2185,13 @@ export class ClickHouseGenerator extends Generator {
       [
         JsonCastExpr,
         function (this: Generator, e: JsonCastExpr) {
-          return `${this.sql(e, 'this')}.:${this.sql(e, 'to')}`;
+          const thisSql = this.sql(e, 'this');
+          const to = e.args.to;
+          let toSql = this.sql(to);
+          if (to && to instanceof DataTypeExpr && to.args.expressions?.length) {
+            toSql = this.sql(toIdentifier(toSql));
+          }
+          return `${thisSql}.:${toSql}`;
         },
       ],
       [

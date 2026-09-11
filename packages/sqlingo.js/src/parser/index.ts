@@ -10186,7 +10186,10 @@ export class Parser {
           tokens = undefined;
         }
 
-        if (tokens && tokens.length === 1 && this._constructor.TYPE_TOKENS.has(tokens[0].tokenType)) {
+        if (tokens && this._constructor.TYPE_TOKENS.has(tokens[0].tokenType)) {
+          if (tokens.length > 1) {
+            return DataTypeExpr.build(identifier.name, { dialect: this.dialect });
+          }
           typeToken = tokens[0].tokenType;
           _typeTokenText = tokens[0].text;
         } else if (this._dialectConstructor.SUPPORTS_USER_DEFINED_TYPES) {

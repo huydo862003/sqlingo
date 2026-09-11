@@ -102,6 +102,10 @@ class TestClickHouse extends Validator {
     this.validateIdentity('SELECT 1 AND (1 = 2)');
     this.validateIdentity('SELECT json.a.:Int64');
     this.validateIdentity('SELECT json.a.:JSON.b.:Int64');
+    this.validateIdentity('SELECT json.a.b.:"Array(JSON)".c');
+    this.validateIdentity('SELECT json.a.b.:"Array(Array(JSON))".c');
+    this.validateIdentity('SELECT json.a.b[].c', 'SELECT json.a.b.:"Array(JSON)".c');
+    this.validateIdentity('SELECT json.a.b[][]', 'SELECT json.a.b.:"Array(Array(JSON))"');
     this.validateIdentity('WITH arrayJoin([(1, [2, 3])]) AS arr SELECT arr');
     this.validateIdentity('CAST(1 AS Bool)');
     this.validateIdentity('SELECT toString(CHAR(104.1, 101, 108.9, 108.9, 111, 32))');
