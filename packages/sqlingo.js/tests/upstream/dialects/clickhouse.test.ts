@@ -849,7 +849,7 @@ class TestClickHouse extends Validator {
       'SELECT name FROM data WHERE NOT ((SELECT DISTINCT name FROM data) IS NULL)',
     );
 
-    this.validateIdentity('SELECT 1_2_3_4_5');
+    this.validateIdentity('SELECT 1_2_3_4_5', 'SELECT 12345');
     this.validateIdentity('SELECT 1_b', 'SELECT 1_b');
     this.validateIdentity(
       'SELECT COUNT(1) FROM table SETTINGS additional_table_filters = {\'a\': \'b\', \'c\': \'d\'}',

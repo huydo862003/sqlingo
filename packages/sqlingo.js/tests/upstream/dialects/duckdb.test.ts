@@ -1061,8 +1061,11 @@ class TestDuckDB extends Validator {
     this.validateIdentity('SELECT TODAY()', 'SELECT CURRENT_DATE');
     this.validateIdentity('SELECT GET_CURRENT_TIME()', 'SELECT CURRENT_TIME');
     this.validateIdentity('SELECT * FROM t PIVOT(SUM(y) FOR foo IN y_enum)');
-    this.validateIdentity('SELECT 20_000 AS literal');
-    this.validateIdentity('SELECT 1_2E+1_0::FLOAT', 'SELECT CAST(1_2E+1_0 AS REAL)');
+    this.validateIdentity(
+      'SELECT 20_000 AS literal',
+      'SELECT 20000 AS literal',
+    );
+    this.validateIdentity('SELECT 1_2E+1_0::FLOAT', 'SELECT CAST(12E+10 AS REAL)');
 
     this.validateAll(
       'CASE WHEN 2500 > 0 THEN ((2500 - 1) // 32768) + 1 ELSE 2500 // 32768 END',

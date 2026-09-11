@@ -1680,13 +1680,17 @@ export class Tokenizer {
 
     let decimal = false;
     let scientific = 0;
+    let isUnderscoreSeparated = false;
+    let numberText = '';
+    let numericLiteral = '';
+    let numericType: TokenType | undefined;
 
     while (true) {
       if (this.isDigit(this.peek)) {
         this.advance();
       } else if (this.peek === '.' && !decimal) {
         if (this.tokens.length && this.tokens[this.tokens.length - 1].tokenType === TokenType.PARAMETER) {
-          return this.add(TokenType.NUMBER);
+          break;
         }
         decimal = true;
         this.advance();
@@ -1694,48 +1698,54 @@ export class Tokenizer {
         '-',
         '+',
       ].includes(this.peek) && scientific === 1) {
-        // Only consume +/- if followed by a digit
         if (this._current + 1 < this.size && this.isDigit(this.sql[this._current + 1])) {
           scientific += 1;
           this.advance();
         } else {
-          return this.add(TokenType.NUMBER);
+          break;
         }
       } else if (this.peek.toUpperCase() === 'E' && !scientific) {
         scientific += 1;
         this.advance();
       } else if (this.peek === '_' && this.dialect._constructor.NUMBERS_CAN_BE_UNDERSCORE_SEPARATED) {
+        isUnderscoreSeparated = true;
         this.advance();
       } else if (this.isIdentifierChar(this.peek)) {
-        const numberText = this.text;
-        let literal = '';
+        numberText = this.text;
 
         while (this.peek.trim() && !this._constructor.SINGLE_TOKENS[this.peek]) {
-          literal += this.peek;
+          numericLiteral += this.peek;
           this.advance();
         }
 
-        const tokenType = constructor.KEYWORDS[constructor.NUMERIC_LITERALS[literal.toUpperCase()] || ''];
+        numericType = constructor.KEYWORDS[constructor.NUMERIC_LITERALS[numericLiteral.toUpperCase()] || ''];
 
-        if (tokenType) {
-          this.add(TokenType.NUMBER, numberText);
-          this.add(TokenType.DCOLON, '::');
-
-          return this.add(tokenType, literal);
-        }
-
-        if (this.dialect._constructor.IDENTIFIERS_CAN_START_WITH_DIGIT) {
+        if (numericType) {
+          break;
+        } else if (this.dialect._constructor.IDENTIFIERS_CAN_START_WITH_DIGIT) {
           return this.add(TokenType.VAR);
         }
 
         this.advance({
-          i: -literal.length,
+          i: -numericLiteral.length,
         });
-
-        return this.add(TokenType.NUMBER, numberText);
+        break;
       } else {
-        return this.add(TokenType.NUMBER);
+        break;
       }
+    }
+
+    numberText = numberText || this.sql.slice(this._start, this._current);
+
+    if (isUnderscoreSeparated) {
+      numberText = numberText.replaceAll('_', '');
+    }
+
+    this.add(TokenType.NUMBER, numberText);
+
+    if (numericType) {
+      this.add(TokenType.DCOLON, '::');
+      this.add(numericType, numericLiteral);
     }
   }
 
