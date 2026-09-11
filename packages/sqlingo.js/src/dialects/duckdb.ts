@@ -1087,13 +1087,6 @@ function arraySortSql (this: Generator, expression: ArraySortExpr): string {
   return this.func('ARRAY_SORT', [expression.args.this]);
 }
 
-function sortArraySql (this: Generator, expression: SortArrayExpr): string {
-  const name = expression.args.asc instanceof BooleanExpr && !(expression.args.asc as BooleanExpr).args.this
-    ? 'ARRAY_REVERSE_SORT'
-    : 'ARRAY_SORT';
-
-  return this.func(name, [expression.args.this]);
-}
 
 function buildSortArrayDesc (args: Expression[]): SortArrayExpr {
   return new SortArrayExpr({
@@ -3637,10 +3630,6 @@ class DuckDBGenerator extends Generator {
         renameFunc('STR_SPLIT'),
       ],
       [
-        SortArrayExpr,
-        sortArraySql,
-      ],
-      [
         StrPositionExpr,
         strPositionSql,
       ],
@@ -4602,6 +4591,37 @@ class DuckDBGenerator extends Generator {
     });
 
     return `${prefix}${lambdaSql}`;
+  }
+
+  sortArraySql (expression: SortArrayExpr): string {
+    const arr = expression.args.this;
+    const asc = expression.args.asc;
+    const nullsFirst = expression.args.nullsFirst;
+
+    if (!(asc instanceof BooleanExpr) && !(nullsFirst instanceof BooleanExpr)) {
+      return this.func('LIST_SORT', [arr, asc, nullsFirst]);
+    }
+
+    const nullsAreFirst = nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true;
+    const nullsFirstSql = nullsAreFirst ? LiteralExpr.string('NULLS FIRST') : undefined;
+
+    if (!(asc instanceof BooleanExpr)) {
+      return this.func('LIST_SORT', [arr, asc, nullsFirstSql]);
+    }
+
+    const descending = asc.args.this === false;
+
+    if (!descending && !nullsAreFirst) {
+      return this.func('LIST_SORT', [arr]);
+    }
+    if (!nullsAreFirst) {
+      return this.func('ARRAY_REVERSE_SORT', [arr]);
+    }
+    return this.func('LIST_SORT', [
+      arr,
+      LiteralExpr.string(descending ? 'DESC' : 'ASC'),
+      LiteralExpr.string('NULLS FIRST'),
+    ]);
   }
 
   showSql (expression: ShowExpr): string {

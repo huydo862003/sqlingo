@@ -721,6 +721,24 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT GET_PATH(foo, \'bar\')');
     this.validateIdentity('SELECT a, exclude, b FROM xxx');
     this.validateIdentity('SELECT ARRAY_SORT(x, TRUE, FALSE)');
+    this.validateAll('SELECT ARRAY_SORT(x)', {
+      write: {
+        duckdb: 'SELECT LIST_SORT(x)',
+        snowflake: 'SELECT ARRAY_SORT(x)',
+      },
+    });
+    this.validateAll('SELECT ARRAY_SORT(x, FALSE)', {
+      write: {
+        duckdb: "SELECT LIST_SORT(x, 'DESC', 'NULLS FIRST')",
+        snowflake: 'SELECT ARRAY_SORT(x, FALSE)',
+      },
+    });
+    this.validateAll('SELECT ARRAY_SORT(x, foo, TRUE)', {
+      write: {
+        duckdb: "SELECT LIST_SORT(x, foo, 'NULLS FIRST')",
+        snowflake: 'SELECT ARRAY_SORT(x, foo, TRUE)',
+      },
+    });
     this.validateIdentity('SELECT BOOLXOR_AGG(col) FROM tbl');
     this.validateIdentity(
       'SELECT PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY col) OVER (PARTITION BY category)',

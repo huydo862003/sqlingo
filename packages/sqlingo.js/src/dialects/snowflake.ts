@@ -232,6 +232,7 @@ import {
   OrderExpr,
   WithinGroupExpr,
   AliasExpr,
+  BooleanExpr,
   cast,
   ConvertTimezoneExpr,
   WindowExpr,
@@ -1385,7 +1386,14 @@ class SnowflakeParser extends Parser {
           expression: seqGet(args, 0),
           zeroBased: true,
         }),
-        ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
+        ARRAY_SORT: (args: Expression[]) => {
+          const asc = seqGet(args, 1);
+          let nullsFirst = seqGet(args, 2);
+          if (nullsFirst === undefined && asc instanceof BooleanExpr) {
+            nullsFirst = new BooleanExpr({ this: !asc.args.this });
+          }
+          return new SortArrayExpr({ this: seqGet(args, 0), asc, nullsFirst });
+        },
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BIT_AND: buildBitwise(BitwiseAndExpr, 'BITAND'),
@@ -3080,10 +3088,6 @@ class SnowflakeGenerator extends Generator {
         renameFunc('TO_CHAR'),
       ],
       [
-        SortArrayExpr,
-        renameFunc('ARRAY_SORT'),
-      ],
-      [
         SkewnessExpr,
         renameFunc('SKEW'),
       ],
@@ -3291,6 +3295,15 @@ class SnowflakeGenerator extends Generator {
     ]);
 
     return transforms;
+  }
+
+  sortArraySql (expression: SortArrayExpr): string {
+    const asc = expression.args.asc;
+    let nullsFirst = expression.args.nullsFirst;
+    if (asc instanceof BooleanExpr && asc.args.this === false && nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true) {
+      nullsFirst = undefined;
+    }
+    return this.func('ARRAY_SORT', [expression.args.this, asc, nullsFirst]);
   }
 
   nthValueSql (expression: NthValueExpr): string {

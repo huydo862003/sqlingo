@@ -739,7 +739,7 @@ class TestDuckDB extends Validator {
     });
     this.validateAll('LIST_SORT(x)', {
       write: {
-        duckdb: 'ARRAY_SORT(x)',
+        duckdb: 'LIST_SORT(x)',
         presto: 'ARRAY_SORT(x)',
         hive: 'SORT_ARRAY(x)',
         spark: 'SORT_ARRAY(x)',
