@@ -2422,7 +2422,6 @@ class DuckDBParser extends Parser {
           charset: LiteralExpr.string('utf-8'),
         }),
         EDITDIST3: (args: unknown[]) => LevenshteinExpr.fromArgList(args),
-        JARO_WINKLER_SIMILARITY: (args: unknown[]) => JarowinklerSimilarityExpr.fromArgList(args),
         ENCODE: (args: Expression[]) => new EncodeExpr({
           this: seqGet(args, 0),
           charset: LiteralExpr.string('utf-8'),
@@ -2433,11 +2432,13 @@ class DuckDBParser extends Parser {
           scale: UnixToTimeExpr.MILLIS,
         }),
         GENERATE_SERIES: buildGenerateSeries(),
+        GET_CURRENT_TIME: (args: unknown[]) => CurrentTimeExpr.fromArgList(args),
         GET_BIT: (args: Expression[]) => new GetbitExpr({
           this: seqGet(args, 0),
           expression: seqGet(args, 1),
           zeroIsMsb: true,
         }),
+        JARO_WINKLER_SIMILARITY: (args: unknown[]) => JarowinklerSimilarityExpr.fromArgList(args),
         JSON: (args: unknown[]) => ParseJsonExpr.fromArgList(args),
         JSON_EXTRACT_PATH: buildExtractJsonWithPath(JsonExtractExpr),
         JSON_EXTRACT_STRING: buildExtractJsonWithPath(JsonExtractScalarExpr),
