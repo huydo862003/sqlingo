@@ -167,6 +167,7 @@ import {
   ArrayAppendExpr,
   ArrayPrependExpr,
   ArrayIntersectExpr,
+  ArrayPositionExpr,
   AtTimeZoneExpr,
   LocaltimestampExpr,
   DatetimeAddExpr,
@@ -1345,6 +1346,11 @@ class SnowflakeParser extends Parser {
             step: seqGet(args, 2),
             isEndExclusive: true,
           }),
+        ARRAY_POSITION: (args: Expression[]) => new ArrayPositionExpr({
+          this: seqGet(args, 1),
+          expression: seqGet(args, 0),
+          zeroBased: true,
+        }),
         ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
@@ -2598,6 +2604,12 @@ class SnowflakeGenerator extends Generator {
       [
         ArrayIntersectExpr,
         renameFunc('ARRAY_INTERSECTION'),
+      ],
+      [
+        ArrayPositionExpr,
+        function (this: Generator, e: ArrayPositionExpr) {
+          return this.func('ARRAY_POSITION', [e.args.expression, e.args.this]);
+        },
       ],
       [
         AtTimeZoneExpr,

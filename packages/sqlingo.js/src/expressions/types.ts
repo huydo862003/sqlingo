@@ -101,6 +101,7 @@ export enum ExpressionKey {
   ARRAY_INTERSECT = 'arrayIntersect',
   ARRAY_LAST = 'arrayLast',
   ARRAY_OVERLAPS = 'arrayOverlaps',
+  ARRAY_POSITION = 'arrayPosition',
   ARRAY_PREPEND = 'arrayPrepend',
   ARRAY_REMOVE = 'arrayRemove',
   ARRAY_REMOVE_AT = 'arrayRemoveAt',

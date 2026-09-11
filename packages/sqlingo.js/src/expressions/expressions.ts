@@ -18765,6 +18765,39 @@ export class ArrayLastExpr extends FuncExpr {
   }
 }
 
+export type ArrayPositionExprArgs = Merge<[
+  BinaryExprArgs,
+  FuncExprArgs,
+  {
+    zeroBased?: boolean;
+  },
+]>;
+
+export class ArrayPositionExpr extends multiInherit(BinaryExpr, FuncExpr) {
+  static key = ExpressionKey.ARRAY_POSITION;
+
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'zeroBased',
+  ]);
+
+  static argOrder = [
+    'this',
+    'expression',
+  ];
+
+  declare args: ArrayPositionExprArgs;
+
+  constructor (args: ArrayPositionExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
 export type ArrayReverseExprArgs = Merge<[
   FuncExprArgs,
 ]>;

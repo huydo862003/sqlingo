@@ -199,6 +199,7 @@ import {
   ArrayContainsExpr,
   ArrayFilterExpr,
   DotExpr,
+  ArrayPositionExpr,
   HexExpr,
   MapDeleteExpr,
   MapSizeExpr,
@@ -3003,6 +3004,22 @@ class DuckDBGenerator extends Generator {
       [
         ArrayInsertExpr,
         arrayInsertSql,
+      ],
+      [
+        ArrayPositionExpr,
+        function (this: Generator, e: ArrayPositionExpr) {
+          if (e.args.zeroBased) {
+            return this.sql(new SubExpr({
+              this: new ArrayPositionExpr({
+                this: e.args.this,
+                expression: e.args.expression,
+              }),
+              expression: LiteralExpr.number(1),
+            }));
+          }
+
+          return this.func('ARRAY_POSITION', [e.args.this, e.args.expression]);
+        },
       ],
       [
         ArrayRemoveAtExpr,
