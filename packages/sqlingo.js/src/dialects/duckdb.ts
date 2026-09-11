@@ -78,6 +78,7 @@ import {
   BitwiseAndExpr,
   ArrayDistinctExpr,
   ArrayExceptExpr,
+  ArrayIntersectExpr,
   ArrayMaxExpr,
   ArraySizeExpr,
   NullExpr,
@@ -2416,6 +2417,7 @@ class DuckDBParser extends Parser {
         }),
         APPROX_QUANTILE: (args: unknown[]) => ApproxQuantileExpr.fromArgList(args),
         ARRAY_PREPEND: buildArrayPrepend,
+        ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({ expressions: args as Expression[] }),
         ARRAY_REVERSE_SORT: buildSortArrayDesc,
         ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
         BIT_AND: (args: unknown[]) => BitwiseAndAggExpr.fromArgList(args),
@@ -5170,33 +5172,72 @@ class DuckDBGenerator extends Generator {
     return this.sql(result);
   }
 
-  static ARRAY_EXCEPT_TEMPLATE = maybeParse(
+  static ARRAY_BAG_TEMPLATE = maybeParse(
     `CASE
-      WHEN :source IS NULL OR :exclude IS NULL THEN NULL
+      WHEN :arr1 IS NULL OR :arr2 IS NULL THEN NULL
       ELSE LIST_TRANSFORM(
         LIST_FILTER(
-          LIST_ZIP(:source, GENERATE_SERIES(1, LEN(:source))),
-          pair -> (
-            LEN(LIST_FILTER(:source[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0]))
-            > LEN(LIST_FILTER(:exclude, e -> e IS NOT DISTINCT FROM pair[0]))
-          )
+          LIST_ZIP(:arr1, GENERATE_SERIES(1, LEN(:arr1))),
+          pair -> :cond
         ),
         pair -> pair[0]
       )
     END`,
   );
 
-  arrayexceptSql (expression: ArrayExceptExpr): string {
-    const source = expression.args.this;
-    const exclude = expression.args.expression;
+  static ARRAY_EXCEPT_CONDITION = maybeParse(
+    `LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) > LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))`,
+  );
 
+  static ARRAY_INTERSECTION_CONDITION = maybeParse(
+    `LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) <= LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))`,
+  );
+
+  static ARRAY_EXCEPT_SET_TEMPLATE = maybeParse(
+    `CASE
+      WHEN :arr1 IS NULL OR :arr2 IS NULL THEN NULL
+      ELSE LIST_FILTER(
+        LIST_DISTINCT(:arr1),
+        e -> LEN(LIST_FILTER(:arr2, x -> x IS NOT DISTINCT FROM e)) = 0
+      )
+    END`,
+  );
+
+  private arrayBagSql (condition: Expression, arr1: Expression, arr2: Expression): string {
+    const cond = new ParenExpr({ this: replacePlaceholders(condition.copy(), [], { arr1, arr2 }) });
     return this.sql(replacePlaceholders(
-      (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_TEMPLATE.copy(),
+      (this._constructor as typeof DuckDBGenerator).ARRAY_BAG_TEMPLATE.copy(),
       [],
-      {
-        source,
-        exclude,
-      },
+      { arr1, arr2, cond },
+    ));
+  }
+
+  arrayintersectSql (expression: ArrayIntersectExpr): string {
+    if (expression.args.isMultiset && expression.args.expressions?.length === 2) {
+      return this.arrayBagSql(
+        (this._constructor as typeof DuckDBGenerator).ARRAY_INTERSECTION_CONDITION,
+        expression.args.expressions[0],
+        expression.args.expressions[1],
+      );
+    }
+    return this.functionFallbackSql(expression);
+  }
+
+  arrayexceptSql (expression: ArrayExceptExpr): string {
+    const arr1 = expression.args.this;
+    const arr2 = expression.args.expression;
+
+    if (expression.args.isMultiset) {
+      return this.arrayBagSql(
+        (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_CONDITION,
+        arr1!,
+        arr2!,
+      );
+    }
+    return this.sql(replacePlaceholders(
+      (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_SET_TEMPLATE.copy(),
+      [],
+      { arr1, arr2 },
     ));
   }
 
