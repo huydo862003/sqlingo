@@ -19,6 +19,8 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   minify: true,
+  // FuncExpr.sqlNames() derives SQL names from class names at runtime
+  keepNames: true,
   external: ['luxon'],
   clean: true,
   splitting: true,

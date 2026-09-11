@@ -14652,6 +14652,8 @@ export class FuncExpr extends ConditionExpr {
     }
 
     if (!Object.hasOwn(this, '_sqlNames')) {
+      // Derives SQL name from JS class name (e.g. CountExpr -> COUNT)
+      // Requires keepNames:true in bundler config to survive minification
       const className = this.name.replace(/Expr$/, '');
       const snakeCase = className
         .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
