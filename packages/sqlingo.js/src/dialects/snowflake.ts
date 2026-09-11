@@ -232,6 +232,7 @@ import {
   OrderExpr,
   WithinGroupExpr,
   AliasExpr,
+  cast,
   ConvertTimezoneExpr,
   WindowExpr,
   WindowSpecExpr,
@@ -1694,6 +1695,12 @@ class SnowflakeParser extends Parser {
         TO_TIMESTAMP_LTZ: buildDatetime('TO_TIMESTAMP_LTZ', DataTypeExprKind.TIMESTAMPLTZ),
         TO_TIMESTAMP_NTZ: buildDatetime('TO_TIMESTAMP_NTZ', DataTypeExprKind.TIMESTAMPNTZ),
         TO_TIMESTAMP_TZ: buildDatetime('TO_TIMESTAMP_TZ', DataTypeExprKind.TIMESTAMPTZ),
+        TO_GEOGRAPHY: (args: Expression[]) => args.length === 1
+          ? cast(args[0], DataTypeExprKind.GEOGRAPHY)
+          : new AnonymousExpr({ this: 'TO_GEOGRAPHY', expressions: args }),
+        TO_GEOMETRY: (args: Expression[]) => args.length === 1
+          ? cast(args[0], DataTypeExprKind.GEOMETRY)
+          : new AnonymousExpr({ this: 'TO_GEOMETRY', expressions: args }),
         TO_VARCHAR: buildTimeToStrOrToChar,
         TO_JSON: (args: unknown[]) => JsonFormatExpr.fromArgList(args),
         VECTOR_COSINE_SIMILARITY: (args: unknown[]) => CosineDistanceExpr.fromArgList(args),

@@ -795,6 +795,10 @@ class TestSnowflake extends Validator {
       'CAST(x AS GEOMETRY)',
       'TO_GEOMETRY(x)',
     );
+    this.validateIdentity('TO_GEOGRAPHY(x)');
+    this.validateIdentity('TO_GEOMETRY(x)');
+    this.validateIdentity('TO_GEOGRAPHY(x, y)');
+    this.validateIdentity('TO_GEOMETRY(x, y)');
     this.validateIdentity(
       'transform(x, a int -> a + a + 1)',
       'TRANSFORM(x, a -> CAST(a AS INT) + CAST(a AS INT) + 1)',
