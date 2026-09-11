@@ -276,7 +276,8 @@ export function qualifyTables<E extends Expression> (
         const sourceFqn = source.parts?.map((p) => p.name).join('.');
         const sourceAliasThis = source.args.alias?.args.this;
 
-        if (sourceAliasThis instanceof IdentifierExpr) {
+        const hadExplicitAlias = tableAlias && tableAlias.name;
+        if (sourceAliasThis instanceof IdentifierExpr && (!hadExplicitAlias || !tableAliases.has(sourceFqn))) {
           tableAliases.set(sourceFqn, sourceAliasThis.copy());
         }
 
