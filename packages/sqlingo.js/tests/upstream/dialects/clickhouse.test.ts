@@ -2053,6 +2053,25 @@ LIFETIME(MIN 0 MAX 0)`,
   testJsonNested () {
     this.validateIdentity('SELECT col.^nested, t.col2.^nested, t.col3.^nested.twice FROM t');
   }
+
+  testJsonType () {
+    const dataTypes = [
+      'JSON',
+      'JSON(col1 String, SKIP col2)',
+      'JSON(col1 String, SKIP REGEXP \'col[0-9]+\')',
+      'JSON(col1 String, max_dynamic_paths = 2)',
+      'JSON(col1.nested String, SKIP col2.nested)',
+    ];
+
+    for (const dataType of dataTypes) {
+      this.validateIdentity(`SELECT CAST(val AS ${dataType})`);
+    }
+
+    this.validateIdentity(
+      'SELECT CAST(val as JSON())',
+      'SELECT CAST(val AS JSON)',
+    );
+  }
 }
 
 const t = new TestClickHouse();
@@ -2084,4 +2103,5 @@ describe('TestClickHouse', () => {
   test('toStartOf', () => t.testToStartOf());
   test('stringSplit', () => t.testStringSplit());
   test('testJsonNested', () => t.testJsonNested());
+  test('testJsonType', () => t.testJsonType());
 });

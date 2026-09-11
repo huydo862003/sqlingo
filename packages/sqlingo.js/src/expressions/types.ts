@@ -810,6 +810,7 @@ export enum ExpressionKey {
   SIN = 'sin',
   SINH = 'sinh',
   SKEWNESS = 'skewness',
+  SKIP_JSON_COLUMN = 'skipJsonColumn',
   SLICE = 'slice',
   SORT = 'sort',
   SORT_ARRAY = 'sortArray',

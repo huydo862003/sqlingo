@@ -137,6 +137,7 @@ import type {
   JsonSchemaExpr,
   JsonTableExpr,
   JsonValueExpr,
+  SkipJsonColumnExpr,
   JoinHintExpr,
   KwargExpr,
   LteExpr,
@@ -8813,6 +8814,12 @@ export class Generator {
       expression.args.this,
       `${path}${returning}${onCondition}`,
     ]);
+  }
+
+  skipJsonColumnSql (expression: SkipJsonColumnExpr): string {
+    const regexp = expression.args.regexp ? ' REGEXP' : '';
+
+    return `SKIP${regexp} ${this.sql(expression.args.expression)}`;
   }
 
   conditionalInsertSql (expression: ConditionalInsertExpr): string {

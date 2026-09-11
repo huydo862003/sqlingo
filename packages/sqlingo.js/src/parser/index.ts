@@ -90,6 +90,7 @@ import {
   ColumnDefExpr,
   ColumnExpr,
   ColumnPositionExpr,
+  SkipJsonColumnExpr,
   ColumnsExpr,
   CommandExpr,
   CommentColumnConstraintExpr,
@@ -10281,6 +10282,8 @@ export class Parser {
         }
       } else if (typeToken && this._constructor.ENUM_TYPE_TOKENS.has(typeToken)) {
         expressions = this.parseCsv(() => this.parseEquality());
+      } else if (typeToken === TokenType.JSON) {
+        expressions = this.parseCsv(() => this.parseJsonTypeArg());
       } else if (isAggregate) {
         const funcOrIdent = this.parseFunction({
           anonymous: true,
@@ -10543,6 +10546,52 @@ export class Parser {
     }
 
     return thisExpr;
+  }
+
+  parseJsonTypeArg (): Expression | undefined {
+    // SKIP col or SKIP REGEXP 'pattern'
+    if (this.matchTextSeq('SKIP')) {
+      const regexp = this.match(TokenType.RLIKE);
+      let arg = this.parseColumn();
+
+      if (arg instanceof ColumnExpr) {
+        arg = arg.toDot?.() ?? arg;
+      }
+
+      return this.expression(SkipJsonColumnExpr, {
+        regexp,
+        expression: arg,
+      });
+    }
+
+    const paramOrCol = this.parseColumn();
+
+    if (!(paramOrCol instanceof ColumnExpr)) {
+      return undefined;
+    }
+
+    // Parameter: name=value (e.g., max_dynamic_paths=2)
+    if (paramOrCol.parts.length === 1 && this.match(TokenType.EQ)) {
+      const param = paramOrCol.name;
+      const value = this.parsePrimary();
+
+      return this.expression(EqExpr, {
+        this: var_(param),
+        expression: value,
+      });
+    }
+
+    // Column type hint: col_name Type
+    const col = paramOrCol.toDot?.() ?? paramOrCol;
+    const kind = this.parseTypes({
+      checkFunc: false,
+      allowIdentifiers: false,
+    });
+
+    return this.expression(ColumnDefExpr, {
+      this: col,
+      kind,
+    });
   }
 
   parseVectorExpressions (expressions: Expression[]): Expression[] {

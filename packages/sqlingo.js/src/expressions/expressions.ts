@@ -5875,6 +5875,32 @@ export class WithFillExpr extends Expression {
   }
 }
 
+// ClickHouse JSON type SKIP argument
+export type SkipJsonColumnExprArgs = Merge<[
+  BaseExpressionArgs,
+  {
+    regexp?: boolean;
+    expression?: Expression;
+  },
+]>;
+
+export class SkipJsonColumnExpr extends Expression {
+  static key = ExpressionKey.SKIP_JSON_COLUMN;
+
+  static requiredArgs = new Set(['expression']);
+
+  static availableArgs = new Set([
+    'regexp',
+    'expression',
+  ]);
+
+  declare args: SkipJsonColumnExprArgs;
+
+  constructor (args: SkipJsonColumnExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type OrderedExprArgs = Merge<[
   BaseExpressionArgs,
   {
