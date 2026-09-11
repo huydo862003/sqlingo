@@ -3631,10 +3631,6 @@ class DuckDBGenerator extends Generator {
         },
       ],
       [
-        RandExpr,
-        renameFunc('RANDOM'),
-      ],
-      [
         StrPositionExpr,
         strPositionSql,
       ],
@@ -6032,6 +6028,32 @@ class DuckDBGenerator extends Generator {
    * DuckDB TO_BASE64 requires BLOB input.
    * Snowflake BASE64_ENCODE implicitly encodes UTF-8 bytes for VARCHAR
    */
+  randSql (expression: RandExpr): string {
+    const seed = expression.args.this;
+    if (seed) {
+      this.unsupported('RANDOM with seed is not supported in DuckDB');
+    }
+
+    const lower = expression.args.lower;
+    const upper = expression.args.upper;
+
+    if (lower && upper) {
+      const rangeSize = new ParenExpr({
+        this: new SubExpr({ this: upper, expression: lower }),
+      });
+      const scaled = new AddExpr({
+        this: lower,
+        expression: new MulExpr({
+          this: func('random'),
+          expression: rangeSize,
+        }),
+      });
+      return this.sql(cast(scaled, DataTypeExprKind.BIGINT));
+    }
+
+    return 'RANDOM()';
+  }
+
   rightSql (expression: RightExpr): string {
     const arg = expression.args.this;
     const length = expression.args.expression;

@@ -1535,6 +1535,11 @@ class SnowflakeParser extends Parser {
         REGEXP_REPLACE: buildRegexpReplace,
         REGEXP_SUBSTR: buildRegexpExtract(RegexpExtractExpr),
         REGEXP_SUBSTR_ALL: buildRegexpExtract(RegexpExtractAllExpr),
+        RANDOM: (args: Expression[]) => new RandExpr({
+          this: seqGet(args, 0),
+          lower: LiteralExpr.number(-9223372036854775808.0),
+          upper: LiteralExpr.number(9223372036854775807.0),
+        }),
         REPLACE: buildReplaceWithOptionalReplacement,
         REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({
           this: seqGet(args, 0),
@@ -3055,10 +3060,6 @@ class SnowflakeGenerator extends Generator {
         regexpILikeSql,
       ],
       [
-        RandExpr,
-        renameFunc('RANDOM'),
-      ],
-      [
         SelectExpr,
         preprocess([
           eliminateWindowClause,
@@ -3311,6 +3312,11 @@ class SnowflakeGenerator extends Generator {
       nullsFirst = undefined;
     }
     return this.func('ARRAY_SORT', [expression.args.this, asc, nullsFirst]);
+  }
+
+  randSql (expression: RandExpr): string {
+    const seed = expression.args.this;
+    return seed ? this.func('RANDOM', [seed]) : this.func('RANDOM', []);
   }
 
   nthValueSql (expression: NthValueExpr): string {

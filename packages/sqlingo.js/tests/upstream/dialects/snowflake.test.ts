@@ -407,7 +407,7 @@ class TestSnowflake extends Validator {
       {
         write: {
           'snowflake': 'SELECT RANDSTR(10, RANDOM())',
-          'duckdb': 'SELECT (SELECT LISTAGG(SUBSTRING(\'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\', 1 + CAST(FLOOR(random_value * 62) AS INT), 1), \'\') FROM (SELECT (ABS(HASH(i + RANDOM())) % 1000) / 1000.0 AS random_value FROM RANGE(10) AS t(i)))',
+          'duckdb': 'SELECT (SELECT LISTAGG(SUBSTRING(\'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\', 1 + CAST(FLOOR(random_value * 62) AS INT), 1), \'\') FROM (SELECT (ABS(HASH(i + CAST(-9223372036854776000 + RANDOM() * (9223372036854776000 - -9223372036854776000) AS BIGINT))) % 1000) / 1000.0 AS random_value FROM RANGE(10) AS t(i)))',
         },
       },
     );
