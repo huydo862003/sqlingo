@@ -198,6 +198,8 @@ import {
   ArrayAppendExpr,
   ArrayContainsExpr,
   ArrayFilterExpr,
+  DotExpr,
+  MapDeleteExpr,
   BitwiseXorAggExpr,
   BitwiseXorExpr,
   CosineDistanceExpr,
@@ -6050,6 +6052,37 @@ class DuckDBGenerator extends Generator {
       map1: expression.args.this,
       map2: expression.args.expression,
     });
+
+    return this.sql(result);
+  }
+
+  mapDeleteSql (expression: MapDeleteExpr): string {
+    const mapArg = expression.args.this;
+    const keysToDelete = expression.args.expressions ?? [];
+
+    const xDotKey = new DotExpr({
+      this: toIdentifier('x'),
+      expression: toIdentifier('key'),
+    });
+
+    const condition = new NotExpr({
+      this: new InExpr({
+        this: xDotKey,
+        expressions: keysToDelete,
+      }),
+    });
+
+    const lambdaExpr = new LambdaExpr({
+      this: condition,
+      expressions: [toIdentifier('x')],
+    });
+
+    const filtered = new ArrayFilterExpr({
+      this: func('map_entries', mapArg as Expression),
+      expression: lambdaExpr,
+    });
+
+    const result = func('map_from_entries', filtered);
 
     return this.sql(result);
   }
