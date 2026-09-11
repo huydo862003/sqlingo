@@ -3393,7 +3393,7 @@ export function sequenceSql (this: Generator, e: Expression): string {
             this: stepVal.copy(),
             expression: zero.copy(),
           }),
-          new GteExpr({
+          new GtExpr({
             this: start.copy(),
             expression: end.copy(),
           }),
@@ -3403,7 +3403,7 @@ export function sequenceSql (this: Generator, e: Expression): string {
             this: stepVal.copy(),
             expression: zero.copy(),
           }),
-          new LteExpr({
+          new LtExpr({
             this: start.copy(),
             expression: end.copy(),
           }),
