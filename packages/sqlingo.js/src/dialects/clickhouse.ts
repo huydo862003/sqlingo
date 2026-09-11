@@ -65,6 +65,7 @@ import {
   NestedJsonSelectExpr,
   AlterModifySqlSecurityExpr,
   DefinerPropertyExpr,
+  DotExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -1513,6 +1514,15 @@ class ClickHouseParser extends Parser {
     return super.parseWrappedIdVars({
       optional: true,
     });
+  }
+
+  parseColumnDef (thisExpr: Expression | undefined, options: {
+    computedColumn?: boolean;
+  } = {}): Expression | undefined {
+    if (this.match(TokenType.DOT)) {
+      return new DotExpr({ this: thisExpr, expression: this.parseIdVar() });
+    }
+    return super.parseColumnDef(thisExpr, options);
   }
 
   parsePrimaryKey (options: {
