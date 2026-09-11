@@ -4393,6 +4393,7 @@ export class Parser {
       purge: this.matchTextSeq('PURGE'),
       cluster,
       concurrently,
+      sync: this.matchTextSeq('SYNC'),
     });
   }
 

@@ -4325,6 +4325,7 @@ export type DropExprArgs = Merge<[
     purge?: Expression;
     cluster?: Expression;
     concurrently?: Expression;
+    sync?: boolean;
     this?: Expression;
     expressions?: Expression[];
   },
@@ -4347,6 +4348,7 @@ export class DropExpr extends Expression {
     'purge',
     'cluster',
     'concurrently',
+    'sync',
   ]);
 
   declare args: DropExprArgs;

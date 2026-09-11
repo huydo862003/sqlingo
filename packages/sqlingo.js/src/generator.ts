@@ -3601,8 +3601,9 @@ export class Generator {
     const cascade = expression.args.cascade ? ' CASCADE' : '';
     const constraints = expression.args.constraints ? ' CONSTRAINTS' : '';
     const purge = expression.args.purge ? ' PURGE' : '';
+    const sync = expression.args.sync ? ' SYNC' : '';
 
-    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}`;
+    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}${sync}`;
   }
 
   setOperation (expression: SetOperationExpr): string {
