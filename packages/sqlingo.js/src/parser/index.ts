@@ -1764,6 +1764,18 @@ export class Parser {
     );
   }
 
+  static FAST_COLUMN_TOKENS: Set<TokenType> = new Set([TokenType.VAR, TokenType.IDENTIFIER]);
+
+  static BRACKETS: Set<TokenType> = new Set([TokenType.L_BRACKET, TokenType.L_BRACE]);
+
+  static COLUMN_POSTFIX_TOKENS: Set<TokenType> = new Set([
+    TokenType.L_PAREN,
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+    TokenType.COLON,
+    TokenType.JOIN_MARKER,
+  ]);
+
   @cache
   static get TRIM_TYPES (): Set<string> {
     return new Set([
@@ -10023,6 +10035,35 @@ export class Parser {
       fallbackToIdentifier = false,
     } = options;
 
+    const currTokenType = this.curr?.tokenType;
+
+    // Fast path for simple column references
+    if (!fallbackToIdentifier && currTokenType !== undefined && this._constructor.FAST_COLUMN_TOKENS.has(currTokenType)) {
+      return this.parseColumn();
+    }
+
+    const nextTokenType = this.next?.tokenType;
+
+    // Fast path for literals when no column operator follows
+    if (nextTokenType !== undefined && !(nextTokenType in this._constructor.COLUMN_OPERATORS)) {
+      if (currTokenType === TokenType.STRING && nextTokenType !== TokenType.STRING) {
+        const curr = this.curr!;
+        this.advance();
+        const lit = new LiteralExpr({ this: curr.text, isString: true });
+        lit.updatePositions(curr);
+        this.addComments(lit);
+        return lit;
+      }
+      if (currTokenType === TokenType.NUMBER) {
+        const curr = this.curr!;
+        this.advance();
+        const lit = new LiteralExpr({ this: curr.text, isString: false });
+        lit.updatePositions(curr);
+        this.addComments(lit);
+        return lit;
+      }
+    }
+
     const interval = parseInterval && this.parseInterval();
 
     if (interval) {
@@ -10097,16 +10138,7 @@ export class Parser {
       return this.parseIdVar();
     }
 
-    let thisExpr: Expression | undefined = this.parseColumn();
-
-    if (thisExpr) {
-      thisExpr = this.parseColumnOps(thisExpr);
-    }
-    if (thisExpr && this._constructor.COLON_IS_VARIANT_EXTRACT) {
-      thisExpr = this.parseColonAsVariantExtract(thisExpr);
-    }
-
-    return thisExpr;
+    return this.parseColumn();
   }
 
   parseTypeSize (): DataTypeParamExpr | undefined {
@@ -10670,11 +10702,100 @@ export class Parser {
   }
 
   parseColumn (): Expression | undefined {
-    const thisExpr = this.parseColumnReference();
-    const column = thisExpr ? this.parseColumnOps(thisExpr) : this.parseBracket(thisExpr);
+    let column: Expression | undefined = this.parseColumnFastPath();
+    if (column === undefined) {
+      let thisExpr = this.parseColumnReference();
+      if (!thisExpr) {
+        thisExpr = this.parseBracket(thisExpr);
+      }
+      column = thisExpr ? this.parseColumnOps(thisExpr) : thisExpr;
+    }
 
-    if (this._dialectConstructor.SUPPORTS_COLUMN_JOIN_MARKS && column) {
-      column.setArgKey('joinMark', this.match(TokenType.JOIN_MARKER));
+    if (column) {
+      if (this._dialectConstructor.SUPPORTS_COLUMN_JOIN_MARKS) {
+        column.setArgKey('joinMark', this.match(TokenType.JOIN_MARKER));
+      }
+      if (this._constructor.COLON_IS_VARIANT_EXTRACT) {
+        column = this.parseColonAsVariantExtract(column);
+      }
+    }
+
+    return column;
+  }
+
+  parseColumnFastPath (): ColumnExpr | DotExpr | undefined {
+    const index = this.index;
+    let parts: IdentifierExpr[] | undefined;
+    let allComments: string[] | undefined;
+
+    while (this.matchSet(this._constructor.FAST_COLUMN_TOKENS)) {
+      const token = this.prev!;
+      const comments = this.prevComments;
+
+      if (parts === undefined && token.text.toUpperCase() in this._constructor.NO_PAREN_FUNCTION_PARSERS) {
+        this.retreat(index);
+        return undefined;
+      }
+
+      const hasDot = this.match(TokenType.DOT);
+      const currTt = this.curr?.tokenType;
+
+      if (!hasDot) {
+        if (currTt !== undefined && ((currTt in this._constructor.COLUMN_OPERATORS) || this._constructor.COLUMN_POSTFIX_TOKENS.has(currTt))) {
+          this.retreat(index);
+          return undefined;
+        }
+      } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
+        this.retreat(index);
+        return undefined;
+      }
+
+      if (parts === undefined) {
+        parts = [];
+      }
+
+      if (comments && comments.length > 0) {
+        if (allComments === undefined) {
+          allComments = [];
+        }
+        allComments.push(...comments);
+        this.prevComments = [];
+      }
+
+      const ident = new IdentifierExpr({
+        this: token.text,
+        quoted: token.tokenType === TokenType.IDENTIFIER,
+      });
+      ident.updatePositions(token);
+      parts.push(ident);
+
+      if (!hasDot) {
+        break;
+      }
+    }
+
+    if (parts === undefined) {
+      return undefined;
+    }
+
+    const n = parts.length;
+    let column: ColumnExpr | DotExpr;
+
+    if (n === 1) {
+      column = new ColumnExpr({ this: parts[0] });
+    } else if (n === 2) {
+      column = new ColumnExpr({ this: parts[1], table: parts[0] });
+    } else if (n === 3) {
+      column = new ColumnExpr({ this: parts[2], table: parts[1], db: parts[0] });
+    } else {
+      column = new ColumnExpr({ this: parts[3], table: parts[2], db: parts[1], catalog: parts[0] });
+      for (let i = 4; i < n; i++) {
+        column = new DotExpr({ this: column, expression: parts[i] });
+      }
+    }
+
+    if (allComments) {
+      column.addComments(allComments);
     }
 
     return column;
@@ -10787,7 +10908,10 @@ export class Parser {
   }
 
   parseColumnOps (thisExpr?: Expression): Expression | undefined {
-    let current = this.parseBracket(thisExpr);
+    let current = thisExpr;
+    while (this.curr && this._constructor.BRACKETS.has(this.curr.tokenType)) {
+      current = this.parseBracket(current);
+    }
 
     while (this.matchSet(Object.keys(this._constructor.COLUMN_OPERATORS) as TokenType[])) {
       const opToken = this.prev?.tokenType ?? TokenType.UNKNOWN;
@@ -13333,10 +13457,7 @@ export class Parser {
   }
 
   parseBracket (thisExpr?: Expression): Expression | undefined {
-    if (!this.matchSet(new Set([
-      TokenType.L_BRACKET,
-      TokenType.L_BRACE,
-    ]))) {
+    if (!this.matchSet(this._constructor.BRACKETS)) {
       return thisExpr;
     }
 
