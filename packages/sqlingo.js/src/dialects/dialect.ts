@@ -2035,6 +2035,37 @@ export function arrayAppendSql (
   };
 }
 
+export function generateSeriesSql (
+  funcName: string,
+  options: {
+    exclusiveFuncName?: string;
+  } = {},
+): (this: Generator, expression: GenerateSeriesExpr) => string {
+  const {
+    exclusiveFuncName,
+  } = options;
+
+  return function (this: Generator, expression: GenerateSeriesExpr): string {
+    const start = expression.args.start;
+    const end = expression.args.end;
+    const step = expression.args.step;
+
+    if (expression.args.isEndExclusive) {
+      if (exclusiveFuncName) {
+        return this.func(exclusiveFuncName, [start, end, step]);
+      }
+
+      const adjustedEnd = end instanceof Expression
+        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        : end;
+
+      return this.func(funcName, [start, adjustedEnd, step]);
+    }
+
+    return this.func(funcName, [start, end, step]);
+  };
+}
+
 export function arrayConcatSql (
   name: string,
 ): (this: Generator, expression: ArrayConcatExpr) => string {

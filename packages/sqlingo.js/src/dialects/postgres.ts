@@ -203,6 +203,7 @@ import {
   noPivotSql,
   inlineArraySql,
   tsOrDsAddCast,
+  generateSeriesSql as generateSeriesSqlHelper,
   Dialect, Dialects,
   NullOrdering,
 } from './dialect';
@@ -1886,19 +1887,7 @@ class PostgresGenerator extends Generator {
   }
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
-    const start = expression.args.start;
-    const end = expression.args.end;
-    const step = expression.args.step;
-
-    if (expression.args.isEndExclusive) {
-      const adjustedEnd = end instanceof Expression
-        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
-        : end;
-
-      return this.func('GENERATE_SERIES', [start, adjustedEnd, step]);
-    }
-
-    return this.func('GENERATE_SERIES', [start, end, step]);
+    return generateSeriesSqlHelper('GENERATE_SERIES').call(this, expression);
   }
 }
 

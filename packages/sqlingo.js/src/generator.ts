@@ -9875,11 +9875,10 @@ export class Generator {
   }
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
-    const start = expression.args.start;
-    const end = expression.args.end;
-    const step = expression.args.step;
-
     if (expression.args.isEndExclusive) {
+      const start = expression.args.start;
+      const end = expression.args.end;
+      const step = expression.args.step;
       const adjustedEnd = end instanceof Expression
         ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
         : end;

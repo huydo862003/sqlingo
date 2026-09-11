@@ -391,6 +391,7 @@ import {
   arrayAppendSql,
   arrayCompactSql,
   arrayConcatSql,
+  generateSeriesSql as generateSeriesSqlHelper,
   jarowinklerSimilarity,
   renameFunc,
   removeFromArrayUsingFilter,
@@ -5593,15 +5594,7 @@ class DuckDBGenerator extends Generator {
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
     // GENERATE_SERIES(a, b) -> [a, b] (inclusive), RANGE(a, b) -> [a, b) (exclusive)
-    const start = expression.args.start;
-    const end = expression.args.end;
-    const step = expression.args.step;
-
-    if (expression.args.isEndExclusive) {
-      return this.func('RANGE', [start, end, step]);
-    }
-
-    return this.functionFallbackSql(expression);
+    return generateSeriesSqlHelper('GENERATE_SERIES', { exclusiveFuncName: 'RANGE' }).call(this, expression);
   }
 
   countIfSql (expression: CountIfExpr): string {
