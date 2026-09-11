@@ -1,5 +1,11 @@
 # @hdnax/sqlingo.js
 
+## 0.7.0
+
+### Minor Changes
+
+- a87134d: Minification mangles class names, causing emitted SQL to be gibberish
+
 ## 0.6.1
 
 ### Patch Changes
