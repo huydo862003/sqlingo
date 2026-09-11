@@ -2046,6 +2046,31 @@ class TestDuckDB extends Validator {
       },
     );
   }
+
+  testMapSize () {
+    this.validateAll(
+      'SELECT CARDINALITY(CAST({\'a\': 1, \'b\': 2, \'c\': 3} AS MAP(TEXT, DECIMAL(38, 0)))) AS map_size',
+      {
+        read: {
+          'snowflake': 'SELECT MAP_SIZE({\'a\':1,\'b\':2,\'c\':3}::MAP(VARCHAR,NUMBER)) AS map_size',
+        },
+        write: {
+          'duckdb': 'SELECT CARDINALITY(CAST({\'a\': 1, \'b\': 2, \'c\': 3} AS MAP(TEXT, DECIMAL(38, 0)))) AS map_size',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT id, CARDINALITY(attrs) AS attr_count FROM demo_maps',
+      {
+        read: {
+          'snowflake': 'SELECT id, MAP_SIZE(attrs) AS attr_count FROM demo_maps',
+        },
+        write: {
+          'duckdb': 'SELECT id, CARDINALITY(attrs) AS attr_count FROM demo_maps',
+        },
+      },
+    );
+  }
 }
 
 const t = new TestDuckDB();
@@ -2087,4 +2112,5 @@ describe('TestDuckDB', () => {
   test('testCurrentDatabase', () => t.testCurrentDatabase());
   test('testCurrentSchema', () => t.testCurrentSchema());
   test('testMapDelete', () => t.testMapDelete());
+  test('testMapSize', () => t.testMapSize());
 });

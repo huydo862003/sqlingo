@@ -200,6 +200,7 @@ import {
   ArrayFilterExpr,
   DotExpr,
   MapDeleteExpr,
+  MapSizeExpr,
   BitwiseXorAggExpr,
   BitwiseXorExpr,
   CosineDistanceExpr,
@@ -6085,6 +6086,10 @@ class DuckDBGenerator extends Generator {
     const result = func('map_from_entries', filtered);
 
     return this.sql(result);
+  }
+
+  mapSizeSql (expression: MapSizeExpr): string {
+    return this.func('CARDINALITY', [expression.args.this]);
   }
 
   startsWithSql (expression: StartsWithExpr): string {
