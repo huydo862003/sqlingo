@@ -150,6 +150,7 @@ import {
   WithExpr,
   YearExpr,
   toIdentifier,
+  true_,
   var_,
 } from '../expressions';
 import {
@@ -1530,6 +1531,16 @@ class HiveGenerator extends Generator {
       MonthExpr,
       YearExpr,
     ]);
+  }
+
+  static IGNORE_NULLS_FUNCS: (typeof Expression)[] = [FirstExpr, LastExpr, FirstValueExpr, LastValueExpr];
+
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    const thisExpr = expression.args.this;
+    if ((this._constructor as typeof HiveGenerator).IGNORE_NULLS_FUNCS.some(cls => thisExpr instanceof cls)) {
+      return this.func(thisExpr!._constructor.sqlNames()[0], [thisExpr!.args.this, true_()]);
+    }
+    return super.ignoreNullsSql(expression);
   }
 
   unnestSql (expression: UnnestExpr): string {

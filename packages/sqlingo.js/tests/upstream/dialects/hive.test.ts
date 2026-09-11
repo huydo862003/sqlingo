@@ -1147,15 +1147,17 @@ class TestHive extends Validator {
     );
 
     this.validateAll(
-      'SELECT FIRST(sample_col) IGNORE NULLS',
+      'SELECT FIRST(sample_col, TRUE)',
       {
         read: {
-          hive: 'SELECT FIRST(sample_col, TRUE)',
-          spark2: 'SELECT FIRST(sample_col, TRUE)',
           spark: 'SELECT FIRST(sample_col, TRUE)',
           databricks: 'SELECT FIRST(sample_col, TRUE)',
         },
         write: {
+          hive: 'SELECT FIRST(sample_col, TRUE)',
+          spark2: 'SELECT FIRST(sample_col, TRUE)',
+          spark: 'SELECT FIRST(sample_col) IGNORE NULLS',
+          databricks: 'SELECT FIRST(sample_col) IGNORE NULLS',
           duckdb: 'SELECT ANY_VALUE(sample_col)',
         },
       },

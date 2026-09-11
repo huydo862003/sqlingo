@@ -38,6 +38,7 @@ import {
   DatetimeSubExpr,
   EndsWithExpr,
   GetbitExpr,
+  IgnoreNullsExpr,
   SafeAddExpr,
   SafeMultiplyExpr,
   SafeSubtractExpr,
@@ -599,6 +600,10 @@ class SparkGenerator extends Spark2.Generator {
     transforms.delete(DateDiffExpr);
 
     return transforms;
+  }
+
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    return Generator.prototype.ignoreNullsSql.call(this, expression);
   }
 
   bracketSql (expression: BracketExpr): string {
