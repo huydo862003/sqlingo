@@ -874,7 +874,7 @@ class ClickHouseParser extends Parser {
       'Resample',
       'ArgMin',
       'ArgMax',
-    ];
+    ].sort((a, b) => b.length - a.length);
   }
 
   @cache
@@ -895,23 +895,48 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
-  static get AGG_FUNC_MAPPING (): Record<string, [string, string]> {
-    const mapping: Record<string, [string, string]> = {};
-    const suffixes = [
-      ...ClickHouseParser.AGG_FUNCTIONS_SUFFIXES,
-      '',
-    ];
+  static get AGG_FUNC_MAPPING (): Record<string, [string, string | undefined]> {
+    const mapping: Record<string, [string, string | undefined]> = {};
 
-    for (const sfx of suffixes) {
+    // 1-suffix entries first
+    for (const sfx of ClickHouseParser.AGG_FUNCTIONS_SUFFIXES) {
       for (const f of ClickHouseParser.AGG_FUNCTIONS) {
-        mapping[`${f}${sfx}`] = [
-          f,
-          sfx,
-        ];
+        mapping[`${f}${sfx}`] = [f, sfx];
       }
     }
 
+    // 0-suffix entries override collisions (e.g. sumMap is base, not sum+Map)
+    for (const f of ClickHouseParser.AGG_FUNCTIONS) {
+      mapping[f] = [f, undefined];
+    }
+
     return mapping;
+  }
+
+  static resolveClickhouseAgg (name: string): [string, string[]] | undefined {
+    const suffixes: string[] = [];
+
+    const mapping = ClickHouseParser.AGG_FUNC_MAPPING;
+    while (!Object.hasOwn(mapping, name)) {
+      let found = false;
+      for (const suffix of ClickHouseParser.AGG_FUNCTIONS_SUFFIXES) {
+        if (name.endsWith(suffix) && name.length !== suffix.length) {
+          suffixes.unshift(suffix);
+          name = name.slice(0, -suffix.length);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return undefined;
+    }
+
+    const parts = mapping[name];
+    const [aggFuncName, innerSuffix] = parts;
+    if (innerSuffix) {
+      suffixes.unshift(innerSuffix);
+    }
+
+    return [aggFuncName, suffixes];
   }
 
   @cache
@@ -1441,10 +1466,10 @@ class ClickHouseParser extends Parser {
 
     let func = expr instanceof WindowExpr ? expr.args.this : expr;
 
-    // Aggregate functions can be split in 2 parts: <func_name><suffix>
+    // Aggregate functions can be split in 2+ parts: <func_name><suffix[es]>
     const parts =
       func instanceof AnonymousExpr
-        ? (this._constructor as typeof ClickHouseParser).AGG_FUNC_MAPPING[(func.args.this ?? '').toString()]
+        ? (this._constructor as typeof ClickHouseParser).resolveClickhouseAgg((func.args.this ?? '').toString())
         : undefined;
 
     if (parts) {
@@ -1458,7 +1483,7 @@ class ClickHouseParser extends Parser {
 
       let expClass: typeof Expression;
 
-      if (parts[1]) {
+      if (parts[1].length > 0) {
         expClass = params ? CombinedParameterizedAggExpr : CombinedAggFuncExpr;
       } else {
         expClass = params ? ParameterizedAggExpr : AnonymousAggFuncExpr;

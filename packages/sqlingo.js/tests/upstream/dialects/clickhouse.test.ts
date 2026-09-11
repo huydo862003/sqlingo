@@ -1698,6 +1698,27 @@ LIFETIME(MIN 0 MAX 0)`,
     );
   }
 
+  testAggFunctionsMultipleSuffixes () {
+    // Single-suffix
+    (this.validateIdentity('SELECT uniqExactIf(x, y) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Double suffix: If + Merge
+    (this.validateIdentity('SELECT countIfMerge(state) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT uniqExactIfMerge(state) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Triple suffix
+    (this.validateIdentity('SELECT avgArgMinIfState(x, y) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Double suffix + parameters
+    (this.validateIdentity('SELECT quantileIfState(0.5)(col, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedParameterizedAggExpr);
+    // Collision-prone bases: sumMap, minMap, maxMap should be base function
+    (this.validateIdentity('SELECT sumMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    (this.validateIdentity('SELECT minMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    (this.validateIdentity('SELECT maxMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    // Single-suffix on collision-prone bases
+    (this.validateIdentity('SELECT sumMapIf(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT sumMapState(k, v) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Multi-suffix chain on collision-prone base
+    (this.validateIdentity('SELECT sumMapIfState(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+  }
+
   testDropOnCluster () {
     for (const creatable of [
       'DATABASE',
@@ -2110,6 +2131,7 @@ describe('TestClickHouse', () => {
   test('createTableAsAlias', () => t.testCreateTableAsAlias());
   test('ddl', () => t.testDdl());
   test('aggFunctions', () => t.testAggFunctions());
+  test('aggFunctionsMultipleSuffixes', () => t.testAggFunctionsMultipleSuffixes());
   test('dropOnCluster', () => t.testDropOnCluster());
   test('datetimeFuncs', () => t.testDatetimeFuncs());
   test('convert', () => t.testConvert());
