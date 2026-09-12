@@ -822,7 +822,7 @@ export class OracleGenerator extends Generator {
 
     if (paramConstraint) {
       sep = ` ${this.sql(paramConstraint)} `;
-      paramConstraint.parent?.pop();
+      paramConstraint.pop();
     }
 
     return super.columnDefSql(expression, {
