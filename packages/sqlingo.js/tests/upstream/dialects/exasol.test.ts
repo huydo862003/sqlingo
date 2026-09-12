@@ -1017,6 +1017,22 @@ class TestExasol extends Validator {
       },
     });
   }
+
+  testExasolKeywords () {
+    for (const keyword of ['CS', 'ADD', 'BOOLEAN', 'CALL', 'CONTROL']) {
+      this.validateIdentity(`SELECT 1 AS ${keyword}`, `SELECT 1 AS "${keyword}"`);
+    }
+  }
+
+  testJson () {
+    this.validateIdentity("SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x");
+    this.validateAll("SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x", {
+      write: {
+        exasol: "SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x",
+        trino: "SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x",
+      },
+    });
+  }
 }
 
 const t = new TestExasol();
@@ -1036,4 +1052,6 @@ describe('TestExasol', () => {
   test('testLocalPrefixForAlias', () => t.testLocalPrefixForAlias());
   test('testRegexpLike', () => t.testRegexpLike());
   test('testGroupByAll', () => t.testGroupByAll());
+  test('testExasolKeywords', () => t.testExasolKeywords());
+  test('testJson', () => t.testJson());
 });

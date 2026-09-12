@@ -51,6 +51,7 @@ import {
   QuantileExpr,
   CteExpr,
   NotExpr,
+  VarExpr,
   VarMapExpr,
   IdentifierExpr,
   EnginePropertyExpr,
@@ -1553,6 +1554,14 @@ class ClickHouseParser extends Parser {
     return super.parseWrappedIdVars({
       optional: true,
     });
+  }
+
+  parseDefiner (): DefinerPropertyExpr | undefined {
+    this.match(TokenType.EQ);
+    if (this.match(TokenType.CURRENT_USER)) {
+      return new DefinerPropertyExpr({ this: new VarExpr({ this: this.prev!.text.toUpperCase() }) });
+    }
+    return new DefinerPropertyExpr({ this: this.parseString() });
   }
 
   parseDetach (): DetachExpr {

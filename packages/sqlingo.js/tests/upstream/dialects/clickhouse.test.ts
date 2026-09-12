@@ -1731,6 +1731,24 @@ LIFETIME(MIN 0 MAX 0)`,
     }
   }
 
+  testSqlSecurity () {
+    const stmts = [
+      "CREATE VIEW v DEFINER='alice' SQL SECURITY DEFINER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY DEFINER DEFINER='alice' AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY DEFINER DEFINER=CURRENT_USER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY INVOKER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY NONE AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY DEFINER DEFINER='alice' AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY INVOKER AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY NONE AS SELECT 1",
+      "ALTER TABLE v MODIFY SQL SECURITY DEFINER DEFINER='alice'",
+      "ALTER TABLE v MODIFY SQL SECURITY DEFINER DEFINER=CURRENT_USER",
+    ];
+    for (const stmt of stmts) {
+      this.validateIdentity(stmt);
+    }
+  }
+
   testDropOnCluster () {
     for (const creatable of [
       'DATABASE',
@@ -2145,6 +2163,7 @@ describe('TestClickHouse', () => {
   test('aggFunctions', () => t.testAggFunctions());
   test('aggFunctionsMultipleSuffixes', () => t.testAggFunctionsMultipleSuffixes());
   test('testDetach', () => t.testDetach());
+  test('testSqlSecurity', () => t.testSqlSecurity());
   test('dropOnCluster', () => t.testDropOnCluster());
   test('datetimeFuncs', () => t.testDatetimeFuncs());
   test('convert', () => t.testConvert());

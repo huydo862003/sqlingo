@@ -2883,6 +2883,23 @@ OPTIONS (
     }
   }
 
+  testNullOrderingInAnalyticFunctions () {
+    for (const funcCall of ['FIRST_VALUE(col1)', 'LAST_VALUE(col1)', 'NTH_VALUE(col1, 2)']) {
+      for (const [sortOrder, nullOrder] of [['ASC', 'NULLS LAST'], ['DESC', 'NULLS FIRST']] as const) {
+        this.validateIdentity(
+          `WITH t AS (SELECT 1 AS id, 2 AS col1) SELECT ${funcCall} OVER (PARTITION BY id ORDER BY col1 ${sortOrder} ${nullOrder} ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM t`,
+        );
+      }
+    }
+    for (const funcCall of ['LAG(col1)', 'LEAD(col1)', 'CUME_DIST()', 'DENSE_RANK()', 'NTILE(4)', 'PERCENT_RANK()', 'RANK()', 'ROW_NUMBER()']) {
+      for (const [sortOrder, nullOrder] of [['ASC', 'NULLS LAST'], ['DESC', 'NULLS FIRST']] as const) {
+        this.validateIdentity(
+          `WITH t AS (SELECT 1 AS id, 2 AS col1) SELECT ${funcCall} OVER (PARTITION BY id ORDER BY col1 ${sortOrder} ${nullOrder}) FROM t`,
+        );
+      }
+    }
+  }
+
   testJsonExtract () {
     this.validateAll(
       'SELECT JSON_QUERY(\'{"class": {"students": []}}\', \'$.class\')',
@@ -3910,6 +3927,7 @@ describe('TestBigQuery', () => {
   test('testUnnest', () => t.testUnnest());
   test('testRangeType', () => t.testRangeType());
   test('testNullOrdering', () => t.testNullOrdering());
+  test('testNullOrderingInAnalyticFunctions', () => t.testNullOrderingInAnalyticFunctions());
   test('testJsonExtract', () => t.testJsonExtract());
   test('testJsonExtractArray', () => t.testJsonExtractArray());
   test('testUnixSeconds', () => t.testUnixSeconds());

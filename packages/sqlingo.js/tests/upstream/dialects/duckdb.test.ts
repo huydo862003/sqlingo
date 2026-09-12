@@ -2115,6 +2115,16 @@ class TestDuckDB extends Validator {
       },
     );
   }
+
+  testCurrentSchemas () {
+    this.validateAll('SELECT CURRENT_SCHEMAS(TRUE)', {
+      read: { snowflake: 'SELECT CURRENT_SCHEMAS()' },
+      write: {
+        duckdb: 'SELECT CURRENT_SCHEMAS(TRUE)',
+        snowflake: 'SELECT CURRENT_SCHEMAS()',
+      },
+    });
+  }
 }
 
 const t = new TestDuckDB();
@@ -2159,4 +2169,5 @@ describe('TestDuckDB', () => {
   test('testMapSize', () => t.testMapSize());
   test('testMapInsert', () => t.testMapInsert());
   test('testToArray', () => t.testToArray());
+  test('testCurrentSchemas', () => t.testCurrentSchemas());
 });
