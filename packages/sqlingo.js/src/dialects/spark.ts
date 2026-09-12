@@ -65,6 +65,7 @@ import {
   CreateExpr,
   PartitionedByPropertyExpr,
   SessionUserExpr,
+  WithExpr,
 } from '../expressions';
 import {
   Generator,
@@ -598,6 +599,7 @@ class SparkGenerator extends Spark2.Generator {
 
     transforms.delete(AnyValueExpr);
     transforms.delete(DateDiffExpr);
+    transforms.delete(WithExpr);
 
     return transforms;
   }

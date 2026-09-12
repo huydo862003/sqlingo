@@ -24,6 +24,7 @@ import {
   DistStylePropertyExpr,
   ExplodeExpr,
   FarmFingerprintExpr,
+  IgnoreNullsExpr,
   FromBaseExpr,
   FromExpr,
   GeneratedAsIdentityColumnConstraintExpr,
@@ -40,9 +41,9 @@ import {
   PivotExpr,
   RegexpExtractExpr,
   RoundExpr, SelectExpr, Sha2DigestExpr, Sha2Expr, SortKeyPropertyExpr, StartsWithExpr, StringToArrayExpr, TableSampleExpr, TryCastExpr, TsOrDsAddExpr, TsOrDsDiffExpr, UnixToTimeExpr, var_,
-  Expression, SchemaExpr, TupleExpr, VarExpr,
+  Expression, RespectNullsExpr, SchemaExpr, TupleExpr, VarExpr,
 } from '../expressions';
-import type {
+import {
   Generator,
 } from '../generator';
 import {
@@ -868,6 +869,14 @@ class RedshiftGenerator extends Postgres.Generator {
     }
 
     return renameFunc('ARRAY').call(this, expression);
+  }
+
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    return Generator.prototype.ignoreNullsSql.call(this, expression);
+  }
+
+  respectNullsSql (expression: RespectNullsExpr): string {
+    return Generator.prototype.respectNullsSql.call(this, expression);
   }
 
   explodeSql (_expression: ExplodeExpr): string {

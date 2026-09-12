@@ -1341,7 +1341,7 @@ class TestPresto extends Validator {
       {
         write: {
           presto: 'WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 100) SELECT SUM(n) FROM t',
-          spark: UnsupportedError,
+          spark: 'WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n + 1 FROM t WHERE n < 100) SELECT SUM(n) FROM t',
         },
       },
     );
