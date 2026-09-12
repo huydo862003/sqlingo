@@ -1547,7 +1547,7 @@ class HiveGenerator extends Generator {
     const thisExpr = expression.args.this;
 
     if ((this._constructor as typeof HiveGenerator).IGNORE_NULLS_FUNCS.some((cls) => thisExpr instanceof cls)) {
-      return this.func(thisExpr!._constructor.sqlNames()[0], [
+      return this.func((thisExpr!._constructor as any).sqlNames()[0], [
         thisExpr!.args.this,
         true_(),
       ]);

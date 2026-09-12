@@ -371,7 +371,7 @@ export function removeTsOrDsToDate<T extends FuncExpr> (
     for (const argKey of args) {
       const arg = expression.getArgKey(argKey);
 
-      if ((arg instanceof TsOrDsToDateExpr || arg instanceof TsOrDsToTimestampExpr) && !arg.args.format) {
+      if ((arg instanceof TsOrDsToDateExpr || arg instanceof TsOrDsToTimestampExpr) && !arg.getArgKey('format')) {
         expression.setArgKey(argKey, arg.args.this);
       }
     }

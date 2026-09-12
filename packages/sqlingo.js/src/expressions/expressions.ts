@@ -7078,11 +7078,11 @@ export class UnpivotColumnsExpr extends Expression {
 export type WindowSpecExprArgs = Merge<[
   BaseExpressionArgs,
   {
-    kind?: WindowSpecExprKind;
-    start?: Expression;
-    startSide?: Expression;
-    end?: Expression;
-    endSide?: Expression;
+    kind?: WindowSpecExprKind | string;
+    start?: Expression | string;
+    startSide?: Expression | string;
+    end?: Expression | string;
+    endSide?: Expression | string;
     exclude?: Expression;
   },
 ]>;
@@ -14518,7 +14518,7 @@ export type BinaryExprArgs = Merge<[
     this?: ExpressionValue;
     expression?: ExpressionValue;
     operator?: ExpressionOrString;
-    expressions?: Expression[];
+    expressions?: ExpressionValue[];
   },
 ]>;
 
@@ -18207,7 +18207,7 @@ export type GenerateSeriesExprArgs = Merge<[
     start?: Expression;
     end?: Expression;
     step?: Expression;
-    isEndExclusive?: Expression;
+    isEndExclusive?: boolean;
   },
 ]>;
 

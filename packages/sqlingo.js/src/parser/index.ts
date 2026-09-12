@@ -10942,10 +10942,9 @@ export class Parser {
           const suffixes: string[] = [];
 
           while (node instanceof DotExpr) {
-            suffixes.push(node.args.expression?.sql({
-              dialect: this.dialect,
-            }) ?? '');
-            node = node.args.this;
+            const dotExpr = node.args.expression;
+            suffixes.push(dotExpr instanceof Expression ? dotExpr.sql({ dialect: this.dialect }) : '');
+            node = node.args.this as Expression | undefined;
           }
 
           if (node instanceof BracketExpr && (node.args.expressions ?? []).some(
@@ -10956,16 +10955,15 @@ export class Parser {
               node,
               suffixes,
             ]);
-            node = node.args.this;
+            node = node.args.this as Expression | undefined;
           } else {
             break;
           }
         }
 
         if (0 < segments.length) {
-          jsonPath.push(segments[segments.length - 1][0].args.this?.sql({
-            dialect: this.dialect,
-          }) ?? '');
+          const segThis = segments[segments.length - 1][0].args.this;
+          jsonPath.push(segThis instanceof Expression ? segThis.sql({ dialect: this.dialect }) : '');
           for (const [
             bracket,
             suffixes,

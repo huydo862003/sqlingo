@@ -1105,7 +1105,7 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
-  static get STATEMENT_PARSERS (): Partial<Record<string, ((this: Parser, ...args: unknown[]) => Expression | Expression[]) | undefined>> {
+  static get STATEMENT_PARSERS (): Partial<Record<TokenType, (this: Parser) => Expression | undefined>> {
     return {
       ...Parser.STATEMENT_PARSERS,
       [TokenType.DETACH]: function (this: Parser) {

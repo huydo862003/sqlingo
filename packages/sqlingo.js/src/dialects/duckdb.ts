@@ -285,7 +285,6 @@ import {
   JsonValueArrayExpr,
   LengthExpr,
   LiteralExpr,
-  LtExpr,
   ModExpr,
   MulExpr,
   NextDayExpr,
@@ -373,7 +372,6 @@ import {
   func,
   wrap,
   var_,
-  case_,
   JoinExpr,
 } from '../expressions';
 import {
@@ -4589,9 +4587,9 @@ class DuckDBGenerator extends Generator {
   /** Transpile Snowflake GENERATOR to DuckDB range() */
   generatorSql (expression: GeneratorExpr): string {
     const rowcount = expression.args.rowcount;
-    const timeLimit = expression.args.timeLimit;
+    const timelimit = expression.args.timelimit;
 
-    if (timeLimit) {
+    if (timelimit) {
       this.unsupported('GENERATOR TIMELIMIT parameter is not supported in DuckDB');
     }
 
@@ -6219,11 +6217,8 @@ class DuckDBGenerator extends Generator {
         hexArg,
         hexLength,
       ]);
-      const result = new UnhexExpr({
-        this: hexRight,
-      });
 
-      return this.sql(result);
+      return `UNHEX(${hexRight})`;
     }
 
     return this.func('RIGHT', [
@@ -6402,7 +6397,7 @@ class DuckDBGenerator extends Generator {
 
     const result = func(
       'MAP_FROM_ENTRIES',
-      func('LIST_FILTER', func('MAP_ENTRIES', mapArg), lambdaExpr),
+      func('LIST_FILTER', func('MAP_ENTRIES', mapArg!), lambdaExpr),
     );
 
     return this.sql(result);
@@ -6420,8 +6415,8 @@ class DuckDBGenerator extends Generator {
     if (value !== undefined && mapArg) {
       const mapType = mapArg.type;
 
-      if (mapType instanceof DataTypeExpr && 1 < mapType.args.expressions?.length) {
-        const valueType = mapType.args.expressions[1];
+      if (mapType instanceof DataTypeExpr && mapType.args.expressions && mapType.args.expressions.length > 1) {
+        const valueType = mapType.args.expressions[1] as DataTypeExpr;
 
         value = cast(value, valueType);
       }
@@ -6438,7 +6433,7 @@ class DuckDBGenerator extends Generator {
     const newEntry = new ToMapExpr({
       this: newEntryStruct,
     });
-    const result = func('MAP_CONCAT', mapArg, newEntry);
+    const result = func('MAP_CONCAT', mapArg!, newEntry);
 
     return this.sql(result);
   }
@@ -6542,7 +6537,7 @@ class DuckDBGenerator extends Generator {
   }
 
   splitSql (expression: SplitExpr): string {
-    const baseFunc = func('STR_SPLIT', expression.args.this, expression.args.expression);
+    const baseFunc = func('STR_SPLIT', expression.args.this!, expression.args.expression!);
 
     let caseExpr = case_();
 
@@ -6642,7 +6637,7 @@ class DuckDBGenerator extends Generator {
 
         caseExpr = caseExpr.when(
           new EqExpr({
-            this: delimiterArg!.copy(),
+            this: (delimiterArg as Expression).copy(),
             expression: LiteralExpr.string(''),
           }),
           emptyCase,

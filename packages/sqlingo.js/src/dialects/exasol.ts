@@ -367,7 +367,7 @@ function groupByAll (expression: Expression): Expression {
 
   const group = expression.args.group;
 
-  if (!group || !group.args.all) {
+  if (!group || !group.getArgKey('all')) {
     return expression;
   }
 
@@ -387,7 +387,7 @@ function groupByAll (expression: Expression): Expression {
   const groupPositions = (expression.args.expressions ?? [])
     .map((proj: Expression, i: number) =>
       !proj.find(AggFuncExpr) ? LiteralExpr.number(i + 1) : undefined)
-    .filter(Boolean);
+    .filter((x): x is LiteralExpr | NegExpr => Boolean(x));
 
   if (groupPositions.length === 0) {
     expression.setArgKey('group', undefined);
@@ -1680,11 +1680,11 @@ class ExasolGenerator extends Generator {
       expression.args.expression,
       ...(expression.args.expressions ?? []),
     ]);
-    const columns = expression.args.emits;
+    const columns = expression.getArgKey('emits');
 
     if (Array.isArray(columns) && 0 < columns.length) {
       const emits = this.expressions(undefined, {
-        sqls: columns,
+        sqls: columns as Expression[],
       });
 
       sql = `${sql} EMITS (${emits})`;

@@ -97,7 +97,6 @@ import {
   CatalogPropertyExpr,
   ComputePropertyExpr,
   DatabasePropertyExpr,
-  DescribeExpr,
   DynamicPropertyExpr,
   ExternalPropertyExpr,
   HybridPropertyExpr,
