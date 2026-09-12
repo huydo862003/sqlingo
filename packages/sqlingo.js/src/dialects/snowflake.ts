@@ -1589,8 +1589,8 @@ class SnowflakeParser extends Parser {
         REGEXP_SUBSTR_ALL: buildRegexpExtract(RegexpExtractAllExpr),
         RANDOM: (args: Expression[]) => new RandExpr({
           this: seqGet(args, 0),
-          lower: LiteralExpr.number(-9223372036854775808.0),
-          upper: LiteralExpr.number(9223372036854775807.0),
+          lower: LiteralExpr.number('-9.223372036854776e+18'),
+          upper: LiteralExpr.number('9.223372036854776e+18'),
         }),
         REPLACE: buildReplaceWithOptionalReplacement,
         REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({

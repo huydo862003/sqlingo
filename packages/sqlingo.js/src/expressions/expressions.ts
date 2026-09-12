@@ -10392,8 +10392,11 @@ export class LiteralExpr extends ConditionExpr {
       : parseFloat(String(number));
 
     if (!isNaN(numValue) && numValue < 0) {
+      const absStr = typeof number === 'string' && number.startsWith('-')
+        ? number.slice(1)
+        : String(Math.abs(numValue));
       expr = new LiteralExpr({
-        this: String(Math.abs(numValue)),
+        this: absStr,
         isString: false,
       });
       expr = new NegExpr({
