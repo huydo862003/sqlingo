@@ -1039,6 +1039,7 @@ class ClickHouseParser extends Parser {
   static get JOIN_KINDS (): Set<TokenType> {
     return new Set([
       ...Parser.JOIN_KINDS,
+      TokenType.ALL,
       TokenType.ANY,
       TokenType.ASOF,
       TokenType.ARRAY,
@@ -1049,8 +1050,10 @@ class ClickHouseParser extends Parser {
   static get TABLE_ALIAS_TOKENS (): Set<TokenType> {
     return new Set(
       [...Parser.TABLE_ALIAS_TOKENS].filter((t) =>
-        t !== TokenType.ANY
+        t !== TokenType.ALL
+        && t !== TokenType.ANY
         && t !== TokenType.ARRAY
+        && t !== TokenType.ASOF
         && t !== TokenType.FINAL
         && t !== TokenType.FORMAT
         && t !== TokenType.SETTINGS),
@@ -1406,27 +1409,15 @@ class ClickHouseParser extends Parser {
     kind: Token | undefined;
   } {
     const isGlobal = this.match(TokenType.GLOBAL) ? this.prev : undefined;
-    const kindPre = this.matchSet(this._constructor.JOIN_KINDS, {
-      advance: false,
-    })
-      ? this.prev
-      : undefined;
 
-    if (kindPre) {
-      const kind = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
-      const side = this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined;
-
-      return {
-        method: isGlobal,
-        side,
-        kind,
-      };
-    }
+    const kindPre = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
+    const side = this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined;
+    const kind = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
 
     return {
       method: isGlobal,
-      side: this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined,
-      kind: this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined,
+      side: side || kind,
+      kind: kindPre || kind,
     };
   }
 
