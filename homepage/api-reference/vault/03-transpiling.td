@@ -1,5 +1,5 @@
 ---
-_icon: icon.arrows_right_left
+_icon: icon.file_code
 ---
 
 Transpilation is the main use case: read SQL in one dialect, write it in another. The [Guide](02-guide) showed the basic cycle. This page covers what actually changes between dialects and how to control it.

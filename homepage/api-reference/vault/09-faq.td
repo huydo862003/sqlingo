@@ -1,5 +1,5 @@
 ---
-_icon: icon.circle_question_mark
+_icon: icon.info
 ---
 
 ## Why does the output differ from the input?
@@ -20,10 +20,6 @@ Specify `read` when your SQL uses dialect-specific syntax (like MySQL's backtick
 ## How does tree-shaking work?
 
 Each dialect is a separate entry point (`@hdnax/sqlingo.js/mysql`, `@hdnax/sqlingo.js/postgres`, etc.). If you only import MySQL and Postgres, the other 30 dialects are not included in your bundle.
-
-## What is `luxon` for?
-
-`luxon` is a peer dependency used for date/time operations during transpilation. Some dialect conversions need to parse and reformat date patterns; `luxon` handles that.
 
 ## Is this the same as SQLGlot?
 
