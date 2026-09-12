@@ -9328,10 +9328,19 @@ export class Generator {
   }
 
   detachSql (expression: DetachExpr): string {
+    let kind = this.sql(expression, 'kind');
+    kind = kind ? ` ${kind}` : '';
+    let exists = expression.args.exists ? ' IF EXISTS' : '';
+    if (exists) {
+      kind = kind || ' DATABASE';
+    }
     const thisStr = this.sql(expression, 'this');
-    const existsSql = expression.args.exists ? ' DATABASE IF EXISTS' : '';
-
-    return `DETACH${existsSql} ${thisStr}`;
+    const thisPart = thisStr ? ` ${thisStr}` : '';
+    let cluster = this.sql(expression, 'cluster');
+    cluster = cluster ? ` ${cluster}` : '';
+    const permanent = expression.args.permanent ? ' PERMANENTLY' : '';
+    const sync = expression.args.sync ? ' SYNC' : '';
+    return `DETACH${kind}${exists}${thisPart}${cluster}${permanent}${sync}`;
   }
 
   attachOptionSql (expression: AttachOptionExpr): string {

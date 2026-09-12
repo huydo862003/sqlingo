@@ -183,6 +183,7 @@ import {
   ArrayPrependExpr,
   ArrayExceptExpr,
   ArrayIntersectExpr,
+  ArrayOverlapsExpr,
   ArrayPositionExpr,
   ArraySliceExpr,
   AtTimeZoneExpr,
@@ -1441,6 +1442,11 @@ class SnowflakeParser extends Parser {
           }
           return new SortArrayExpr({ this: seqGet(args, 0), asc, nullsFirst });
         },
+        ARRAYS_OVERLAP: (args: Expression[]) => new ArrayOverlapsExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullsafe: true,
+        }),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BIT_AND: buildBitwise(BitwiseAndExpr, 'BITAND'),
@@ -2805,6 +2811,10 @@ class SnowflakeGenerator extends Generator {
       [
         ArrayIntersectExpr,
         renameFunc('ARRAY_INTERSECTION'),
+      ],
+      [
+        ArrayOverlapsExpr,
+        renameFunc('ARRAYS_OVERLAP'),
       ],
       [
         ArrayPositionExpr,

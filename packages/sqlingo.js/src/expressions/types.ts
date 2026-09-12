@@ -182,6 +182,7 @@ export enum ExpressionKey {
   CHECK_JSON = 'checkJson',
   CHECK_XML = 'checkXml',
   CHR = 'chr',
+  CITY_HASH64 = 'cityHash64',
   CLONE = 'clone',
   CLUSTER = 'cluster',
   CLUSTERED_BY_PROPERTY = 'clusteredByProperty',

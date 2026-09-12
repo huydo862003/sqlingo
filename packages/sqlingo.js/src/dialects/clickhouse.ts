@@ -67,6 +67,7 @@ import {
   AssumeColumnConstraintExpr,
   CheckColumnConstraintExpr,
   DefinerPropertyExpr,
+  DetachExpr,
   DotExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
@@ -154,6 +155,7 @@ import {
   PlaceholderExpr,
   PropertyEqExpr,
   CastToStrTypeExpr,
+  CityHash64Expr,
   ComputedColumnConstraintExpr,
   CurrentDateExpr,
   DateStrToDateExpr,
@@ -538,6 +540,7 @@ class ClickHouseTokenizer extends Tokenizer {
       '.:': TokenType.DOTCOLON,
       '.^': TokenType.DOTCARET,
       'ATTACH': TokenType.COMMAND,
+      'DETACH': TokenType.DETACH,
       'DATE32': TokenType.DATE32,
       'DATETIME64': TokenType.DATETIME64,
       'DICTIONARY': TokenType.DICTIONARY,
@@ -645,6 +648,7 @@ class ClickHouseParser extends Parser {
       ARRAYSLICE: (args: unknown[]) => ArraySliceExpr.fromArgList(args),
       CURRENTDATABASE: (args: unknown[]) => CurrentDatabaseExpr.fromArgList(args),
       CURRENTSCHEMAS: (args: unknown[]) => CurrentSchemasExpr.fromArgList(args),
+      CITYHASH64: (args: unknown[]) => CityHash64Expr.fromArgList(args),
       COUNTIF: buildCountIf,
       COSINEDISTANCE: (args: unknown[]) => CosineDistanceExpr.fromArgList(args),
       VERSION: (args: unknown[]) => CurrentVersionExpr.fromArgList(args),
@@ -1082,6 +1086,16 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
+  @cache
+  static get STATEMENT_PARSERS (): Record<string, (this: Parser, ...args: unknown[]) => Expression | Expression[]> {
+    return {
+      ...Parser.STATEMENT_PARSERS,
+      [TokenType.DETACH]: function (this: Parser) {
+        return (this as ClickHouseParser).parseDetach();
+      },
+    };
+  }
+
   static get CONSTRAINT_PARSERS (): Record<string, (this: Parser) => Expression> {
     return {
       ...Parser.CONSTRAINT_PARSERS,
@@ -1241,21 +1255,23 @@ class ClickHouseParser extends Parser {
   }
 
   parseBracket (thisNode?: Expression): Expression | undefined {
-    let bracketJsonType: DataTypeExpr | undefined;
+    if (thisNode) {
+      let bracketJsonType: DataTypeExpr | undefined;
 
-    while (this.matchPair(TokenType.L_BRACKET, TokenType.R_BRACKET)) {
-      bracketJsonType = new DataTypeExpr({
-        this: DataTypeExprKind.ARRAY,
-        expressions: [
-          bracketJsonType
-            || DataTypeExpr.build(DataTypeExprKind.JSON, { dialect: this.dialect, nullable: false }),
-        ],
-        nested: true,
-      });
-    }
+      while (this.matchPair(TokenType.L_BRACKET, TokenType.R_BRACKET)) {
+        bracketJsonType = new DataTypeExpr({
+          this: DataTypeExprKind.ARRAY,
+          expressions: [
+            bracketJsonType
+              || DataTypeExpr.build(DataTypeExprKind.JSON, { dialect: this.dialect, nullable: false }),
+          ],
+          nested: true,
+        });
+      }
 
-    if (bracketJsonType) {
-      return this.expression(JsonCastExpr, { this: thisNode, to: bracketJsonType });
+      if (bracketJsonType) {
+        return this.expression(JsonCastExpr, { this: thisNode, to: bracketJsonType });
+      }
     }
 
     const lBrace = this.match(TokenType.L_BRACE, {
@@ -1545,6 +1561,20 @@ class ClickHouseParser extends Parser {
   parseWrappedIdVars (): Expression[] {
     return super.parseWrappedIdVars({
       optional: true,
+    });
+  }
+
+  parseDetach (): DetachExpr {
+    const kind = (this.matchSet(this._constructor.DB_CREATABLES) || undefined) && this.prev?.text.toUpperCase();
+    const exists = this.parseExists();
+    const thisExpr = this.parseTableParts();
+    return this.expression(DetachExpr, {
+      this: thisExpr,
+      kind,
+      exists,
+      cluster: this.match(TokenType.ON) ? this.parseOnProperty() : undefined,
+      permanent: this.matchTextSeq('PERMANENTLY') || undefined,
+      sync: this.matchTextSeq('SYNC') || undefined,
     });
   }
 
@@ -2164,6 +2194,10 @@ export class ClickHouseGenerator extends Generator {
       [
         ArrayExpr,
         inlineArraySql,
+      ],
+      [
+        CityHash64Expr,
+        renameFunc('cityHash64'),
       ],
       [
         CastToStrTypeExpr,

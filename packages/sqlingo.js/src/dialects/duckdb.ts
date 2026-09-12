@@ -3475,6 +3475,12 @@ class DuckDBGenerator extends Generator {
         },
       ],
       [
+        ArrayOverlapsExpr,
+        function (this: Generator, e: ArrayOverlapsExpr) {
+          return (this as DuckDBGenerator).arrayoverlapsSql(e);
+        },
+      ],
+      [
         ArrayDistinctExpr,
         function (this: Generator, e: ArrayDistinctExpr) {
           return (this as DuckDBGenerator).arraydistinctSql(e);
@@ -4816,6 +4822,19 @@ class DuckDBGenerator extends Generator {
       anchoredPattern,
       flag,
     ] as Expression[]);
+  }
+
+  arrayoverlapsSql (expression: ArrayOverlapsExpr): string {
+    if (!expression.args.nullsafe) {
+      return this.binary(expression, '&&');
+    }
+    const arr1 = expression.args.this!;
+    const arr2 = expression.args.expression!;
+    const nullSafe = this.sql(and([
+      new NeqExpr({ this: new ArraySizeExpr({ this: arr1.copy() }), expression: func('LIST_COUNT', arr1.copy()) }),
+      new NeqExpr({ this: new ArraySizeExpr({ this: arr2.copy() }), expression: func('LIST_COUNT', arr2.copy()) }),
+    ]));
+    return `(${this.binary(expression, '&&')}) OR (${nullSafe})`;
   }
 
   arraycontainsSql (expression: ArrayContainsExpr): string {

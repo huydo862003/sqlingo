@@ -3005,8 +3005,12 @@ export class AttachExpr extends Expression {
 export type DetachExprArgs = Merge<[
   BaseExpressionArgs,
   {
-    exists?: boolean;
     this?: Expression;
+    kind?: string;
+    exists?: boolean;
+    cluster?: Expression;
+    permanent?: boolean;
+    sync?: boolean;
   },
 ]>;
 
@@ -3016,7 +3020,11 @@ export class DetachExpr extends Expression {
   static requiredArgs = new Set(['this']);
   static availableArgs = new Set([
     'this',
+    'kind',
     'exists',
+    'cluster',
+    'permanent',
+    'sync',
   ]);
 
   declare args: DetachExprArgs;
@@ -17259,6 +17267,22 @@ export class ApproxTopKEstimateExpr extends FuncExpr {
   }
 }
 
+export type CityHash64ExprArgs = Merge<[
+  FuncExprArgs,
+  {
+    expressions?: Expression[];
+  },
+]>;
+
+export class CityHash64Expr extends FuncExpr {
+  static key = ExpressionKey.CITY_HASH64;
+  static isVarLenArgs = true;
+  static availableArgs = new Set(['expressions']);
+  declare args: CityHash64ExprArgs;
+  constructor (args: CityHash64ExprArgs = {}) { super(args); }
+  static { this.register(); }
+}
+
 export type FarmFingerprintExprArgs = Merge<[
   FuncExprArgs,
   {
@@ -19239,6 +19263,7 @@ export type ArrayOverlapsExprArgs = Merge<[
     this?: Expression;
     expression?: Expression;
     expressions?: Expression[];
+    nullsafe?: boolean;
   },
 ]>;
 
@@ -19253,6 +19278,7 @@ export class ArrayOverlapsExpr extends multiInherit(BinaryExpr, FuncExpr) {
   static availableArgs = new Set([
     'this',
     'expression',
+    'nullsafe',
   ]);
 
   declare args: ArrayOverlapsExprArgs;
