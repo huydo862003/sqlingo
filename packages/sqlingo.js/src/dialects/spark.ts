@@ -397,7 +397,6 @@ class SparkParser extends Spark2.Parser {
 }
 
 class SparkGenerator extends Spark2.Generator {
-  static DECLARE_DEFAULT_ASSIGNMENT = 'DEFAULT';
   // port from _Dialect metaclass logic
   static TRY_SUPPORTED = false;
   // port from _Dialect metaclass logic

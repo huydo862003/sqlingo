@@ -389,6 +389,19 @@ class TestSQLite extends Validator {
     this.validateIdentity('ANALYZE tbl');
     this.validateIdentity('ANALYZE schma.tbl');
   }
+
+  testCreateTrigger () {
+    this.validateIdentity(
+      "CREATE TRIGGER log_insert AFTER INSERT ON users BEGIN INSERT INTO audit_log (user_id, action, created_at) VALUES (NEW.id, 'INSERT', datetime('now')) END",
+      undefined,
+      { checkCommandWarning: true },
+    );
+    this.validateIdentity(
+      'CREATE TRIGGER check_balance BEFORE UPDATE OF balance ON accounts WHEN NEW.balance < 0 BEGIN UPDATE accounts SET balance = 0 WHERE id = NEW.id END',
+      undefined,
+      { checkCommandWarning: true },
+    );
+  }
 }
 
 const t = new TestSQLite();
@@ -403,4 +416,5 @@ describe('TestSQLite', () => {
   test('trunc', () => t.testTrunc());
   test('ddl', () => t.testDdl());
   test('analyze', () => t.testAnalyze());
+  test('testCreateTrigger', () => t.testCreateTrigger());
 });

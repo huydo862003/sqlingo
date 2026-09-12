@@ -1488,6 +1488,43 @@ TBLPROPERTIES (
     narrowInstanceOf(narrowed2?.args.this, DistinctExpr);
     expect(narrowed2?.getArgKey('quantile')).toBeInstanceOf(LiteralExpr);
   }
+
+  testDeclare () {
+    this.validateIdentity('DECLARE VAR x INT', 'DECLARE x INT');
+    this.validateIdentity('DECLARE x INT');
+    this.validateIdentity('DECLARE VARIABLE myvar INT DEFAULT 5', 'DECLARE myvar INT = 5');
+    this.validateIdentity('DECLARE x, y, z INT DEFAULT 1', 'DECLARE x, y, z INT = 1');
+    this.validateIdentity('DECLARE x INT = 5');
+    this.validateIdentity('DECLARE five = 5');
+    this.validateIdentity('DECLARE OR REPLACE five = 55');
+    this.validateIdentity('DECLARE VARIABLE size DEFAULT 6', 'DECLARE size = 6');
+    this.validateIdentity('DECLARE some_var STRING');
+  }
+
+  testSetVariable () {
+    this.validateAll('SET VAR v = 5', {
+      write: {
+        spark: 'SET VARIABLE v = 5',
+        databricks: 'SET VARIABLE v = 5',
+      },
+    });
+    this.validateAll('SET VARIABLE v = 5', {
+      write: {
+        spark: 'SET VARIABLE v = 5',
+        databricks: 'SET VARIABLE v = 5',
+      },
+    });
+  }
+
+  testArrayInsert () {
+    this.validateAll("SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')", {
+      read: { databricks: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')" },
+      write: {
+        databricks: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')",
+        spark: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')",
+      },
+    });
+  }
 }
 
 const t = new TestSpark();
@@ -1509,4 +1546,7 @@ describe('TestSpark', () => {
   test('testBinaryString', () => t.testBinaryString());
   test('testAnalyze', () => t.testAnalyze());
   test('testApproxPercentile', () => t.testApproxPercentile());
+  test('testDeclare', () => t.testDeclare());
+  test('testSetVariable', () => t.testSetVariable());
+  test('testArrayInsert', () => t.testArrayInsert());
 });

@@ -179,6 +179,10 @@ class TestTrino extends Validator {
       );
     }
   }
+  testArrayFirst () {
+    this.validateIdentity("SELECT ARRAY_FIRST(ARRAY['a', 'b']) FROM tbl");
+    this.validateIdentity("SELECT ARRAY_FIRST(ARRAY['a', 'b'], x -> x = 'b') FROM tbl");
+  }
 }
 
 const t = new TestTrino();
@@ -190,4 +194,5 @@ describe('TestTrino', () => {
   test('ddl', () => t.testDdl());
   test('analyze', () => t.testAnalyze());
   test('jsonValue', () => t.testJsonValue());
+  test('testArrayFirst', () => t.testArrayFirst());
 });

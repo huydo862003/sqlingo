@@ -559,6 +559,14 @@ class TestDatabricks extends Validator {
     this.validateIdentity('DECLARE x, y, z INT DEFAULT 1', 'DECLARE x, y, z INT = 1');
     this.validateIdentity('DECLARE x INT = 1');
   }
+
+  testUdfHandlerProperty () {
+    this.validateIdentity("CREATE FUNCTION a() HANDLER 'handler_function'");
+  }
+
+  testUdfParameterStyleProperty () {
+    this.validateIdentity('CREATE FUNCTION a() PARAMETER STYLE PANDAS');
+  }
 }
 
 const t = new TestDatabricks();
@@ -578,4 +586,6 @@ describe('TestDatabricks', () => {
   test('qdcolon', () => t.testQdcolon());
   test('overlay', () => t.testOverlay());
   test('declare', () => t.testDeclare());
+  test('testUdfHandlerProperty', () => t.testUdfHandlerProperty());
+  test('testUdfParameterStyleProperty', () => t.testUdfParameterStyleProperty());
 });
