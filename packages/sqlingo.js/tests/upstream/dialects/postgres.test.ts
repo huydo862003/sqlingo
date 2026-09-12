@@ -2036,6 +2036,26 @@ CROSS JOIN JSON_ARRAY_ELEMENTS(CAST(JSON_EXTRACT_PATH(tbox, 'boxes') AS JSON)) A
 
     this.validateIdentity(dayTimeStr, 'a > INTERVAL \'1 00:00\' AND TRUE');
   }
+
+  testPostgresCreateTrigger () {
+    const triggers = [
+      'CREATE TRIGGER check_update BEFORE UPDATE ON accounts FOR EACH ROW EXECUTE FUNCTION CHECK_ACCOUNT_UPDATE()',
+      'CREATE TRIGGER log_insert AFTER INSERT ON users FOR EACH ROW EXECUTE FUNCTION LOG_CHANGES()',
+      'CREATE TRIGGER audit_changes AFTER INSERT OR UPDATE OR DELETE ON products FOR EACH ROW EXECUTE FUNCTION AUDIT_LOG()',
+      'CREATE TRIGGER check_balance BEFORE UPDATE OF balance, status ON accounts FOR EACH ROW EXECUTE FUNCTION VALIDATE_BALANCE()',
+      "CREATE TRIGGER conditional_trigger BEFORE UPDATE ON users FOR EACH ROW WHEN (OLD.id <> NEW.id) EXECUTE FUNCTION CHECK_ID_CHANGE()",
+      'CREATE TRIGGER statement_trigger AFTER INSERT ON orders FOR EACH STATEMENT EXECUTE FUNCTION UPDATE_SUMMARY()',
+      'CREATE TRIGGER instead_trigger INSTEAD OF INSERT ON user_view FOR EACH ROW EXECUTE FUNCTION HANDLE_INSERT()',
+      'CREATE OR REPLACE TRIGGER replace_trigger BEFORE INSERT ON users FOR EACH ROW EXECUTE FUNCTION LOG_INSERT()',
+      "CREATE TRIGGER param_trigger BEFORE INSERT ON users FOR EACH ROW EXECUTE FUNCTION LOG_WITH_PARAMS('insert', 'users')",
+      'CREATE TRIGGER my_trigger BEFORE INSERT ON myschema.users FOR EACH ROW EXECUTE FUNCTION LOG_CHANGES()',
+      'CREATE TRIGGER truncate_trigger BEFORE TRUNCATE ON users FOR EACH STATEMENT EXECUTE FUNCTION LOG_TRUNCATE()',
+      'CREATE TRIGGER emp_stamp BEFORE INSERT OR UPDATE ON emp FOR EACH ROW EXECUTE FUNCTION EMP_STAMP()',
+    ];
+    for (const sql of triggers) {
+      this.validateIdentity(sql);
+    }
+  }
 }
 
 const t = new TestPostgres();
@@ -2065,4 +2085,5 @@ describe('TestPostgres', () => {
   test('testRevoke', () => t.testRevoke());
   test('testBeginTransaction', () => t.testBeginTransaction());
   test('testIntervalSpan', () => t.testIntervalSpan());
+  test('testPostgresCreateTrigger', () => t.testPostgresCreateTrigger());
 });

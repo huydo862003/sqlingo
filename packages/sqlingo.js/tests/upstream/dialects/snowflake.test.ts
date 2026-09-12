@@ -7507,6 +7507,47 @@ FROM SEMANTIC_VIEW(
     );
   }
 
+  testRegexpFunctions () {
+    this.validateAll('REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)', {
+      write: {
+        bigquery: 'REGEXP_EXTRACT(subject, pattern, pos, occ)',
+        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
+        presto: 'REGEXP_EXTRACT(subject, pattern, "group")',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)",
+        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
+      },
+    });
+    this.validateAll('REGEXP_SUBSTR(subject, pattern)', {
+      read: { bigquery: 'REGEXP_EXTRACT(subject, pattern)' },
+      write: {
+        bigquery: 'REGEXP_EXTRACT(subject, pattern)',
+        snowflake: 'REGEXP_SUBSTR(subject, pattern)',
+      },
+    });
+    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", {
+      read: {
+        hive: 'REGEXP_EXTRACT(subject, pattern)',
+        spark: 'REGEXP_EXTRACT(subject, pattern)',
+        databricks: 'REGEXP_EXTRACT(subject, pattern)',
+      },
+      write: {
+        hive: 'REGEXP_EXTRACT(subject, pattern)',
+        spark: 'REGEXP_EXTRACT(subject, pattern)',
+        databricks: 'REGEXP_EXTRACT(subject, pattern)',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)",
+      },
+    });
+    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", {
+      read: {
+        duckdb: 'REGEXP_EXTRACT(subject, pattern, group)',
+        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
+        presto: 'REGEXP_EXTRACT(subject, pattern, group)',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)",
+        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
+      },
+    });
+  }
+
   testArrayFlatten () {
     // String array flattening
     this.validateAll(
@@ -7973,6 +8014,10 @@ describe('TestSnowflake', () => {
 
   test('test array position', () => {
     validator.testArrayPosition();
+  });
+
+  test('test regexp functions', () => {
+    validator.testRegexpFunctions();
   });
 
   test('test array flatten', () => {

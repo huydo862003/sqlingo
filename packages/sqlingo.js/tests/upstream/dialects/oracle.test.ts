@@ -1004,6 +1004,14 @@ CONNECT BY PRIOR employee_id = manager_id AND LEVEL <= 4`;
     this.validateIdentity('SELECT CHR(187 USING NCHAR_CS)');
     this.validateIdentity('SELECT CHR(187)');
   }
+
+  testCreateTrigger () {
+    this.validateIdentity(
+      "CREATE TRIGGER check_salary BEFORE INSERT ON employees FOR EACH ROW BEGIN :NEW.status := 'PENDING' END",
+      undefined,
+      { checkCommandWarning: true },
+    );
+  }
 }
 
 const t = new TestOracle();
@@ -1028,4 +1036,5 @@ describe('TestOracle', () => {
   test('prior', () => t.testPrior());
   test('testUtcTime', () => t.testUtcTime());
   test('chr', () => t.testChr());
+  test('testCreateTrigger', () => t.testCreateTrigger());
 });

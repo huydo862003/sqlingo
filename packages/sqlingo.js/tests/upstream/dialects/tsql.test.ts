@@ -2472,6 +2472,19 @@ FROM OPENJSON(@json) WITH (
       expect(literal).toBeInstanceOf(cls);
     }
   }
+
+  testCreateTrigger () {
+    this.validateIdentity(
+      "CREATE TRIGGER reminder ON customers AFTER INSERT AS BEGIN INSERT INTO audit_log (customer_id, action, created_at) SELECT id, 'INSERT', GETDATE() FROM inserted END",
+      undefined,
+      { checkCommandWarning: true },
+    );
+    this.validateIdentity(
+      'CREATE TRIGGER updview ON vw_employees INSTEAD OF UPDATE AS BEGIN UPDATE employees SET salary = inserted.salary FROM inserted WHERE employees.id = inserted.id END',
+      undefined,
+      { checkCommandWarning: true },
+    );
+  }
 }
 
 const t = new TestTSQL();
@@ -2528,4 +2541,5 @@ describe('TestTSQL', () => {
   test('testNumericTrunc', () => t.testNumericTrunc());
   test('testCollationParse', () => t.testCollationParse());
   test('testOdbcDateLiterals', () => t.testOdbcDateLiterals());
+  test('testCreateTrigger', () => t.testCreateTrigger());
 });

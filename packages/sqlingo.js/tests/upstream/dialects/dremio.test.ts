@@ -253,6 +253,10 @@ class TestDremio extends Validator {
       },
     );
   }
+
+  testUserDefinedTypesUnsupported () {
+    expect(() => this.parseOne('CAST(x AS MY_CUSTOM_TYPE)')).toThrow();
+  }
 }
 
 const t = new TestDremio();
@@ -277,4 +281,5 @@ describe('TestDremio', () => {
   test('testDatePart', () => t.testDatePart());
   test('testDatetype', () => t.testDatetype());
   test('testTryCast', () => t.testTryCast());
+  test('testUserDefinedTypesUnsupported', () => t.testUserDefinedTypesUnsupported());
 });
