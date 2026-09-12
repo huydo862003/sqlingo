@@ -101,7 +101,8 @@ function tokenizeAsHive (tokensList: Token[]): boolean {
 
 function generateAsHive (expression: Expression): boolean {
   if (expression instanceof CreateExpr) {
-    if (expression.args.kind === CreateExprKind.TABLE) {
+    const kind = String(expression.args.kind ?? '').toUpperCase();
+    if (kind === 'TABLE') {
       const properties = expression.args.properties;
 
       if (properties && properties.find(ExternalPropertyExpr)) {
@@ -112,10 +113,10 @@ function generateAsHive (expression: Expression): boolean {
         return true;
       }
     } else {
-      return expression.args.kind !== CreateExprKind.VIEW;
+      return kind !== 'VIEW';
     }
   } else if (expression instanceof AlterExpr || expression instanceof DropExpr || expression instanceof DescribeExpr || expression instanceof ShowExpr) {
-    if (expression instanceof DropExpr && expression.args.kind === DropExprKind.VIEW) {
+    if (expression instanceof DropExpr && String(expression.args.kind ?? '').toUpperCase() === 'VIEW') {
       return false;
     }
 
@@ -163,7 +164,7 @@ class HiveGeneratorExtension extends Hive.Generator {
   // port from _Dialect metaclass logic
   static SUPPORTS_DECODE_CASE = false;
   public alterSql (expression: AlterExpr): string {
-    if (expression instanceof AlterExpr && expression.args.kind === AlterExprKind.TABLE) {
+    if (expression instanceof AlterExpr && String(expression.args.kind ?? '').toUpperCase() === 'TABLE') {
       if (expression.args.actions && expression.args.actions[0] instanceof ColumnDefExpr) {
         const newActions = new SchemaExpr({
           expressions: expression.args.actions,

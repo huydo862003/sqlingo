@@ -2473,6 +2473,17 @@ FROM OPENJSON(@json) WITH (
     }
   }
 
+  testProcedures () {
+    this.validateIdentity('EXECUTE test @in1 = 100, @in2');
+    this.validateIdentity('EXECUTE sp_executesql @payload, @param_str, @param1 = value1, @param2 = value2');
+    this.validateIdentity(
+      'CREATE PROCEDURE test1 AS BEGIN SELECT 1; SELECT 2; SELECT 3; END',
+    );
+    this.validateIdentity(
+      "CREATE PROCEDURE test2(@in1 INTEGER, @c CHAR(1)) AS BEGIN IF @in1 > 1 AND @c = 'c' BEGIN SELECT col1 FROM t WHERE t.col2 = @in1; END; END",
+    );
+  }
+
   testCreateTrigger () {
     this.validateIdentity(
       "CREATE TRIGGER reminder ON customers AFTER INSERT AS BEGIN INSERT INTO audit_log (customer_id, action, created_at) SELECT id, 'INSERT', GETDATE() FROM inserted END",
@@ -2541,5 +2552,6 @@ describe('TestTSQL', () => {
   test('testNumericTrunc', () => t.testNumericTrunc());
   test('testCollationParse', () => t.testCollationParse());
   test('testOdbcDateLiterals', () => t.testOdbcDateLiterals());
+  test('testProcedures', () => t.testProcedures());
   test('testCreateTrigger', () => t.testCreateTrigger());
 });

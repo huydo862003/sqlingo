@@ -14,6 +14,8 @@ import {
 import {
   Validator,
 } from './validator';
+import { annotateTypes } from '../../../src/optimizer/annotate_types';
+import { qualify } from '../../../src/optimizer/qualify';
 
 class TestSpark extends Validator {
   override dialect = 'spark' as const;
@@ -1525,6 +1527,33 @@ TBLPROPERTIES (
       },
     });
   }
+
+  testTranspileAnnotatedExplodedColumn () {
+    const sql = `
+      WITH test_table AS (
+        SELECT
+          12345 AS id_column,
+          ARRAY(
+            STRUCT('John' AS name, 30 AS age),
+            STRUCT('Mary' AS name, 20 AS age),
+            STRUCT('Mike' AS name, 80 AS age),
+            STRUCT('Dan' AS name, 50 AS age)
+          ) AS struct_column
+      )
+      SELECT
+        id_column,
+        explode_view.new_column.name,
+        explode_view.new_column.age
+      FROM test_table
+      LATERAL VIEW EXPLODE(struct_column) explode_view AS new_column
+    `;
+    const expr = this.parseOne(sql);
+    const qualified = qualify(expr, { dialect: 'spark' });
+    const annotated = annotateTypes(qualified, { dialect: 'spark' });
+    expect(annotated.sql({ dialect: 'spark' })).toBe(
+      "WITH `test_table` AS (SELECT 12345 AS `id_column`, ARRAY(STRUCT('John' AS `name`, 30 AS `age`), STRUCT('Mary' AS `name`, 20 AS `age`), STRUCT('Mike' AS `name`, 80 AS `age`), STRUCT('Dan' AS `name`, 50 AS `age`)) AS `struct_column`) SELECT `test_table`.`id_column` AS `id_column`, `explode_view`.`new_column`.`name` AS `name`, `explode_view`.`new_column`.`age` AS `age` FROM `test_table` AS `test_table` LATERAL VIEW EXPLODE(`test_table`.`struct_column`) explode_view AS `new_column`",
+    );
+  }
 }
 
 const t = new TestSpark();
@@ -1549,4 +1578,5 @@ describe('TestSpark', () => {
   test('testDeclare', () => t.testDeclare());
   test('testSetVariable', () => t.testSetVariable());
   test('testArrayInsert', () => t.testArrayInsert());
+  test('testTranspileAnnotatedExplodedColumn', () => t.testTranspileAnnotatedExplodedColumn());
 });

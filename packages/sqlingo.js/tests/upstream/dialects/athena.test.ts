@@ -3,6 +3,9 @@ import {
 } from 'vitest';
 import {
   PartitionedByPropertyExpr, PartitionedByBucketExpr, PartitionByTruncateExpr, SchemaExpr,
+  CreateExpr, ColumnDefExpr, DataTypeExpr, ExternalPropertyExpr, FileFormatPropertyExpr,
+  LocationPropertyExpr, LiteralExpr, PropertyExpr, PropertiesExpr, var_,
+  toTable, toIdentifier, toColumn, select,
 } from '../../../src/expressions';
 import {
   Validator,
@@ -219,6 +222,56 @@ class TestAthena extends Validator {
     expect(schema.args.expressions?.some((n) => n instanceof PartitionedByBucketExpr)).toBe(true);
     expect(schema.args.expressions?.some((n) => n instanceof PartitionByTruncateExpr)).toBe(true);
   }
+
+  testCreateTable () {
+    const tableSchema = new SchemaExpr({
+      this: toTable('foo.bar'),
+      expressions: [
+        new ColumnDefExpr({ this: toIdentifier('a'), kind: DataTypeExpr.build('int') }),
+        new ColumnDefExpr({ this: toIdentifier('b'), kind: DataTypeExpr.build('varchar') }),
+      ],
+    });
+
+    const ctHive = new CreateExpr({
+      this: tableSchema,
+      kind: 'TABLE',
+      properties: new PropertiesExpr({
+        expressions: [
+          new ExternalPropertyExpr({}),
+          new FileFormatPropertyExpr({ this: LiteralExpr.string('parquet') }),
+          new LocationPropertyExpr({ this: LiteralExpr.string('s3://foo') }),
+          new PartitionedByPropertyExpr({
+            this: new SchemaExpr({ expressions: [toColumn('partition_col')] }),
+          }),
+        ],
+      }),
+    });
+
+    expect(ctHive.sql({ dialect: this.dialect, identify: true })).toBe(
+      "CREATE EXTERNAL TABLE `foo`.`bar` (`a` INT, `b` STRING) STORED AS PARQUET LOCATION 's3://foo' PARTITIONED BY (`partition_col`)",
+    );
+  }
+
+  testCtas () {
+    const ctasHive = new CreateExpr({
+      this: toTable('foo.bar'),
+      kind: 'TABLE',
+      properties: new PropertiesExpr({
+        expressions: [
+          new FileFormatPropertyExpr({ this: LiteralExpr.string('parquet') }),
+          new LocationPropertyExpr({ this: LiteralExpr.string('s3://foo') }),
+          new PartitionedByPropertyExpr({
+            this: new SchemaExpr({ expressions: [toColumn('partition_col', { quoted: true })] }),
+          }),
+        ],
+      }),
+      expression: select('1'),
+    });
+
+    expect(ctasHive.sql({ dialect: this.dialect, identify: true })).toBe(
+      "CREATE TABLE \"foo\".\"bar\" WITH (format='parquet', external_location='s3://foo', partitioned_by=ARRAY['partition_col']) AS SELECT 1",
+    );
+  }
 }
 
 const t = new TestAthena();
@@ -230,4 +283,6 @@ describe('TestAthena', () => {
   test('testDdlQuoting', () => t.testDdlQuoting());
   test('testDmlQuoting', () => t.testDmlQuoting());
   test('testParsePartitionedByReturnsIcebergTransforms', () => t.testParsePartitionedByReturnsIcebergTransforms());
+  test('testCreateTable', () => t.testCreateTable());
+  test('testCtas', () => t.testCtas());
 });

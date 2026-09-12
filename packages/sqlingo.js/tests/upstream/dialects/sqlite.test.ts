@@ -390,6 +390,13 @@ class TestSQLite extends Validator {
     this.validateIdentity('ANALYZE schma.tbl');
   }
 
+  testWarnings () {
+    this.validateIdentity(
+      'SELECT * FROM t AS t(c1, c2)',
+      'SELECT * FROM t AS t',
+    );
+  }
+
   testCreateTrigger () {
     this.validateIdentity(
       "CREATE TRIGGER log_insert AFTER INSERT ON users BEGIN INSERT INTO audit_log (user_id, action, created_at) VALUES (NEW.id, 'INSERT', datetime('now')) END",
@@ -416,5 +423,6 @@ describe('TestSQLite', () => {
   test('trunc', () => t.testTrunc());
   test('ddl', () => t.testDdl());
   test('analyze', () => t.testAnalyze());
+  test('testWarnings', () => t.testWarnings());
   test('testCreateTrigger', () => t.testCreateTrigger());
 });
