@@ -90,6 +90,7 @@ import {
   ColumnDefExpr,
   ColumnExpr,
   ColumnPositionExpr,
+  SkipJsonColumnExpr,
   ColumnsExpr,
   CommandExpr,
   CommentColumnConstraintExpr,
@@ -161,6 +162,8 @@ import {
   ExceptExpr,
   ExcludeColumnConstraintExpr,
   ExecuteAsPropertyExpr,
+  HandlerPropertyExpr,
+  ParameterStylePropertyExpr,
   ExistsExpr,
   Expression, GrantPrivilegeExpr, OverlayExpr, RevokeExpr,
   ExpressionKey,
@@ -361,7 +364,6 @@ import {
   SchemaExpr,
   ScopeResolutionExpr,
   SecurePropertyExpr,
-  SecurityPropertyExpr,
   SelectExpr,
   SemicolonExpr,
   SequencePropertiesExpr,
@@ -1354,7 +1356,6 @@ export class Parser {
   @cache
   static get STRUCT_TYPE_TOKENS (): Set<TokenType> {
     return new Set([
-      TokenType.FILE,
       TokenType.NESTED,
       TokenType.OBJECT,
       TokenType.STRUCT,
@@ -1644,6 +1645,7 @@ export class Parser {
         TokenType.ESCAPE,
         TokenType.FALSE,
         TokenType.FIRST,
+        TokenType.FILE,
         TokenType.FILTER,
         TokenType.FINAL,
         TokenType.FORMAT,
@@ -1761,6 +1763,24 @@ export class Parser {
       [...Parser.TABLE_ALIAS_TOKENS].filter((t) => t !== TokenType.SET),
     );
   }
+
+  static FAST_COLUMN_TOKENS: Set<TokenType> = new Set([
+    TokenType.VAR,
+    TokenType.IDENTIFIER,
+  ]);
+
+  static BRACKETS: Set<TokenType> = new Set([
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+  ]);
+
+  static COLUMN_POSTFIX_TOKENS: Set<TokenType> = new Set([
+    TokenType.L_PAREN,
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+    TokenType.COLON,
+    TokenType.JOIN_MARKER,
+  ]);
 
   @cache
   static get TRIM_TYPES (): Set<string> {
@@ -2639,6 +2659,9 @@ export class Parser {
           },
         );
       },
+      'HANDLER': function (this: Parser) {
+        return this.parsePropertyAssignment(HandlerPropertyExpr);
+      },
       'EXECUTE': function (this: Parser) {
         return this.parsePropertyAssignment(ExecuteAsPropertyExpr);
       },
@@ -2807,7 +2830,10 @@ export class Parser {
         return this.expression(SecurePropertyExpr, {});
       },
       'SECURITY': function (this: Parser) {
-        return this.parseSecurity();
+        return this.parseSqlSecurity();
+      },
+      'SQL SECURITY': function (this: Parser) {
+        return this.parseSqlSecurity();
       },
       'SET': function (this: Parser) {
         return this.expression(SetPropertyExpr, {
@@ -3949,6 +3975,12 @@ export class Parser {
     'CYCLE',
   ]);
 
+  static SECURITY_PROPERTY_KEYWORDS: string[] = [
+    'DEFINER',
+    'INVOKER',
+    'NONE',
+  ];
+
   @cache
   static get MODIFIABLES (): (typeof Expression)[] {
     return [
@@ -4361,7 +4393,7 @@ export class Parser {
     } else {
       thisExpr = this.parseTableParts({
         schema: true,
-        isDbReference: this.prev?.tokenType === TokenType.SCHEMA,
+        isDbReference: kind === 'SCHEMA',
       });
     }
 
@@ -4387,6 +4419,7 @@ export class Parser {
       purge: this.matchTextSeq('PURGE'),
       cluster,
       concurrently,
+      sync: this.matchTextSeq('SYNC'),
     });
   }
 
@@ -5049,18 +5082,13 @@ export class Parser {
     }
 
     if (this.matchTextSeq([
-      'SQL',
-      'SECURITY',
+      'PARAMETER',
+      'STYLE',
+      'PANDAS',
     ])) {
-      return this.expression(
-        SqlSecurityPropertyExpr,
-        {
-          this: this.matchTexts([
-            'DEFINER',
-            'INVOKER',
-          ]) && (this.prev?.text ?? '').toUpperCase(),
-        },
-      );
+      return this.expression(ParameterStylePropertyExpr, {
+        this: 'PANDAS',
+      });
     }
 
     const index = this.index;
@@ -5194,20 +5222,10 @@ export class Parser {
     );
   }
 
-  parseSecurity (): SecurityPropertyExpr | undefined {
-    if (this.matchTexts([
-      'NONE',
-      'DEFINER',
-      'INVOKER',
-    ])) {
-      const securitySpecifier = this.prev?.text.toUpperCase();
-
-      return this.expression(SecurityPropertyExpr, {
-        this: securitySpecifier,
-      });
-    }
-
-    return undefined;
+  parseSqlSecurity (): SqlSecurityPropertyExpr {
+    return this.expression(SqlSecurityPropertyExpr, {
+      this: this.matchTexts(this._constructor.SECURITY_PROPERTY_KEYWORDS) && (this.prev?.text ?? '').toUpperCase(),
+    });
   }
 
   parseSettingsProperty (): SettingsPropertyExpr {
@@ -10027,6 +10045,47 @@ export class Parser {
       fallbackToIdentifier = false,
     } = options;
 
+    const currTokenType = this.curr?.tokenType;
+
+    // Fast path for simple column references
+    if (!fallbackToIdentifier && currTokenType !== undefined && this._constructor.FAST_COLUMN_TOKENS.has(currTokenType)) {
+      return this.parseColumn();
+    }
+
+    const nextTokenType = this.next?.tokenType;
+
+    // Fast path for literals when no column operator follows
+    if (nextTokenType !== undefined && !(nextTokenType in this._constructor.COLUMN_OPERATORS)) {
+      if (currTokenType === TokenType.STRING && nextTokenType !== TokenType.STRING) {
+        const curr = this.curr!;
+
+        this.advance();
+        const lit = new LiteralExpr({
+          this: curr.text,
+          isString: true,
+        });
+
+        lit.updatePositions(curr);
+        this.addComments(lit);
+
+        return lit;
+      }
+      if (currTokenType === TokenType.NUMBER) {
+        const curr = this.curr!;
+
+        this.advance();
+        const lit = new LiteralExpr({
+          this: curr.text,
+          isString: false,
+        });
+
+        lit.updatePositions(curr);
+        this.addComments(lit);
+
+        return lit;
+      }
+    }
+
     const interval = parseInterval && this.parseInterval();
 
     if (interval) {
@@ -10101,16 +10160,7 @@ export class Parser {
       return this.parseIdVar();
     }
 
-    let thisExpr: Expression | undefined = this.parseColumn();
-
-    if (thisExpr) {
-      thisExpr = this.parseColumnOps(thisExpr);
-    }
-    if (thisExpr && this._constructor.COLON_IS_VARIANT_EXTRACT) {
-      thisExpr = this.parseColonAsVariantExtract(thisExpr);
-    }
-
-    return thisExpr;
+    return this.parseColumn();
   }
 
   parseTypeSize (): DataTypeParamExpr | undefined {
@@ -10190,7 +10240,12 @@ export class Parser {
           tokens = undefined;
         }
 
-        if (tokens && tokens.length === 1 && this._constructor.TYPE_TOKENS.has(tokens[0].tokenType)) {
+        if (tokens && this._constructor.TYPE_TOKENS.has(tokens[0].tokenType)) {
+          if (1 < tokens.length) {
+            return DataTypeExpr.build(identifier.name, {
+              dialect: this.dialect,
+            });
+          }
           typeToken = tokens[0].tokenType;
           _typeTokenText = tokens[0].text;
         } else if (this._dialectConstructor.SUPPORTS_USER_DEFINED_TYPES) {
@@ -10281,6 +10336,8 @@ export class Parser {
         }
       } else if (typeToken && this._constructor.ENUM_TYPE_TOKENS.has(typeToken)) {
         expressions = this.parseCsv(() => this.parseEquality());
+      } else if (typeToken === TokenType.JSON) {
+        expressions = this.parseCsv(() => this.parseJsonTypeArg());
       } else if (isAggregate) {
         const funcOrIdent = this.parseFunction({
           anonymous: true,
@@ -10545,6 +10602,52 @@ export class Parser {
     return thisExpr;
   }
 
+  parseJsonTypeArg (): Expression | undefined {
+    // SKIP col or SKIP REGEXP 'pattern'
+    if (this.matchTextSeq('SKIP')) {
+      const regexp = this.match(TokenType.RLIKE);
+      let arg = this.parseColumn();
+
+      if (arg instanceof ColumnExpr) {
+        arg = arg.toDot?.() ?? arg;
+      }
+
+      return this.expression(SkipJsonColumnExpr, {
+        regexp,
+        expression: arg,
+      });
+    }
+
+    const paramOrCol = this.parseColumn();
+
+    if (!(paramOrCol instanceof ColumnExpr)) {
+      return undefined;
+    }
+
+    // Parameter: name=value (e.g., max_dynamic_paths=2)
+    if (paramOrCol.parts.length === 1 && this.match(TokenType.EQ)) {
+      const param = paramOrCol.name;
+      const value = this.parsePrimary();
+
+      return this.expression(EqExpr, {
+        this: var_(param),
+        expression: value,
+      });
+    }
+
+    // Column type hint: col_name Type
+    const col = paramOrCol.toDot?.() ?? paramOrCol;
+    const kind = this.parseTypes({
+      checkFunc: false,
+      allowIdentifiers: false,
+    });
+
+    return this.expression(ColumnDefExpr, {
+      this: col,
+      kind,
+    });
+  }
+
   parseVectorExpressions (expressions: Expression[]): Expression[] {
     const dataType = DataTypeExpr.build(expressions[0].name, {
       dialect: this.dialect,
@@ -10623,11 +10726,123 @@ export class Parser {
   }
 
   parseColumn (): Expression | undefined {
-    const thisExpr = this.parseColumnReference();
-    const column = thisExpr ? this.parseColumnOps(thisExpr) : this.parseBracket(thisExpr);
+    let column: Expression | undefined = this.parseColumnFastPath();
 
-    if (this._dialectConstructor.SUPPORTS_COLUMN_JOIN_MARKS && column) {
-      column.setArgKey('joinMark', this.match(TokenType.JOIN_MARKER));
+    if (column === undefined) {
+      let thisExpr = this.parseColumnReference();
+
+      if (!thisExpr) {
+        thisExpr = this.parseBracket(thisExpr);
+      }
+      column = thisExpr ? this.parseColumnOps(thisExpr) : thisExpr;
+    }
+
+    if (column) {
+      if (this._dialectConstructor.SUPPORTS_COLUMN_JOIN_MARKS) {
+        column.setArgKey('joinMark', this.match(TokenType.JOIN_MARKER));
+      }
+      if (this._constructor.COLON_IS_VARIANT_EXTRACT) {
+        column = this.parseColonAsVariantExtract(column);
+      }
+    }
+
+    return column;
+  }
+
+  parseColumnFastPath (): ColumnExpr | DotExpr | undefined {
+    const index = this.index;
+    let parts: IdentifierExpr[] | undefined;
+    let allComments: string[] | undefined;
+
+    while (this.matchSet(this._constructor.FAST_COLUMN_TOKENS)) {
+      const token = this.prev!;
+      const comments = this.prevComments;
+
+      if (parts === undefined && token.text.toUpperCase() in this._constructor.NO_PAREN_FUNCTION_PARSERS) {
+        this.retreat(index);
+
+        return undefined;
+      }
+
+      const hasDot = this.match(TokenType.DOT);
+      const currTt = this.curr?.tokenType;
+
+      if (!hasDot) {
+        if (currTt !== undefined && ((currTt in this._constructor.COLUMN_OPERATORS) || this._constructor.COLUMN_POSTFIX_TOKENS.has(currTt))) {
+          this.retreat(index);
+
+          return undefined;
+        }
+      } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
+        this.retreat(index);
+
+        return undefined;
+      }
+
+      if (parts === undefined) {
+        parts = [];
+      }
+
+      if (comments && 0 < comments.length) {
+        if (allComments === undefined) {
+          allComments = [];
+        }
+        allComments.push(...comments);
+        this.prevComments = [];
+      }
+
+      const ident = new IdentifierExpr({
+        this: token.text,
+        quoted: token.tokenType === TokenType.IDENTIFIER,
+      });
+
+      ident.updatePositions(token);
+      parts.push(ident);
+
+      if (!hasDot) {
+        break;
+      }
+    }
+
+    if (parts === undefined) {
+      return undefined;
+    }
+
+    const n = parts.length;
+    let column: ColumnExpr | DotExpr;
+
+    if (n === 1) {
+      column = new ColumnExpr({
+        this: parts[0],
+      });
+    } else if (n === 2) {
+      column = new ColumnExpr({
+        this: parts[1],
+        table: parts[0],
+      });
+    } else if (n === 3) {
+      column = new ColumnExpr({
+        this: parts[2],
+        table: parts[1],
+        db: parts[0],
+      });
+    } else {
+      column = new ColumnExpr({
+        this: parts[3],
+        table: parts[2],
+        db: parts[1],
+        catalog: parts[0],
+      });
+      for (let i = 4; i < n; i++) {
+        column = new DotExpr({
+          this: column,
+          expression: parts[i],
+        });
+      }
+    }
+
+    if (allComments) {
+      column.addComments(allComments);
     }
 
     return column;
@@ -10658,15 +10873,36 @@ export class Parser {
     return thisExpr;
   }
 
+  buildJsonExtract (
+    thisExpr: Expression | undefined,
+    jsonPath: string[],
+    escape: boolean | undefined,
+  ): JsonExtractExpr {
+    const jsonPathExpr = this.dialect.toJsonPath?.(LiteralExpr.string(jsonPath.join('.')));
+
+    if (jsonPathExpr) {
+      jsonPathExpr.setArgKey('escape', escape);
+    }
+
+    return this.expression(
+      JsonExtractExpr,
+      {
+        this: thisExpr,
+        expression: jsonPathExpr,
+        variantExtract: true,
+        requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
+      },
+    );
+  }
+
   parseColonAsVariantExtract (thisExpr?: Expression): Expression | undefined {
     const casts: DataTypeExpr[] = [];
-    const jsonPath: string[] = [];
+    let jsonPath: string[] = [];
     let escape: boolean | undefined;
 
     while (this.match(TokenType.COLON)) {
       const startIndex = this.index;
 
-      // Snowflake allows reserved keywords as json keys but advance_any() excludes TokenType.SELECT from any_tokens=True
       let path: ExpressionValue | undefined = this.parseColumnOps(
         this.parseField({
           anyToken: true,
@@ -10674,8 +10910,6 @@ export class Parser {
         }),
       );
 
-      // The cast :: operator has a lower precedence than the extraction operator :, so
-      // we rearrange the AST appropriately to avoid casting the JSON path
       while (path instanceof CastExpr) {
         casts.push(path.args.to as DataTypeExpr);
         path = path.args.this;
@@ -10694,35 +10928,78 @@ export class Parser {
       }
 
       if (path) {
-        // Escape single quotes from Snowflake's colon extraction (e.g. col:"a'b") as
-        // it'll roundtrip to a string literal in GET_PATH
         if (path instanceof IdentifierExpr && path.args.quoted) {
           escape = true;
+        }
+
+        // Dynamic brackets (e.g. value:a[s.x].b.c) can't be in the JSON path string
+        // since the index is a column reference. Traverse Dot/Bracket layers collecting
+        // segments, then process them inside out
+        const segments: [BracketExpr, string[]][] = [];
+        let node: Expression | undefined = path as Expression;
+
+        while (true) {
+          const suffixes: string[] = [];
+
+          while (node instanceof DotExpr) {
+            const dotExpr = node.args.expression;
+
+            suffixes.push(dotExpr instanceof Expression
+              ? dotExpr.sql({
+                dialect: this.dialect,
+              })
+              : '');
+            node = node.args.this as Expression | undefined;
+          }
+
+          if (node instanceof BracketExpr && (node.args.expressions ?? []).some(
+            (e: Expression) => e.find(ColumnExpr),
+          )) {
+            suffixes.reverse();
+            segments.push([
+              node,
+              suffixes,
+            ]);
+            node = node.args.this as Expression | undefined;
+          } else {
+            break;
+          }
+        }
+
+        if (0 < segments.length) {
+          const segThis = segments[segments.length - 1][0].args.this;
+
+          jsonPath.push(segThis instanceof Expression
+            ? segThis.sql({
+              dialect: this.dialect,
+            })
+            : '');
+          for (const [
+            bracket,
+            suffixes,
+          ] of [...segments].reverse()) {
+            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
+            thisExpr = new BracketExpr({
+              this: thisExpr,
+              expressions: bracket.args.expressions,
+            });
+            jsonPath = suffixes;
+          }
+
+          if (0 < jsonPath.length) {
+            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, undefined);
+          }
+
+          jsonPath = [];
+          continue;
         }
 
         jsonPath.push(this.findSql(this.tokens[startIndex], endToken));
       }
     }
 
-    // The VARIANT extract in Snowflake/Databricks is parsed as a JsonExtract; Snowflake uses the json_path in GET_PATH() while
-    // Databricks transforms it back to the colon/dot notation
     if (0 < jsonPath.length) {
-      const jsonPathStr = jsonPath.join('.');
-      const jsonPathExpr = this.dialect.toJsonPath?.(LiteralExpr.string(jsonPathStr));
-
-      if (jsonPathExpr) {
-        jsonPathExpr.setArgKey('escape', escape);
-      }
-
-      thisExpr = this.expression(
-        JsonExtractExpr,
-        {
-          this: thisExpr,
-          expression: jsonPathExpr,
-          variantExtract: true,
-          requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
-        },
-      );
+      thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
 
       while (0 < casts.length) {
         thisExpr = this.expression(CastExpr, {
@@ -10740,7 +11017,11 @@ export class Parser {
   }
 
   parseColumnOps (thisExpr?: Expression): Expression | undefined {
-    let current = this.parseBracket(thisExpr);
+    let current = thisExpr;
+
+    while (this.curr && this._constructor.BRACKETS.has(this.curr.tokenType)) {
+      current = this.parseBracket(current);
+    }
 
     while (this.matchSet(Object.keys(this._constructor.COLUMN_OPERATORS) as TokenType[])) {
       const opToken = this.prev?.tokenType ?? TokenType.UNKNOWN;
@@ -12347,7 +12628,7 @@ export class Parser {
     const kind = (this.matchSet(new Set([
       TokenType.ROWS,
       TokenType.RANGE,
-    ])) || undefined) && this.prev?.text;
+    ])) || this.matchTextSeq('GROUPS') || undefined) && this.prev?.text;
 
     let spec: WindowSpecExpr | undefined;
 
@@ -13286,10 +13567,7 @@ export class Parser {
   }
 
   parseBracket (thisExpr?: Expression): Expression | undefined {
-    if (!this.matchSet(new Set([
-      TokenType.L_BRACKET,
-      TokenType.L_BRACE,
-    ]))) {
+    if (!this.matchSet(this._constructor.BRACKETS)) {
       return thisExpr;
     }
 
@@ -14377,7 +14655,9 @@ export class Parser {
         thisExpr.addComments(comments);
       }
 
-      this.matchRParen(thisExpr);
+      this.match(TokenType.R_PAREN, {
+        expression: thisExpr instanceof Expression ? thisExpr : undefined,
+      });
 
       return this.parseWindow(thisExpr);
     } else {
@@ -14633,9 +14913,11 @@ export class Parser {
     }
 
     return this.parseLimit(
-      this.parseOrder({
-        thisExpr: this.parseHavingMax(this.parseRespectOrIgnoreNulls(thisExpr)),
-      }),
+      this.parseRespectOrIgnoreNulls(
+        this.parseOrder({
+          thisExpr: this.parseHavingMax(this.parseRespectOrIgnoreNulls(thisExpr)),
+        }),
+      ),
     );
   }
 
@@ -16723,6 +17005,10 @@ export class Parser {
 
   parseDeclare (): DeclareExpr | CommandExpr {
     const start = this.prev;
+    const replace = this.matchTextSeq([
+      'OR',
+      'REPLACE',
+    ]);
     const expressions = this.tryParse(() => this.parseCsv(this.parseDeclareitem.bind(this)));
 
     if (!expressions || this.curr) {
@@ -16731,6 +17017,7 @@ export class Parser {
 
     return this.expression(DeclareExpr, {
       expressions,
+      replace: replace || undefined,
     });
   }
 

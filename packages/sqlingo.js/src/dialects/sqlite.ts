@@ -22,6 +22,7 @@ import type {
   GenerateSeriesExpr,
   DateDiffExpr,
   GroupConcatExpr,
+  GreatestExpr,
   LeastExpr,
   TransactionExpr,
   IsAsciiExpr,
@@ -777,6 +778,14 @@ class SQLiteGenerator extends Generator {
   leastSql (expression: LeastExpr): string {
     if (expression.args.expressions && 0 < expression.args.expressions.length) {
       return renameFunc('MIN').call(this, expression);
+    }
+
+    return this.sql(expression, 'this');
+  }
+
+  greatestSql (expression: GreatestExpr): string {
+    if (expression.args.expressions && 0 < expression.args.expressions.length) {
+      return renameFunc('MAX').call(this, expression);
     }
 
     return this.sql(expression, 'this');

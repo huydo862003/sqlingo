@@ -185,6 +185,17 @@ import {
   UpdateExpr,
   DataTypeExpr,
   func,
+  CumeDistExpr,
+  DenseRankExpr,
+  FirstValueExpr,
+  LagExpr,
+  LastValueExpr,
+  LeadExpr,
+  NthValueExpr,
+  NtileExpr,
+  PercentRankExpr,
+  RankExpr,
+  RowNumberExpr,
 } from '../expressions';
 import {
   annotateTypes, TypeAnnotator,
@@ -233,6 +244,7 @@ import {
   strPositionSql,
   sha2DigestSql,
   Dialect, NormalizationStrategy, Dialects, NullOrderingSupported,
+  generateSeriesSql as generateSeriesSqlHelper,
   groupConcatSql,
   renameFunc,
   binaryFromFunction,
@@ -1865,6 +1877,20 @@ export class BigQueryGenerator extends Generator {
 
   static SAFE_JSON_PATH_KEY_RE = /^[_\-a-zA-Z][\-\w]*$/;
 
+  static WINDOW_FUNCS_WITH_NULL_ORDERING: (typeof Expression)[] = [
+    CumeDistExpr,
+    DenseRankExpr,
+    FirstValueExpr,
+    LagExpr,
+    LastValueExpr,
+    LeadExpr,
+    NthValueExpr,
+    NtileExpr,
+    PercentRankExpr,
+    RankExpr,
+    RowNumberExpr,
+  ];
+
   @cache
   static get TS_OR_DS_TYPES () {
     return [
@@ -2012,10 +2038,6 @@ export class BigQueryGenerator extends Generator {
             ],
           );
         },
-      ],
-      [
-        GenerateSeriesExpr,
-        renameFunc('GENERATE_ARRAY'),
       ],
       [
         GroupConcatExpr,
@@ -2774,6 +2796,10 @@ export class BigQueryGenerator extends Generator {
       expression.args.this,
       expression.args.expression,
     ]);
+  }
+
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    return generateSeriesSqlHelper('GENERATE_ARRAY').call(this, expression);
   }
 
   castSql (expression: CastExpr, options: {

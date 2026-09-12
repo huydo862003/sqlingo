@@ -234,6 +234,23 @@ class TestTranspile {
     })[0]).toBe('SELECT\n  \'1\n2\'');
   }
 
+  testSqlSecurity () {
+    const sqlgotSql = 'CREATE VIEW v SQL SECURITY INVOKER AS SELECT 1';
+
+    const cases: [string, string][] = [
+      ['clickhouse', 'CREATE VIEW v SQL SECURITY INVOKER AS SELECT 1'],
+      ['trino', 'CREATE VIEW v SECURITY INVOKER AS SELECT 1'],
+      ['presto', 'CREATE VIEW v SECURITY INVOKER AS SELECT 1'],
+      ['starrocks', 'CREATE VIEW v SECURITY INVOKER AS SELECT 1'],
+      ['mysql', 'CREATE SQL SECURITY INVOKER VIEW v AS SELECT 1'],
+    ];
+
+    for (const [dialect, sql] of cases) {
+      expect(transpile(sql, { read: dialect, identity: false })[0]).toBe(sqlgotSql);
+      expect(transpile(sqlgotSql, { write: dialect, identity: false })[0]).toBe(sql);
+    }
+  }
+
   testRecursion () {
     const sql = ('1 AND 2 OR 3 AND ').repeat(1000) + '4';
 
@@ -265,5 +282,6 @@ describe('TestTranspile', () => {
   test('partial', () => t.testPartial());
   test('pretty', () => t.testPretty());
   test('testPrettyLineBreaks', () => t.testPrettyLineBreaks());
+  test('testSqlSecurity', () => t.testSqlSecurity());
   test('recursion', () => t.testRecursion());
 });

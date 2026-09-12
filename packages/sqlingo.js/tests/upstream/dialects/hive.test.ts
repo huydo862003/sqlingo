@@ -446,6 +446,7 @@ class TestHive extends Validator {
       {
         write: {
           duckdb: 'REGEXP_MATCHES(a, \'x\')',
+          exasol: 'a REGEXP_LIKE \'.*x.*\'',
           presto: 'REGEXP_LIKE(a, \'x\')',
           hive: 'a RLIKE \'x\'',
           spark: 'a RLIKE \'x\'',
@@ -457,6 +458,7 @@ class TestHive extends Validator {
       {
         write: {
           duckdb: 'REGEXP_MATCHES(a, \'x\')',
+          exasol: 'a REGEXP_LIKE \'.*x.*\'',
           presto: 'REGEXP_LIKE(a, \'x\')',
           hive: 'a RLIKE \'x\'',
           spark: 'a RLIKE \'x\'',
@@ -1145,15 +1147,17 @@ class TestHive extends Validator {
     );
 
     this.validateAll(
-      'SELECT FIRST(sample_col) IGNORE NULLS',
+      'SELECT FIRST(sample_col, TRUE)',
       {
         read: {
-          hive: 'SELECT FIRST(sample_col, TRUE)',
-          spark2: 'SELECT FIRST(sample_col, TRUE)',
           spark: 'SELECT FIRST(sample_col, TRUE)',
           databricks: 'SELECT FIRST(sample_col, TRUE)',
         },
         write: {
+          hive: 'SELECT FIRST(sample_col, TRUE)',
+          spark2: 'SELECT FIRST(sample_col, TRUE)',
+          spark: 'SELECT FIRST(sample_col) IGNORE NULLS',
+          databricks: 'SELECT FIRST(sample_col) IGNORE NULLS',
           duckdb: 'SELECT ANY_VALUE(sample_col)',
         },
       },

@@ -6294,3 +6294,10 @@ BIGINT;
 # dialect: presto, trino
 WIDTH_BUCKET(tbl.double_col, tbl.array_col);
 BIGINT;
+# dialect: duckdb
+EXTRACT('hour' FROM tbl.timestamp_col);
+BIGINT;
+
+# dialect: duckdb
+EXTRACT('month' FROM tbl.timestamp_col);
+BIGINT;

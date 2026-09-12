@@ -52,6 +52,15 @@ import type {
   ArrayToStringExpr,
   RespectNullsExpr,
   ExpressionValue,
+
+  MapDeleteExpr,
+  MapInsertExpr,
+  MapPickExpr,
+  MapSizeExpr,
+  RightExpr,
+  ArraySliceExpr,
+  DateTruncExpr,
+  SplitPartExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -78,6 +87,7 @@ import {
   BitwiseAndExpr,
   ArrayDistinctExpr,
   ArrayExceptExpr,
+  ArrayIntersectExpr,
   ArrayMaxExpr,
   ArraySizeExpr,
   NullExpr,
@@ -178,6 +188,7 @@ import {
   TimeStrToUnixExpr,
   TimeSubExpr,
   ToBooleanExpr,
+  ToVariantExpr,
   TsOrDiToDiExpr,
   TsOrDsDiffExpr,
   UnixMicrosExpr,
@@ -198,6 +209,9 @@ import {
   ArrayAppendExpr,
   ArrayContainsExpr,
   ArrayFilterExpr,
+  DotExpr,
+  ArrayPositionExpr,
+  HexExpr,
   BitwiseXorAggExpr,
   BitwiseXorExpr,
   CosineDistanceExpr,
@@ -245,18 +259,19 @@ import {
   BinaryExpr,
   BracketExpr,
   CaseExpr,
+  case_,
   cast,
   CastExpr,
   DataTypeExpr,
   DataTypeExprKind,
   DateAddExpr,
   DateDiffExpr,
-  DateTruncExpr,
   DecodeExpr,
   DivExpr,
   FromBase64Expr,
   GenerateDateArrayExpr,
   GenerateSeriesExpr,
+  GteExpr,
   HavingExpr,
   HavingMaxExpr,
   HexStringExpr,
@@ -353,10 +368,10 @@ import {
   JoinExprKind,
   CurrentCatalogExpr,
   SessionUserExpr,
+  array,
   func,
   wrap,
   var_,
-  case_,
   JoinExpr,
 } from '../expressions';
 import {
@@ -391,6 +406,7 @@ import {
   arrayAppendSql,
   arrayCompactSql,
   arrayConcatSql,
+  generateSeriesSql as generateSeriesSqlHelper,
   jarowinklerSimilarity,
   renameFunc,
   removeFromArrayUsingFilter,
@@ -1075,14 +1091,6 @@ function arraySortSql (this: Generator, expression: ArraySortExpr): string {
   return this.func('ARRAY_SORT', [expression.args.this]);
 }
 
-function sortArraySql (this: Generator, expression: SortArrayExpr): string {
-  const name = expression.args.asc instanceof BooleanExpr && !(expression.args.asc as BooleanExpr).args.this
-    ? 'ARRAY_REVERSE_SORT'
-    : 'ARRAY_SORT';
-
-  return this.func(name, [expression.args.this]);
-}
-
 function buildSortArrayDesc (args: Expression[]): SortArrayExpr {
   return new SortArrayExpr({
     this: seqGet(args, 0),
@@ -1403,28 +1411,52 @@ function weekUnitToDow (unit: Expression | undefined): number | undefined {
 }
 
 /** Custom DATE_TRUNC logic for non-Monday week starts */
-function buildWeekTruncExpression (dateExpr: Expression, startDow: number): Expression {
+function buildWeekTruncExpression (dateExpr: Expression, startDow: number, options: {
+  preserveStartDay?: boolean;
+} = {}): Expression {
+  const {
+    preserveStartDay = false,
+  } = options;
   const shiftDays = startDow === 7 ? 1 : 1 - startDow;
+  const truncated = func('DATE_TRUNC', new VarExpr({
+    this: 'WEEK',
+  }), dateExpr);
 
-  const shiftedDate =
-    shiftDays !== 0
-      ? new DateAddExpr({
-        this: dateExpr,
-        expression: new IntervalExpr({
-          this: LiteralExpr.string(shiftDays.toString()),
-          unit: new VarExpr({
-            this: 'DAY',
-          }),
-        }),
-      })
-      : dateExpr;
+  if (shiftDays === 0) {
+    return truncated;
+  }
 
-  return new DateTruncExpr({
+  const shift = new IntervalExpr({
+    this: LiteralExpr.string(shiftDays.toString()),
     unit: new VarExpr({
-      this: 'WEEK',
+      this: 'DAY',
     }),
-    this: shiftedDate,
   });
+  const shiftedDate = new DateAddExpr({
+    this: dateExpr,
+    expression: shift,
+  });
+
+  (truncated as Expression).setArgKey('this', shiftedDate);
+
+  if (preserveStartDay) {
+    const interval = new IntervalExpr({
+      this: LiteralExpr.string((-shiftDays).toString()),
+      unit: new VarExpr({
+        this: 'DAY',
+      }),
+    });
+
+    return cast(
+      new DateAddExpr({
+        this: truncated,
+        expression: interval,
+      }),
+      DataTypeExprKind.DATE,
+    ) as Expression;
+  }
+
+  return truncated;
 }
 
 /** Transpile DATE_DIFF with boundary-aware week logic */
@@ -2402,6 +2434,9 @@ class DuckDBParser extends Parser {
         }),
         APPROX_QUANTILE: (args: unknown[]) => ApproxQuantileExpr.fromArgList(args),
         ARRAY_PREPEND: buildArrayPrepend,
+        ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({
+          expressions: args as Expression[],
+        }),
         ARRAY_REVERSE_SORT: buildSortArrayDesc,
         ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
         BIT_AND: (args: unknown[]) => BitwiseAndAggExpr.fromArgList(args),
@@ -2921,6 +2956,7 @@ class DuckDBGenerator extends Generator {
   static LAST_DAY_SUPPORTS_DATE_PART = false;
   static JSON_KEY_VALUE_PAIR_SEP = ',';
   static IGNORE_NULLS_IN_FUNC = true;
+  static IGNORE_NULLS_BEFORE_ORDER = false;
   static JSON_PATH_BRACKETED_KEY_SUPPORTED = false;
   static SUPPORTS_CREATE_TABLE_LIKE = false;
   static MULTI_ARG_DISTINCT = false;
@@ -2997,6 +3033,25 @@ class DuckDBGenerator extends Generator {
       [
         ArrayInsertExpr,
         arrayInsertSql,
+      ],
+      [
+        ArrayPositionExpr,
+        function (this: Generator, e: ArrayPositionExpr) {
+          if (e.args.zeroBased) {
+            return this.sql(new SubExpr({
+              this: new ArrayPositionExpr({
+                this: e.args.this,
+                expression: e.args.expression,
+              }),
+              expression: LiteralExpr.number(1),
+            }));
+          }
+
+          return this.func('ARRAY_POSITION', [
+            e.args.this,
+            e.args.expression,
+          ]);
+        },
       ],
       [
         ArrayRemoveAtExpr,
@@ -3442,6 +3497,12 @@ class DuckDBGenerator extends Generator {
         },
       ],
       [
+        ArrayOverlapsExpr,
+        function (this: Generator, e: ArrayOverlapsExpr) {
+          return (this as DuckDBGenerator).arrayoverlapsSql(e);
+        },
+      ],
+      [
         ArrayDistinctExpr,
         function (this: Generator, e: ArrayDistinctExpr) {
           return (this as DuckDBGenerator).arraydistinctSql(e);
@@ -3600,18 +3661,6 @@ class DuckDBGenerator extends Generator {
         },
       ],
       [
-        RandExpr,
-        renameFunc('RANDOM'),
-      ],
-      [
-        SplitExpr,
-        renameFunc('STR_SPLIT'),
-      ],
-      [
-        SortArrayExpr,
-        sortArraySql,
-      ],
-      [
         StrPositionExpr,
         strPositionSql,
       ],
@@ -3712,6 +3761,14 @@ class DuckDBGenerator extends Generator {
       [
         ToBooleanExpr,
         toBooleanSql,
+      ],
+      [
+        ToVariantExpr,
+        function (this: Generator, e: ToVariantExpr) {
+          return this.sql(cast(e.args.this, DataTypeExpr.build('VARIANT', {
+            dialect: 'duckdb',
+          })));
+        },
       ],
       [
         TimeToUnixExpr,
@@ -4530,9 +4587,9 @@ class DuckDBGenerator extends Generator {
   /** Transpile Snowflake GENERATOR to DuckDB range() */
   generatorSql (expression: GeneratorExpr): string {
     const rowcount = expression.args.rowcount;
-    const timeLimit = expression.args.timeLimit;
+    const timelimit = expression.args.timelimit;
 
-    if (timeLimit) {
+    if (timelimit) {
       this.unsupported('GENERATOR TIMELIMIT parameter is not supported in DuckDB');
     }
 
@@ -4573,6 +4630,46 @@ class DuckDBGenerator extends Generator {
     });
 
     return `${prefix}${lambdaSql}`;
+  }
+
+  sortArraySql (expression: SortArrayExpr): string {
+    const arr = expression.args.this;
+    const asc = expression.args.asc;
+    const nullsFirst = expression.args.nullsFirst;
+
+    if (!(asc instanceof BooleanExpr) && !(nullsFirst instanceof BooleanExpr)) {
+      return this.func('LIST_SORT', [
+        arr,
+        asc,
+        nullsFirst,
+      ]);
+    }
+
+    const nullsAreFirst = nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true;
+    const nullsFirstSql = nullsAreFirst ? LiteralExpr.string('NULLS FIRST') : undefined;
+
+    if (!(asc instanceof BooleanExpr)) {
+      return this.func('LIST_SORT', [
+        arr,
+        asc,
+        nullsFirstSql,
+      ]);
+    }
+
+    const descending = asc.args.this === false;
+
+    if (!descending && !nullsAreFirst) {
+      return this.func('LIST_SORT', [arr]);
+    }
+    if (!nullsAreFirst) {
+      return this.func('ARRAY_REVERSE_SORT', [arr]);
+    }
+
+    return this.func('LIST_SORT', [
+      arr,
+      LiteralExpr.string(descending ? 'DESC' : 'ASC'),
+      LiteralExpr.string('NULLS FIRST'),
+    ]);
   }
 
   showSql (expression: ShowExpr): string {
@@ -4758,6 +4855,30 @@ class DuckDBGenerator extends Generator {
       anchoredPattern,
       flag,
     ] as Expression[]);
+  }
+
+  arrayoverlapsSql (expression: ArrayOverlapsExpr): string {
+    if (!expression.args.nullsafe) {
+      return this.binary(expression, '&&');
+    }
+    const arr1 = expression.args.this!;
+    const arr2 = expression.args.expression!;
+    const nullSafe = this.sql(and([
+      new NeqExpr({
+        this: new ArraySizeExpr({
+          this: arr1.copy(),
+        }),
+        expression: func('LIST_COUNT', arr1.copy()),
+      }),
+      new NeqExpr({
+        this: new ArraySizeExpr({
+          this: arr2.copy(),
+        }),
+        expression: func('LIST_COUNT', arr2.copy()),
+      }),
+    ]));
+
+    return `(${this.binary(expression, '&&')}) OR (${nullSafe})`;
   }
 
   arraycontainsSql (expression: ArrayContainsExpr): string {
@@ -5114,32 +5235,86 @@ class DuckDBGenerator extends Generator {
     return this.sql(result);
   }
 
-  static ARRAY_EXCEPT_TEMPLATE = maybeParse(
+  static ARRAY_BAG_TEMPLATE = maybeParse(
     `CASE
-      WHEN :source IS NULL OR :exclude IS NULL THEN NULL
+      WHEN :arr1 IS NULL OR :arr2 IS NULL THEN NULL
       ELSE LIST_TRANSFORM(
         LIST_FILTER(
-          LIST_ZIP(:source, GENERATE_SERIES(1, LEN(:source))),
-          pair -> (
-            LEN(LIST_FILTER(:source[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0]))
-            > LEN(LIST_FILTER(:exclude, e -> e IS NOT DISTINCT FROM pair[0]))
-          )
+          LIST_ZIP(:arr1, GENERATE_SERIES(1, LEN(:arr1))),
+          pair -> :cond
         ),
         pair -> pair[0]
       )
     END`,
   );
 
-  arrayexceptSql (expression: ArrayExceptExpr): string {
-    const source = expression.args.this;
-    const exclude = expression.args.expression;
+  static ARRAY_EXCEPT_CONDITION = maybeParse(
+    'LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) > LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))',
+  );
+
+  static ARRAY_INTERSECTION_CONDITION = maybeParse(
+    'LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) <= LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))',
+  );
+
+  static ARRAY_EXCEPT_SET_TEMPLATE = maybeParse(
+    `CASE
+      WHEN :arr1 IS NULL OR :arr2 IS NULL THEN NULL
+      ELSE LIST_FILTER(
+        LIST_DISTINCT(:arr1),
+        e -> LEN(LIST_FILTER(:arr2, x -> x IS NOT DISTINCT FROM e)) = 0
+      )
+    END`,
+  );
+
+  private arrayBagSql (condition: Expression, arr1: Expression, arr2: Expression): string {
+    const cond = new ParenExpr({
+      this: replacePlaceholders(condition.copy(), [], {
+        arr1,
+        arr2,
+      }),
+    });
 
     return this.sql(replacePlaceholders(
-      (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_TEMPLATE.copy(),
+      (this._constructor as typeof DuckDBGenerator).ARRAY_BAG_TEMPLATE.copy(),
       [],
       {
-        source,
-        exclude,
+        arr1,
+        arr2,
+        cond,
+      },
+    ));
+  }
+
+  arrayintersectSql (expression: ArrayIntersectExpr): string {
+    if (expression.args.isMultiset && expression.args.expressions?.length === 2) {
+      return this.arrayBagSql(
+        (this._constructor as typeof DuckDBGenerator).ARRAY_INTERSECTION_CONDITION,
+        expression.args.expressions[0],
+        expression.args.expressions[1],
+      );
+    }
+
+    return this.functionFallbackSql(expression);
+  }
+
+  arrayexceptSql (expression: ArrayExceptExpr): string {
+    const arr1 = expression.args.this;
+    const arr2 = expression.args.expression;
+
+    if (expression.args.isMultiset) {
+      return this.arrayBagSql(
+        (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_CONDITION,
+        arr1!,
+        arr2!,
+      );
+    }
+
+    return this.sql(replacePlaceholders(
+      (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_SET_TEMPLATE.copy(),
+      [],
+      {
+        arr1,
+        arr2,
       },
     ));
   }
@@ -5592,12 +5767,10 @@ class DuckDBGenerator extends Generator {
   }
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
-    // GENERATE_SERIES(a, b) -> [a, b], RANGE(a, b) -> [a, b)
-    if (expression.args.isEndExclusive) {
-      return renameFunc('RANGE').call(this, expression);
-    }
-
-    return this.functionFallbackSql(expression);
+    // GENERATE_SERIES(a, b) -> [a, b] (inclusive), RANGE(a, b) -> [a, b) (exclusive)
+    return generateSeriesSqlHelper('GENERATE_SERIES', {
+      exclusiveFuncName: 'RANGE',
+    }).call(this, expression);
   }
 
   countIfSql (expression: CountIfExpr): string {
@@ -5851,6 +6024,53 @@ class DuckDBGenerator extends Generator {
     return `(${this.sql(result)})`;
   }
 
+  arraySliceSql (expression: ArraySliceExpr): string {
+    let start: Expression | undefined = expression.args.start;
+    let end: Expression | undefined = expression.args.end;
+
+    if (expression.args.zeroBased) {
+      if (start) {
+        start = case_().when(
+          new GteExpr({
+            this: start.copy(),
+            expression: LiteralExpr.number(0),
+          }),
+          new AddExpr({
+            this: start.copy(),
+            expression: LiteralExpr.number(1),
+          }),
+          {
+            copy: false,
+          },
+        );
+        (start as CaseExpr).setArgKey('default', expression.args.start);
+      }
+      if (end) {
+        end = case_().when(
+          new LtExpr({
+            this: end.copy(),
+            expression: LiteralExpr.number(0),
+          }),
+          new SubExpr({
+            this: end.copy(),
+            expression: LiteralExpr.number(1),
+          }),
+          {
+            copy: false,
+          },
+        );
+        (end as CaseExpr).setArgKey('default', expression.args.end);
+      }
+    }
+
+    return this.func('ARRAY_SLICE', [
+      expression.args.this,
+      start,
+      end,
+      expression.args.step,
+    ]);
+  }
+
   arraysZipSql (expression: ArraysZipExpr): string {
     const args = expression.args.expressions ?? [];
 
@@ -5950,6 +6170,63 @@ class DuckDBGenerator extends Generator {
    * DuckDB TO_BASE64 requires BLOB input.
    * Snowflake BASE64_ENCODE implicitly encodes UTF-8 bytes for VARCHAR
    */
+  randSql (expression: RandExpr): string {
+    const seed = expression.args.this;
+
+    if (seed) {
+      this.unsupported('RANDOM with seed is not supported in DuckDB');
+    }
+
+    const lower = expression.args.lower;
+    const upper = expression.args.upper;
+
+    if (lower && upper) {
+      const rangeSize = new ParenExpr({
+        this: new SubExpr({
+          this: upper,
+          expression: lower,
+        }),
+      });
+      const scaled = new AddExpr({
+        this: lower,
+        expression: new MulExpr({
+          this: func('random'),
+          expression: rangeSize,
+        }),
+      });
+
+      return this.sql(cast(scaled, DataTypeExprKind.BIGINT));
+    }
+
+    return 'RANDOM()';
+  }
+
+  rightSql (expression: RightExpr): string {
+    const arg = expression.args.this;
+    const length = expression.args.expression;
+
+    if (isBinary(arg)) {
+      const hexArg = new HexExpr({
+        this: arg,
+      });
+      const hexLength = new MulExpr({
+        this: length,
+        expression: LiteralExpr.number(2),
+      });
+      const hexRight = this.func('RIGHT', [
+        hexArg,
+        hexLength,
+      ]);
+
+      return `UNHEX(${hexRight})`;
+    }
+
+    return this.func('RIGHT', [
+      arg,
+      length,
+    ]);
+  }
+
   base64EncodeSql (expression: Base64EncodeExpr): string {
     let result = expression.args.this;
 
@@ -6057,6 +6334,110 @@ class DuckDBGenerator extends Generator {
     return this.sql(result);
   }
 
+  mapDeleteSql (expression: MapDeleteExpr): string {
+    const mapArg = expression.args.this;
+    const keysToDelete = expression.args.expressions ?? [];
+
+    const xDotKey = new DotExpr({
+      this: toIdentifier('x'),
+      expression: toIdentifier('key'),
+    });
+
+    const condition = new NotExpr({
+      this: new InExpr({
+        this: xDotKey,
+        expressions: keysToDelete,
+      }),
+    });
+
+    const lambdaExpr = new LambdaExpr({
+      this: condition,
+      expressions: [toIdentifier('x')],
+    });
+
+    const filtered = new ArrayFilterExpr({
+      this: func('map_entries', mapArg as Expression),
+      expression: lambdaExpr,
+    });
+
+    const result = func('map_from_entries', filtered);
+
+    return this.sql(result);
+  }
+
+  mapSizeSql (expression: MapSizeExpr): string {
+    return this.func('CARDINALITY', [expression.args.this]);
+  }
+
+  mapPickSql (expression: MapPickExpr): string {
+    const mapArg = expression.args.this;
+    const keysToPick = expression.args.expressions ?? [];
+
+    const xDotKey = new DotExpr({
+      this: toIdentifier('x'),
+      expression: toIdentifier('key'),
+    });
+
+    let lambdaExpr: LambdaExpr;
+
+    if (keysToPick.length === 1 && keysToPick[0].isType?.(DataTypeExprKind.ARRAY)) {
+      lambdaExpr = new LambdaExpr({
+        this: func('ARRAY_CONTAINS', keysToPick[0], xDotKey),
+        expressions: [toIdentifier('x')],
+      });
+    } else {
+      lambdaExpr = new LambdaExpr({
+        this: new InExpr({
+          this: xDotKey,
+          expressions: keysToPick,
+        }),
+        expressions: [toIdentifier('x')],
+      });
+    }
+
+    const result = func(
+      'MAP_FROM_ENTRIES',
+      func('LIST_FILTER', func('MAP_ENTRIES', mapArg!), lambdaExpr),
+    );
+
+    return this.sql(result);
+  }
+
+  mapInsertSql (expression: MapInsertExpr): string {
+    if (expression.args.updateFlag) {
+      this.unsupported('MAP_INSERT update_flag is not supported in DuckDB');
+    }
+
+    const mapArg = expression.args.this;
+    const key = expression.args.key;
+    let value: Expression | undefined = expression.args.value as unknown as Expression;
+
+    if (value !== undefined && mapArg) {
+      const mapType = mapArg.type;
+
+      if (mapType instanceof DataTypeExpr && mapType.args.expressions && 1 < mapType.args.expressions.length) {
+        const valueType = mapType.args.expressions[1] as DataTypeExpr;
+
+        value = cast(value, valueType);
+      }
+    }
+
+    const newEntryStruct = new StructExpr({
+      expressions: [
+        new PropertyEqExpr({
+          this: key,
+          expression: value,
+        }),
+      ],
+    });
+    const newEntry = new ToMapExpr({
+      this: newEntryStruct,
+    });
+    const result = func('MAP_CONCAT', mapArg!, newEntry);
+
+    return this.sql(result);
+  }
+
   startsWithSql (expression: StartsWithExpr): string {
     return this.func('STARTS_WITH', [
       castToVarchar(expression.args.this),
@@ -6153,6 +6534,124 @@ class DuckDBGenerator extends Generator {
     }
 
     return this.sql(node);
+  }
+
+  splitSql (expression: SplitExpr): string {
+    const baseFunc = func('STR_SPLIT', expression.args.this!, expression.args.expression!);
+
+    let caseExpr = case_();
+
+    caseExpr.setArgKey('default', baseFunc);
+    let needsCase = false;
+
+    if (expression.args.nullReturnsNull) {
+      caseExpr = caseExpr.when(
+        new IsExpr({
+          this: expression.args.expression,
+          expression: new NullExpr({}),
+        }),
+        new NullExpr({}),
+        {
+          copy: false,
+        },
+      );
+      needsCase = true;
+    }
+
+    if (expression.args.emptyDelimiterReturnsWhole) {
+      caseExpr = caseExpr.when(
+        new EqExpr({
+          this: expression.args.expression!.copy(),
+          expression: LiteralExpr.string(''),
+        }),
+        array([expression.args.this!]),
+        {
+          copy: false,
+        },
+      );
+      needsCase = true;
+    }
+
+    return this.sql(needsCase ? caseExpr : baseFunc);
+  }
+
+  splitPartSql (expression: SplitPartExpr): string {
+    const stringArg = expression.args.this;
+    const delimiterArg = expression.args.delimiter;
+    let partIndexArg: Expression | undefined = expression.args.partIndex;
+
+    if (delimiterArg && partIndexArg) {
+      if (expression.args.partIndexZeroAsOne) {
+        partIndexArg = new ParenExpr({
+          this: case_().when(
+            new EqExpr({
+              this: partIndexArg.copy(),
+              expression: LiteralExpr.number(0),
+            }),
+            LiteralExpr.number(1),
+            {
+              copy: false,
+            },
+          ),
+        });
+        const caseExpr = (partIndexArg as ParenExpr).args.this as CaseExpr;
+
+        caseExpr.setArgKey('default', expression.args.partIndex);
+      }
+
+      let baseFuncExpr: Expression = new AnonymousExpr({
+        this: 'SPLIT_PART',
+        expressions: [
+          stringArg,
+          delimiterArg,
+          partIndexArg,
+        ].filter(Boolean) as Expression[],
+      });
+      let needsCaseTransform = false;
+      let caseExpr = case_();
+
+      caseExpr.setArgKey('default', baseFuncExpr);
+
+      if (expression.args.emptyDelimiterReturnsWhole) {
+        const emptyCase = new ParenExpr({
+          this: case_().when(
+            new OrExpr({
+              this: new EqExpr({
+                this: partIndexArg!.copy(),
+                expression: LiteralExpr.number(1),
+              }),
+              expression: new EqExpr({
+                this: partIndexArg!.copy(),
+                expression: LiteralExpr.number(-1),
+              }),
+            }),
+            stringArg!,
+            {
+              copy: false,
+            },
+          ),
+        });
+        const innerCase = (emptyCase.args.this as CaseExpr);
+
+        innerCase.setArgKey('default', LiteralExpr.string(''));
+
+        caseExpr = caseExpr.when(
+          new EqExpr({
+            this: (delimiterArg as Expression).copy(),
+            expression: LiteralExpr.string(''),
+          }),
+          emptyCase,
+          {
+            copy: false,
+          },
+        );
+        needsCaseTransform = true;
+      }
+
+      return this.sql(needsCaseTransform ? caseExpr : baseFuncExpr);
+    }
+
+    return this.functionFallbackSql(expression);
   }
 
   respectNullsSql (expression: RespectNullsExpr): string {
@@ -6480,12 +6979,24 @@ class DuckDBGenerator extends Generator {
   }
 
   dateTruncSql (expression: DateTruncExpr): string {
-    const unit = unitToStr(expression);
+    const unitExpr = expression.args.unit;
     const dateNode = expression.args.this;
-    const result = this.func('DATE_TRUNC', [
-      unit,
-      dateNode,
-    ]);
+
+    const weekStart = weekUnitToDow(unitExpr);
+    const unit = unitToStr(expression);
+
+    let result: string;
+
+    if (weekStart) {
+      result = this.sql(buildWeekTruncExpression(dateNode!, weekStart, {
+        preserveStartDay: true,
+      }));
+    } else {
+      result = this.func('DATE_TRUNC', [
+        unit,
+        dateNode,
+      ]);
+    }
 
     if (
       expression.args.inputTypePreserved

@@ -872,6 +872,19 @@ FROM (
     );
   }
 
+  testToTimestamp () {
+    this.validateIdentity('SELECT LAG(x) IGNORE NULLS OVER (PARTITION BY y ORDER BY z)');
+    this.validateIdentity('SELECT LAG(x) RESPECT NULLS OVER (PARTITION BY y ORDER BY z)');
+    this.validateIdentity(
+      'SELECT LAG(x IGNORE NULLS) OVER (PARTITION BY y ORDER BY z)',
+      'SELECT LAG(x) IGNORE NULLS OVER (PARTITION BY y ORDER BY z)',
+    );
+    this.validateIdentity(
+      'SELECT LAG(x RESPECT NULLS) OVER (PARTITION BY y ORDER BY z)',
+      'SELECT LAG(x) RESPECT NULLS OVER (PARTITION BY y ORDER BY z)',
+    );
+  }
+
   testRegexpExtract () {
     this.validateAll(
       'SELECT REGEXP_SUBSTR(abc, \'pattern(group)\', 2) FROM table',
@@ -903,5 +916,6 @@ describe('TestRedshift', () => {
   test('testAnalyze', () => t.testAnalyze());
   test('testCast', () => t.testCast());
   test('testFetchToLimit', () => t.testFetchToLimit());
+  test('testToTimestamp', () => t.testToTimestamp());
   test('testRegexpExtract', () => t.testRegexpExtract());
 });

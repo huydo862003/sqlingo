@@ -2883,6 +2883,23 @@ OPTIONS (
     }
   }
 
+  testNullOrderingInAnalyticFunctions () {
+    for (const funcCall of ['FIRST_VALUE(col1)', 'LAST_VALUE(col1)', 'NTH_VALUE(col1, 2)']) {
+      for (const [sortOrder, nullOrder] of [['ASC', 'NULLS LAST'], ['DESC', 'NULLS FIRST']] as const) {
+        this.validateIdentity(
+          `WITH t AS (SELECT 1 AS id, 2 AS col1) SELECT ${funcCall} OVER (PARTITION BY id ORDER BY col1 ${sortOrder} ${nullOrder} ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM t`,
+        );
+      }
+    }
+    for (const funcCall of ['LAG(col1)', 'LEAD(col1)', 'CUME_DIST()', 'DENSE_RANK()', 'NTILE(4)', 'PERCENT_RANK()', 'RANK()', 'ROW_NUMBER()']) {
+      for (const [sortOrder, nullOrder] of [['ASC', 'NULLS LAST'], ['DESC', 'NULLS FIRST']] as const) {
+        this.validateIdentity(
+          `WITH t AS (SELECT 1 AS id, 2 AS col1) SELECT ${funcCall} OVER (PARTITION BY id ORDER BY col1 ${sortOrder} ${nullOrder}) FROM t`,
+        );
+      }
+    }
+  }
+
   testJsonExtract () {
     this.validateAll(
       'SELECT JSON_QUERY(\'{"class": {"students": []}}\', \'$.class\')',
@@ -3437,7 +3454,7 @@ OPTIONS (
         write: {
           'bigquery': 'SELECT id, mnth FROM t CROSS JOIN UNNEST(GENERATE_DATE_ARRAY(start_month, DATE_TRUNC(CURRENT_DATE, MONTH), INTERVAL \'1\' MONTH)) AS mnth',
           'duckdb': 'SELECT id, mnth FROM t CROSS JOIN UNNEST(CAST(GENERATE_SERIES(start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE), INTERVAL \'1\' MONTH) AS DATE[])) AS _t0(mnth)',
-          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) AS mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, (DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1 - 1) + 1)) AS _t0(seq, key, path, index, mnth, this)',
+          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) AS mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1)) AS _t0(seq, key, path, index, mnth, this)',
         },
       },
     );
@@ -3447,7 +3464,7 @@ OPTIONS (
         write: {
           'bigquery': 'SELECT id, mnth AS a_mnth FROM t CROSS JOIN UNNEST(GENERATE_DATE_ARRAY(start_month, DATE_TRUNC(CURRENT_DATE, MONTH), INTERVAL \'1\' MONTH)) AS mnth',
           'duckdb': 'SELECT id, mnth AS a_mnth FROM t CROSS JOIN UNNEST(CAST(GENERATE_SERIES(start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE), INTERVAL \'1\' MONTH) AS DATE[])) AS _t0(mnth)',
-          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) AS a_mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, (DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1 - 1) + 1)) AS _t0(seq, key, path, index, mnth, this)',
+          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) AS a_mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1)) AS _t0(seq, key, path, index, mnth, this)',
         },
       },
     );
@@ -3457,7 +3474,7 @@ OPTIONS (
         write: {
           'bigquery': 'SELECT id, mnth + 1 AS a_mnth FROM t CROSS JOIN UNNEST(GENERATE_DATE_ARRAY(start_month, DATE_TRUNC(CURRENT_DATE, MONTH), INTERVAL \'1\' MONTH)) AS mnth',
           'duckdb': 'SELECT id, mnth + 1 AS a_mnth FROM t CROSS JOIN UNNEST(CAST(GENERATE_SERIES(start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE), INTERVAL \'1\' MONTH) AS DATE[])) AS _t0(mnth)',
-          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) + 1 AS a_mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, (DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1 - 1) + 1)) AS _t0(seq, key, path, index, mnth, this)',
+          'snowflake': 'SELECT id, DATEADD(MONTH, CAST(mnth AS INT), CAST(start_month AS DATE)) + 1 AS a_mnth FROM t, LATERAL FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(MONTH, start_month, DATE_TRUNC(\'MONTH\', CURRENT_DATE)) + 1)) AS _t0(seq, key, path, index, mnth, this)',
         },
       },
     );
@@ -3910,6 +3927,7 @@ describe('TestBigQuery', () => {
   test('testUnnest', () => t.testUnnest());
   test('testRangeType', () => t.testRangeType());
   test('testNullOrdering', () => t.testNullOrdering());
+  test('testNullOrderingInAnalyticFunctions', () => t.testNullOrderingInAnalyticFunctions());
   test('testJsonExtract', () => t.testJsonExtract());
   test('testJsonExtractArray', () => t.testJsonExtractArray());
   test('testUnixSeconds', () => t.testUnixSeconds());

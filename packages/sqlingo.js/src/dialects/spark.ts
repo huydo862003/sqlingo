@@ -9,6 +9,8 @@ import type {
   IfBlockExpr,
   ReadParquetExpr,
   RenameColumnExpr,
+
+  IgnoreNullsExpr,
 } from '../expressions';
 import {
   TryCastExpr,
@@ -64,6 +66,7 @@ import {
   CreateExpr,
   PartitionedByPropertyExpr,
   SessionUserExpr,
+  WithExpr,
 } from '../expressions';
 import {
   Generator,
@@ -242,6 +245,23 @@ class SparkTokenizer extends Spark2.Tokenizer {
 
 class SparkParser extends Spark2.Parser {
   @cache
+  static get SET_PARSERS (): Record<string, (this: Parser) => Expression | undefined> {
+    return {
+      ...Spark2.Parser.SET_PARSERS,
+      VAR: function (this: Parser) {
+        return this.parseSetItemAssignment({
+          kind: 'VARIABLE',
+        });
+      },
+      VARIABLE: function (this: Parser) {
+        return this.parseSetItemAssignment({
+          kind: 'VARIABLE',
+        });
+      },
+    };
+  }
+
+  @cache
   static get STATEMENT_PARSERS (): Record<string, (this: Parser) => Expression | undefined> {
     return {
       ...Spark2.Parser.STATEMENT_PARSERS,
@@ -382,7 +402,6 @@ class SparkParser extends Spark2.Parser {
 }
 
 class SparkGenerator extends Spark2.Generator {
-  static DECLARE_DEFAULT_ASSIGNMENT = 'DEFAULT';
   // port from _Dialect metaclass logic
   static TRY_SUPPORTED = false;
   // port from _Dialect metaclass logic
@@ -393,6 +412,7 @@ class SparkGenerator extends Spark2.Generator {
   static SUPPORTS_MEDIAN = true;
   static SUPPORTS_UNIX_SECONDS = true;
   static SUPPORTS_DECODE_CASE = true;
+  static SET_ASSIGNMENT_REQUIRES_VARIABLE_KEYWORD = true;
   static PARSE_JSON_NAME?: string;
 
   @cache
@@ -583,8 +603,13 @@ class SparkGenerator extends Spark2.Generator {
 
     transforms.delete(AnyValueExpr);
     transforms.delete(DateDiffExpr);
+    transforms.delete(WithExpr);
 
     return transforms;
+  }
+
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    return Generator.prototype.ignoreNullsSql.call(this, expression);
   }
 
   bracketSql (expression: BracketExpr): string {

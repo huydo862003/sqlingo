@@ -954,6 +954,85 @@ class TestExasol extends Validator {
       });
     }
   }
+
+  testRegexpLike () {
+    this.validateIdentity('SELECT x REGEXP_LIKE \'.*pattern.*\'');
+
+    this.validateAll(
+      'SELECT a REGEXP_LIKE \'.*x.*\'',
+      {
+        read: {
+          hive: 'SELECT a RLIKE \'x\'',
+          presto: 'SELECT REGEXP_LIKE(a, \'x\')',
+        },
+        write: {
+          exasol: 'SELECT a REGEXP_LIKE \'.*x.*\'',
+          hive: 'SELECT a RLIKE \'.*x.*\'',
+          presto: 'SELECT REGEXP_LIKE(a, \'.*x.*\')',
+        },
+      },
+    );
+  }
+  testGroupByAll () {
+    this.validateAll('SELECT id, city, COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT id, city, COUNT(*) FROM dealer GROUP BY 1, 2',
+        databricks: 'SELECT id, city, COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY 1',
+        databricks: 'SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT car_model, city FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT car_model, city FROM dealer GROUP BY 1, 2',
+        databricks: 'SELECT car_model, city FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT COUNT(*) FROM dealer',
+        databricks: 'SELECT COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY 1',
+        databricks: 'SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY 1',
+        databricks: 'SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT city, COUNT(*) OVER () FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT city, COUNT(*) OVER () FROM dealer GROUP BY 1',
+        databricks: 'SELECT city, COUNT(*) OVER () FROM dealer GROUP BY ALL',
+      },
+    });
+  }
+
+  testExasolKeywords () {
+    for (const keyword of ['CS', 'ADD', 'BOOLEAN', 'CALL', 'CONTROL']) {
+      this.validateIdentity(`SELECT 1 AS ${keyword}`, `SELECT 1 AS "${keyword}"`);
+    }
+  }
+
+  testJson () {
+    this.validateIdentity("SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x");
+    this.validateAll("SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x", {
+      write: {
+        exasol: "SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x",
+        trino: "SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x",
+      },
+    });
+  }
 }
 
 const t = new TestExasol();
@@ -971,4 +1050,8 @@ describe('TestExasol', () => {
   test('testScalar', () => t.testScalar());
   test('testOdbcDateLiterals', () => t.testOdbcDateLiterals());
   test('testLocalPrefixForAlias', () => t.testLocalPrefixForAlias());
+  test('testRegexpLike', () => t.testRegexpLike());
+  test('testGroupByAll', () => t.testGroupByAll());
+  test('testExasolKeywords', () => t.testExasolKeywords());
+  test('testJson', () => t.testJson());
 });

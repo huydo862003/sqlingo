@@ -225,7 +225,18 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT TRANSLATE(column_name, \'abc\', \'123\')');
     this.validateIdentity('SELECT UNICODE(column_name)');
     this.validateIdentity('SELECT WIDTH_BUCKET(col, 0, 100, 10)');
-    this.validateIdentity('SELECT SPLIT_PART(\'11.22.33\', \'.\', 1)');
+    this.validateAll("SELECT SPLIT_PART('11.22.33', '.', 2)", {
+      write: {
+        snowflake: "SELECT SPLIT_PART('11.22.33', '.', 2)",
+        duckdb: "SELECT CASE WHEN '.' = '' THEN (CASE WHEN (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = 1 OR (CASE WHEN 2 = 0 THEN 1 ELSE 2 END) = -1 THEN '11.22.33' ELSE '' END) ELSE SPLIT_PART('11.22.33', '.', (CASE WHEN 2 = 0 THEN 1 ELSE 2 END)) END",
+      },
+    });
+    this.validateAll("SELECT SPLIT('127.0.0.1', '.')", {
+      write: {
+        snowflake: "SELECT SPLIT('127.0.0.1', '.')",
+        duckdb: "SELECT CASE WHEN '.' IS NULL THEN NULL WHEN '.' = '' THEN ['127.0.0.1'] ELSE STR_SPLIT('127.0.0.1', '.') END",
+      },
+    });
     this.validateIdentity('SELECT PI()');
     this.validateIdentity('SELECT DEGREES(PI() / 3)');
     this.validateIdentity('SELECT DEGREES(1)');
@@ -396,7 +407,7 @@ class TestSnowflake extends Validator {
       {
         write: {
           'snowflake': 'SELECT RANDSTR(10, RANDOM())',
-          'duckdb': 'SELECT (SELECT LISTAGG(SUBSTRING(\'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\', 1 + CAST(FLOOR(random_value * 62) AS INT), 1), \'\') FROM (SELECT (ABS(HASH(i + RANDOM())) % 1000) / 1000.0 AS random_value FROM RANGE(10) AS t(i)))',
+          'duckdb': 'SELECT (SELECT LISTAGG(SUBSTRING(\'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\', 1 + CAST(FLOOR(random_value * 62) AS INT), 1), \'\') FROM (SELECT (ABS(HASH(i + CAST(-9.223372036854776e+18 + RANDOM() * (9.223372036854776e+18 - -9.223372036854776e+18) AS BIGINT))) % 1000) / 1000.0 AS random_value FROM RANGE(10) AS t(i)))',
         },
       },
     );
@@ -716,6 +727,24 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT GET_PATH(foo, \'bar\')');
     this.validateIdentity('SELECT a, exclude, b FROM xxx');
     this.validateIdentity('SELECT ARRAY_SORT(x, TRUE, FALSE)');
+    this.validateAll('SELECT ARRAY_SORT(x)', {
+      write: {
+        duckdb: 'SELECT LIST_SORT(x)',
+        snowflake: 'SELECT ARRAY_SORT(x)',
+      },
+    });
+    this.validateAll('SELECT ARRAY_SORT(x, FALSE)', {
+      write: {
+        duckdb: "SELECT LIST_SORT(x, 'DESC', 'NULLS FIRST')",
+        snowflake: 'SELECT ARRAY_SORT(x, FALSE)',
+      },
+    });
+    this.validateAll('SELECT ARRAY_SORT(x, foo, TRUE)', {
+      write: {
+        duckdb: "SELECT LIST_SORT(x, foo, 'NULLS FIRST')",
+        snowflake: 'SELECT ARRAY_SORT(x, foo, TRUE)',
+      },
+    });
     this.validateIdentity('SELECT BOOLXOR_AGG(col) FROM tbl');
     this.validateIdentity(
       'SELECT PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY col) OVER (PARTITION BY category)',
@@ -790,6 +819,10 @@ class TestSnowflake extends Validator {
       'CAST(x AS GEOMETRY)',
       'TO_GEOMETRY(x)',
     );
+    this.validateIdentity('TO_GEOGRAPHY(x)');
+    this.validateIdentity('TO_GEOMETRY(x)');
+    this.validateIdentity('TO_GEOGRAPHY(x, y)');
+    this.validateIdentity('TO_GEOMETRY(x, y)');
     this.validateIdentity(
       'transform(x, a int -> a + a + 1)',
       'TRANSFORM(x, a -> CAST(a AS INT) + CAST(a AS INT) + 1)',
@@ -1390,9 +1423,10 @@ class TestSnowflake extends Validator {
       {
         write: {
           'bigquery': 'GENERATE_ARRAY(0, 3 - 1)',
+          'duckdb': 'RANGE(0, 3)',
           'postgres': 'GENERATE_SERIES(0, 3 - 1)',
-          'presto': 'SEQUENCE(0, 3 - 1)',
-          'snowflake': 'ARRAY_GENERATE_RANGE(0, (3 - 1) + 1)',
+          'presto': 'SEQUENCE(0, 2)',
+          'snowflake': 'ARRAY_GENERATE_RANGE(0, 3)',
         },
       },
     );
@@ -1460,7 +1494,7 @@ class TestSnowflake extends Validator {
       {
         write: {
           'snowflake': 'SELECT NTH_VALUE(is_deleted, 2) FROM FIRST IGNORE NULLS OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
-          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2 IGNORE NULLS) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2 IGNORE NULLS) OVER (PARTITION BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_is_deleted FROM my_table',
         },
       },
     );
@@ -1470,7 +1504,7 @@ class TestSnowflake extends Validator {
       {
         write: {
           'snowflake': 'SELECT NTH_VALUE(is_deleted, 2) FROM LAST RESPECT NULLS OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
-          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2 RESPECT NULLS) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2 RESPECT NULLS) OVER (PARTITION BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_is_deleted FROM my_table',
         },
       },
     );
@@ -1480,7 +1514,70 @@ class TestSnowflake extends Validator {
       {
         write: {
           'snowflake': 'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
-          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_is_deleted FROM my_table',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table',
+      {
+        write: {
+          'snowflake': 'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table',
+        },
+      },
+    );
+
+    for (const func of ['FIRST_VALUE', 'LAST_VALUE']) {
+      for (const options of [' IGNORE NULLS', ' RESPECT NULLS', '']) {
+        this.validateAll(
+          `SELECT ${func}(is_deleted)${options} OVER (PARTITION BY id) AS nth_is_deleted FROM my_table`,
+          {
+            write: {
+              'snowflake': `SELECT ${func}(is_deleted)${options} OVER (PARTITION BY id) AS nth_is_deleted FROM my_table`,
+              'duckdb': `SELECT ${func}(is_deleted${options}) OVER (PARTITION BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_is_deleted FROM my_table`,
+            },
+          },
+        );
+        this.validateAll(
+          `SELECT ${func}(is_deleted)${options} OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table`,
+          {
+            write: {
+              'snowflake': `SELECT ${func}(is_deleted)${options} OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table`,
+              'duckdb': `SELECT ${func}(is_deleted${options}) OVER (PARTITION BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS nth_is_deleted FROM my_table`,
+            },
+          },
+        );
+      }
+    }
+
+    this.validateAll(
+      'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+          'duckdb': 'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAG(amount, 2) IGNORE NULLS OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount, 2) IGNORE NULLS OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+          'duckdb': 'SELECT LAG(amount, 2 IGNORE NULLS) OVER (PARTITION BY category ORDER BY seq) AS lag_offset_ignore_nulls',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAG(amount, 2, -777) RESPECT NULLS OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
+      {
+        write: {
+          'snowflake': 'SELECT LAG(amount, 2, -777) RESPECT NULLS OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
+          'duckdb': 'SELECT LAG(amount, 2, -777 RESPECT NULLS) OVER (PARTITION BY category ORDER BY seq ASC) AS lag_full_ignore_nulls',
         },
       },
     );
@@ -3495,7 +3592,7 @@ class TestSnowflake extends Validator {
       'SELECT FIRST_VALUE(TABLE1.COLUMN1) OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
       {
         write: {
-          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
+          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2) AS MY_ALIAS FROM TABLE1',
         },
       },
     );
@@ -3503,7 +3600,7 @@ class TestSnowflake extends Validator {
       'SELECT FIRST_VALUE(TABLE1.COLUMN1 RESPECT NULLS) OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
       {
         write: {
-          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) RESPECT NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
+          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) RESPECT NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2) AS MY_ALIAS FROM TABLE1',
         },
       },
     );
@@ -3511,7 +3608,7 @@ class TestSnowflake extends Validator {
       'SELECT FIRST_VALUE(TABLE1.COLUMN1) RESPECT NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
       {
         write: {
-          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) RESPECT NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
+          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) RESPECT NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2) AS MY_ALIAS FROM TABLE1',
         },
       },
     );
@@ -3519,7 +3616,7 @@ class TestSnowflake extends Validator {
       'SELECT FIRST_VALUE(TABLE1.COLUMN1 IGNORE NULLS) OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
       {
         write: {
-          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) IGNORE NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
+          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) IGNORE NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2) AS MY_ALIAS FROM TABLE1',
         },
       },
     );
@@ -3527,7 +3624,7 @@ class TestSnowflake extends Validator {
       'SELECT FIRST_VALUE(TABLE1.COLUMN1) IGNORE NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
       {
         write: {
-          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) IGNORE NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS MY_ALIAS FROM TABLE1',
+          'snowflake': 'SELECT FIRST_VALUE(TABLE1.COLUMN1) IGNORE NULLS OVER (PARTITION BY RANDOM_COLUMN1, RANDOM_COLUMN2) AS MY_ALIAS FROM TABLE1',
         },
       },
     );
@@ -5136,6 +5233,27 @@ FROM persons AS p, LATERAL FLATTEN(input => p.c, path => 'contact') AS _flattene
         },
       },
     );
+    // Multi-word DESCRIBE kinds
+    for (const [kind, objName] of [
+      ['DYNAMIC TABLE', 'db.schema.t1'],
+      ['MATERIALIZED VIEW', 'my_view'],
+      ['EXTERNAL VOLUME', 'vol1'],
+      ['COMPUTE POOL', 'pool1'],
+      ['MASKING POLICY', 'db.schema.pol1'],
+      ['ROW ACCESS POLICY', 'pol1'],
+      ['API INTEGRATION', 'int1'],
+      ['APPLICATION PACKAGE', 'pkg1'],
+      ['SECURITY INTEGRATION', 'int1'],
+      ['NETWORK RULE', 'rule1'],
+      ['ICEBERG TABLE', 'db.schema.t1'],
+      ['HYBRID TABLE', 't1'],
+      ['CATALOG INTEGRATION', 'int1'],
+      ['DATABASE ROLE', 'role1'],
+    ] as const) {
+      this.validateIdentity(`DESCRIBE ${kind} ${objName}`);
+      this.validateIdentity(`DESC ${kind} ${objName}`, `DESCRIBE ${kind} ${objName}`);
+    }
+
     this.validateAll(
       'ENDSWITH(\'abc\', \'c\')',
       {
@@ -7166,6 +7284,18 @@ FROM SEMANTIC_VIEW(
   }
 
   testGenerator () {
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10))');
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(TIMELIMIT => 5))');
+    this.validateIdentity('SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10, TIMELIMIT => 5))');
+    // Positional args are mapped to ROWCOUNT, TIMELIMIT in order
+    this.validateIdentity(
+      'SELECT 1 FROM TABLE(GENERATOR(10))',
+      'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10))',
+    );
+    this.validateIdentity(
+      'SELECT 1 FROM TABLE(GENERATOR(10, 5))',
+      'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 10, TIMELIMIT => 5))',
+    );
     // Basic ROWCOUNT transpilation
     this.validateAll(
       'SELECT 1 FROM TABLE(GENERATOR(ROWCOUNT => 5))',
@@ -7353,6 +7483,71 @@ FROM SEMANTIC_VIEW(
 
   }
 
+  testArrayExcept () {
+    this.validateAll(
+      'SELECT ARRAY_EXCEPT([1, 2, 3], [2])',
+      {
+        write: {
+          snowflake: 'SELECT ARRAY_EXCEPT([1, 2, 3], [2])',
+          duckdb: "SELECT CASE WHEN [1, 2, 3] IS NULL OR [2] IS NULL THEN NULL ELSE LIST_TRANSFORM(LIST_FILTER(LIST_ZIP([1, 2, 3], GENERATE_SERIES(1, LENGTH([1, 2, 3]))), pair -> (LENGTH(LIST_FILTER([1, 2, 3][1:pair[2]], e -> e IS NOT DISTINCT FROM pair[1])) > LENGTH(LIST_FILTER([2], e -> e IS NOT DISTINCT FROM pair[1])))), pair -> pair[1]) END",
+        },
+      },
+    );
+  }
+
+  testArrayPosition () {
+    this.validateAll(
+      'SELECT ARRAY_POSITION(2, ARRAY_CONSTRUCT(1, 2, 3))',
+      {
+        write: {
+          snowflake: 'SELECT ARRAY_POSITION(2, [1, 2, 3])',
+          duckdb: 'SELECT ARRAY_POSITION([1, 2, 3], 2) - 1',
+        },
+      },
+    );
+  }
+
+  testRegexpFunctions () {
+    this.validateAll('REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)', {
+      write: {
+        bigquery: 'REGEXP_EXTRACT(subject, pattern, pos, occ)',
+        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
+        presto: 'REGEXP_EXTRACT(subject, pattern, "group")',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)",
+        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
+      },
+    });
+    this.validateAll('REGEXP_SUBSTR(subject, pattern)', {
+      read: { bigquery: 'REGEXP_EXTRACT(subject, pattern)' },
+      write: {
+        bigquery: 'REGEXP_EXTRACT(subject, pattern)',
+        snowflake: 'REGEXP_SUBSTR(subject, pattern)',
+      },
+    });
+    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", {
+      read: {
+        hive: 'REGEXP_EXTRACT(subject, pattern)',
+        spark: 'REGEXP_EXTRACT(subject, pattern)',
+        databricks: 'REGEXP_EXTRACT(subject, pattern)',
+      },
+      write: {
+        hive: 'REGEXP_EXTRACT(subject, pattern)',
+        spark: 'REGEXP_EXTRACT(subject, pattern)',
+        databricks: 'REGEXP_EXTRACT(subject, pattern)',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)",
+      },
+    });
+    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", {
+      read: {
+        duckdb: 'REGEXP_EXTRACT(subject, pattern, group)',
+        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
+        presto: 'REGEXP_EXTRACT(subject, pattern, group)',
+        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)",
+        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
+      },
+    });
+  }
+
   testArrayFlatten () {
     // String array flattening
     this.validateAll(
@@ -7399,6 +7594,15 @@ FROM SEMANTIC_VIEW(
       },
     );
 
+  }
+
+  testArraySlice () {
+    this.validateAll('ARRAY_SLICE(arr, s, e)', {
+      write: {
+        snowflake: 'ARRAY_SLICE(arr, s, e)',
+        duckdb: 'ARRAY_SLICE(arr, CASE WHEN s >= 0 THEN s + 1 ELSE s END, CASE WHEN e < 0 THEN e - 1 ELSE e END)',
+      },
+    });
   }
 
   testSpace () {
@@ -7804,8 +8008,24 @@ describe('TestSnowflake', () => {
     validator.testTypeSensitiveBitshiftTranspilation();
   });
 
+  test('test array except', () => {
+    validator.testArrayExcept();
+  });
+
+  test('test array position', () => {
+    validator.testArrayPosition();
+  });
+
+  test('test regexp functions', () => {
+    validator.testRegexpFunctions();
+  });
+
   test('test array flatten', () => {
     validator.testArrayFlatten();
+  });
+
+  test('test array slice', () => {
+    validator.testArraySlice();
   });
 
   test('test space', () => {

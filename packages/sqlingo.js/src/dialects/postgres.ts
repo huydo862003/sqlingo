@@ -202,6 +202,7 @@ import {
   noPivotSql,
   inlineArraySql,
   tsOrDsAddCast,
+  generateSeriesSql as generateSeriesSqlHelper,
   Dialect, Dialects,
   NullOrdering,
 } from './dialect';
@@ -1882,6 +1883,10 @@ class PostgresGenerator extends Generator {
       .else(coalesceExpr);
 
     return this.sql(caseExpr);
+  }
+
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    return generateSeriesSqlHelper('GENERATE_SERIES').call(this, expression);
   }
 }
 

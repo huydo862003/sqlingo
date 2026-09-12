@@ -26,6 +26,7 @@ import {
   JsonExtractScalarExpr, JsonExtractExpr, CurrentVersionExpr,
   StDistanceExpr,
   SchemaCommentPropertyExpr,
+  SqlSecurityPropertyExpr,
   toIdentifier,
 } from '../expressions';
 import {
@@ -404,6 +405,8 @@ class StarRocksGenerator extends MySQL.Generator {
     return m;
   }
 
+  static SQL_SECURITY_VIEW_LOCATION: PropertiesLocation = PropertiesLocation.POST_SCHEMA;
+
   @cache
   static get PROPERTIES_LOCATION (): Map<typeof Expression, PropertiesLocation> {
     const m = new Map(MySQL.Generator.PROPERTIES_LOCATION);
@@ -446,6 +449,9 @@ class StarRocksGenerator extends MySQL.Generator {
     m.set(RegexpLikeExpr, renameFunc('REGEXP'));
     m.set(SchemaCommentPropertyExpr, function (this: Generator, e: Expression): string {
       return this.nakedProperty(e);
+    });
+    m.set(SqlSecurityPropertyExpr, function (this: Generator, e: SqlSecurityPropertyExpr): string {
+      return `SECURITY ${this.sql(e, 'this')}`;
     });
     m.set(StDistanceExpr, stDistanceSphere);
     m.set(

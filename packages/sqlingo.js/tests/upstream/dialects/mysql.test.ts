@@ -248,6 +248,10 @@ class TestMySQL extends Validator {
     this.validateIdentity(
       'CREATE TABLE employees (id INT, store_id INT) PARTITION BY LIST (store_id) (PARTITION pNorth VALUES IN (3, 5, 6), PARTITION pSouth VALUES IN (1, 2, 10))',
     );
+    this.validateIdentity(
+      "CREATE FUNCTION f () RETURNS VARCHAR LANGUAGE SQL SQL SECURITY INVOKER SELECT 'abc'",
+      "CREATE FUNCTION f() RETURNS TEXT LANGUAGE SQL SQL SECURITY INVOKER AS SELECT 'abc'",
+    );
   }
 
   testIdentity () {
@@ -819,10 +823,12 @@ class TestMySQL extends Validator {
       'SELECT DATEDIFF(x, y)',
       {
         read: {
+          exasol: 'SELECT DAYS_BETWEEN(x, y)',
           presto: 'SELECT DATE_DIFF(\'DAY\', y, x)',
           redshift: 'SELECT DATEDIFF(DAY, y, x)',
         },
         write: {
+          exasol: 'SELECT DAYS_BETWEEN(x, y)',
           mysql: 'SELECT DATEDIFF(x, y)',
           presto: 'SELECT DATE_DIFF(\'DAY\', y, x)',
           redshift: 'SELECT DATEDIFF(DAY, y, x)',

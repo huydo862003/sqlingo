@@ -2,13 +2,14 @@ import {
   describe, test, expect,
 } from 'vitest';
 import {
-  parseOne, ParseError,
+  parseOne, parse, ParseError,
   UnsupportedError,
 } from '../../../src/index';
 import {
-  AlterExpr, AnonymousExpr, DateTruncExpr, RandExpr, SystimestampExpr, TruncExpr,
-  UtcTimeExpr, UtcTimestampExpr,
+  AlterExpr, AnonymousExpr, DateTruncExpr, PseudocolumnExpr, RandExpr, SystimestampExpr, TruncExpr,
+  UtcTimeExpr, UtcTimestampExpr, merge,
 } from '../../../src/expressions';
+import { qualify } from '../../../src/optimizer/qualify';
 import {
   Validator,
 } from './validator';
@@ -1004,6 +1005,52 @@ CONNECT BY PRIOR employee_id = manager_id AND LEVEL <= 4`;
     this.validateIdentity('SELECT CHR(187 USING NCHAR_CS)');
     this.validateIdentity('SELECT CHR(187)');
   }
+
+  testMergeBuilderAlias () {
+    const mergeStmt = merge(
+      [
+        'WHEN MATCHED THEN UPDATE SET my_table.col1 = source_table.col1',
+        'WHEN NOT MATCHED THEN INSERT (my_table.id, my_table.col1) VALUES (source_table.id, source_table.col1)',
+      ],
+      {
+        into: 'my_table',
+        using: '(SELECT * FROM something) source_table',
+        on: 'my_table.id = source_table.id',
+        dialect: 'oracle',
+      },
+    );
+    expect(mergeStmt.sql({ dialect: 'oracle' })).toBe(
+      'MERGE INTO my_table USING (SELECT * FROM something) source_table ON my_table.id = source_table.id WHEN MATCHED THEN UPDATE SET my_table.col1 = source_table.col1 WHEN NOT MATCHED THEN INSERT (my_table.id, my_table.col1) VALUES (source_table.id, source_table.col1)',
+    );
+  }
+
+  testPseudocolumns () {
+    const ast = this.validateIdentity(
+      'WITH t AS (SELECT 1 AS COL) SELECT col, ROWID FROM t WHERE ROWNUM = 1',
+    );
+    expect(ast.find(PseudocolumnExpr)).toBeUndefined();
+
+    const qualified = qualify(ast, { dialect: 'oracle' });
+    expect(qualified.find(PseudocolumnExpr)).toBeDefined();
+
+    expect(qualified.sql({ dialect: 'oracle' })).toBe(
+      'WITH "T" AS (SELECT 1 AS "COL") SELECT "T"."COL" AS "COL", ROWID AS "ROWID" FROM "T" "T" WHERE ROWNUM = 1',
+    );
+  }
+
+  testFullProcedure () {
+    const sql = 'CREATE OR REPLACE PROCEDURE test_proc(a NUMBER) AS BEGIN a := a + 1; END';
+    const exprs = parse(sql, { dialect: 'oracle' });
+    expect(exprs[0].sql({ dialect: 'oracle' })).toBe(sql);
+  }
+
+  testCreateTrigger () {
+    this.validateIdentity(
+      "CREATE TRIGGER check_salary BEFORE INSERT ON employees FOR EACH ROW BEGIN :NEW.status := 'PENDING' END",
+      undefined,
+      { checkCommandWarning: true },
+    );
+  }
 }
 
 const t = new TestOracle();
@@ -1028,4 +1075,8 @@ describe('TestOracle', () => {
   test('prior', () => t.testPrior());
   test('testUtcTime', () => t.testUtcTime());
   test('chr', () => t.testChr());
+  test('testMergeBuilderAlias', () => t.testMergeBuilderAlias());
+  test('testPseudocolumns', () => t.testPseudocolumns());
+  test('testFullProcedure', () => t.testFullProcedure());
+  test('testCreateTrigger', () => t.testCreateTrigger());
 });

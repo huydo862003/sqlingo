@@ -14,6 +14,8 @@ import {
 import {
   Validator,
 } from './validator';
+import { annotateTypes } from '../../../src/optimizer/annotate_types';
+import { qualify } from '../../../src/optimizer/qualify';
 
 class TestSpark extends Validator {
   override dialect = 'spark' as const;
@@ -1488,6 +1490,70 @@ TBLPROPERTIES (
     narrowInstanceOf(narrowed2?.args.this, DistinctExpr);
     expect(narrowed2?.getArgKey('quantile')).toBeInstanceOf(LiteralExpr);
   }
+
+  testDeclare () {
+    this.validateIdentity('DECLARE VAR x INT', 'DECLARE x INT');
+    this.validateIdentity('DECLARE x INT');
+    this.validateIdentity('DECLARE VARIABLE myvar INT DEFAULT 5', 'DECLARE myvar INT = 5');
+    this.validateIdentity('DECLARE x, y, z INT DEFAULT 1', 'DECLARE x, y, z INT = 1');
+    this.validateIdentity('DECLARE x INT = 5');
+    this.validateIdentity('DECLARE five = 5');
+    this.validateIdentity('DECLARE OR REPLACE five = 55');
+    this.validateIdentity('DECLARE VARIABLE size DEFAULT 6', 'DECLARE size = 6');
+    this.validateIdentity('DECLARE some_var STRING');
+  }
+
+  testSetVariable () {
+    this.validateAll('SET VAR v = 5', {
+      write: {
+        spark: 'SET VARIABLE v = 5',
+        databricks: 'SET VARIABLE v = 5',
+      },
+    });
+    this.validateAll('SET VARIABLE v = 5', {
+      write: {
+        spark: 'SET VARIABLE v = 5',
+        databricks: 'SET VARIABLE v = 5',
+      },
+    });
+  }
+
+  testArrayInsert () {
+    this.validateAll("SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')", {
+      read: { databricks: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')" },
+      write: {
+        databricks: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')",
+        spark: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')",
+      },
+    });
+  }
+
+  testTranspileAnnotatedExplodedColumn () {
+    const sql = `
+      WITH test_table AS (
+        SELECT
+          12345 AS id_column,
+          ARRAY(
+            STRUCT('John' AS name, 30 AS age),
+            STRUCT('Mary' AS name, 20 AS age),
+            STRUCT('Mike' AS name, 80 AS age),
+            STRUCT('Dan' AS name, 50 AS age)
+          ) AS struct_column
+      )
+      SELECT
+        id_column,
+        explode_view.new_column.name,
+        explode_view.new_column.age
+      FROM test_table
+      LATERAL VIEW EXPLODE(struct_column) explode_view AS new_column
+    `;
+    const expr = this.parseOne(sql);
+    const qualified = qualify(expr, { dialect: 'spark' });
+    const annotated = annotateTypes(qualified, { dialect: 'spark' });
+    expect(annotated.sql({ dialect: 'spark' })).toBe(
+      "WITH `test_table` AS (SELECT 12345 AS `id_column`, ARRAY(STRUCT('John' AS `name`, 30 AS `age`), STRUCT('Mary' AS `name`, 20 AS `age`), STRUCT('Mike' AS `name`, 80 AS `age`), STRUCT('Dan' AS `name`, 50 AS `age`)) AS `struct_column`) SELECT `test_table`.`id_column` AS `id_column`, `explode_view`.`new_column`.`name` AS `name`, `explode_view`.`new_column`.`age` AS `age` FROM `test_table` AS `test_table` LATERAL VIEW EXPLODE(`test_table`.`struct_column`) explode_view AS `new_column`",
+    );
+  }
 }
 
 const t = new TestSpark();
@@ -1509,4 +1575,8 @@ describe('TestSpark', () => {
   test('testBinaryString', () => t.testBinaryString());
   test('testAnalyze', () => t.testAnalyze());
   test('testApproxPercentile', () => t.testApproxPercentile());
+  test('testDeclare', () => t.testDeclare());
+  test('testSetVariable', () => t.testSetVariable());
+  test('testArrayInsert', () => t.testArrayInsert());
+  test('testTranspileAnnotatedExplodedColumn', () => t.testTranspileAnnotatedExplodedColumn());
 });

@@ -5,6 +5,8 @@ import type {
   CastExpr, UnnestExpr,
   ArrayExpr,
   AlterSetExpr,
+
+  IgnoreNullsExpr, RespectNullsExpr,
 } from '../expressions';
 import {
   AliasExpr,
@@ -42,7 +44,7 @@ import {
   RoundExpr, SelectExpr, Sha2DigestExpr, Sha2Expr, SortKeyPropertyExpr, StartsWithExpr, StringToArrayExpr, TableSampleExpr, TryCastExpr, TsOrDsAddExpr, TsOrDsDiffExpr, UnixToTimeExpr, var_,
   Expression, SchemaExpr, TupleExpr, VarExpr,
 } from '../expressions';
-import type {
+import {
   Generator,
 } from '../generator';
 import {
@@ -57,6 +59,9 @@ import {
 import {
   eliminateDistinctOn, eliminateSemiAndAntiJoins, eliminateWindowClause, preprocess, unnestGenerateDateArrayUsingRecursiveCte, unqualifyUnnest,
 } from '../transforms';
+import {
+  RedshiftTyping,
+} from '../typing/redshift';
 import type {
   Dialect,
 } from './dialect';
@@ -867,6 +872,14 @@ class RedshiftGenerator extends Postgres.Generator {
     return renameFunc('ARRAY').call(this, expression);
   }
 
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    return Generator.prototype.ignoreNullsSql.call(this, expression);
+  }
+
+  respectNullsSql (expression: RespectNullsExpr): string {
+    return Generator.prototype.respectNullsSql.call(this, expression);
+  }
+
   explodeSql (_expression: ExplodeExpr): string {
     this.unsupported('Unsupported EXPLODE() function');
 
@@ -891,6 +904,11 @@ export class Redshift extends Postgres {
   @cache
   static get NORMALIZATION_STRATEGY () {
     return NormalizationStrategy.CASE_INSENSITIVE;
+  }
+
+  @cache
+  static get EXPRESSION_METADATA () {
+    return new Map(RedshiftTyping.EXPRESSION_METADATA);
   }
 
   static SUPPORTS_USER_DEFINED_TYPES = false;

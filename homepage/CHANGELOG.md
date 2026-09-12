@@ -1,5 +1,12 @@
 # @hdnax/sqlingo.js-homepage
 
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies [98bee52]
+  - @hdnax/sqlingo.js@0.8.0
+
 ## 0.1.15
 
 ### Patch Changes

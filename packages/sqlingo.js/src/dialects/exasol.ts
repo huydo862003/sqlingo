@@ -15,6 +15,8 @@ import {
   toIdentifier,
   SelectExpr,
   AliasExpr,
+  AggFuncExpr,
+  DistinctExpr,
   IdentifierExpr,
   TableExpr,
   ColumnExpr,
@@ -41,7 +43,12 @@ import {
   Md5Expr,
   Md5DigestExpr,
   RegexpExtractExpr,
+  JsonExtractExpr,
+  RegexpLikeExpr,
   RegexpReplaceExpr,
+  UnixToTimeExpr,
+  ParenExpr,
+  ConcatExpr,
   VariancePopExpr,
   ApproxDistinctExpr,
   ToCharExpr,
@@ -82,6 +89,9 @@ import {
   type SelectExprArgs,
   null_,
 } from '../expressions';
+import {
+  UnsupportedError,
+} from '../errors';
 import {
   seqGet,
 } from '../helper';
@@ -350,6 +360,47 @@ function substringIndexSql (this: ExasolGenerator, expression: SubstringIndexExp
   ]);
 }
 
+function groupByAll (expression: Expression): Expression {
+  if (!(expression instanceof SelectExpr)) {
+    return expression;
+  }
+
+  const group = expression.args.group;
+
+  if (!group || !group.getArgKey('all')) {
+    return expression;
+  }
+
+  if (expression.isStar) {
+    if ((expression.args.expressions ?? []).some((proj: Expression) => proj.find(AggFuncExpr))) {
+      throw new UnsupportedError(
+        'GROUP BY ALL with star projection and aggregates is not supported by Exasol',
+      );
+    }
+
+    expression.setArgKey('distinct', new DistinctExpr({}));
+    expression.setArgKey('group', undefined);
+
+    return expression;
+  }
+
+  const groupPositions = (expression.args.expressions ?? [])
+    .map((proj: Expression, i: number) =>
+      !proj.find(AggFuncExpr) ? LiteralExpr.number(i + 1) : undefined)
+    .filter((x): x is LiteralExpr | NegExpr => Boolean(x));
+
+  if (groupPositions.length === 0) {
+    expression.setArgKey('group', undefined);
+
+    return expression;
+  }
+
+  group.setArgKey('expressions', groupPositions);
+  group.setArgKey('all', undefined);
+
+  return expression;
+}
+
 /**
  * Exasol doesn't support a bare * alongside other select items.
  * Rewrite: SELECT *, <other> FROM <Table> Into: SELECT T.*, <other> FROM <Table> AS T
@@ -478,6 +529,7 @@ class ExasolTokenizer extends Tokenizer {
       'USER': TokenType.CURRENT_USER,
       'ENDIF': TokenType.END,
       'LONG VARCHAR': TokenType.TEXT,
+      'REGEXP_LIKE': TokenType.RLIKE,
       'SEPARATOR': TokenType.SEPARATOR,
       'SYSTIMESTAMP': TokenType.SYSTIMESTAMP,
     };
@@ -538,12 +590,19 @@ class ExasolParser extends Parser {
           this: seqGet(args, 0),
         }),
         EDIT_DISTANCE: (args: unknown[]) => LevenshteinExpr.fromArgList(args),
+        FROM_POSIX_TIME: (args: unknown[]) => UnixToTimeExpr.fromArgList(args),
         CURDATE: (args: unknown[]) => CurrentDateExpr.fromArgList(args),
         NOW: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
         HASH_SHA: (args: unknown[]) => ShaExpr.fromArgList(args),
         HASH_SHA1: (args: unknown[]) => ShaExpr.fromArgList(args),
         HASH_MD5: (args: unknown[]) => Md5Expr.fromArgList(args),
         HASHTYPE_MD5: (args: unknown[]) => Md5DigestExpr.fromArgList(args),
+        REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          flag: seqGet(args, 2),
+          fullMatch: true,
+        }),
         REGEXP_SUBSTR: (args: unknown[]) => RegexpExtractExpr.fromArgList(args),
         REGEXP_REPLACE: (args: Expression[]) => new RegexpReplaceExpr({
           this: seqGet(args, 0),
@@ -615,6 +674,20 @@ class ExasolParser extends Parser {
   }
 
   @cache
+  static get RANGE_PARSERS (): Partial<Record<TokenType, (this: Parser, thisExpr: Expression) => Expression | undefined>> {
+    return {
+      ...Parser.RANGE_PARSERS,
+      [TokenType.RLIKE]: function (this: Parser, thisExpr: Expression) {
+        return this.expression(RegexpLikeExpr, {
+          this: thisExpr,
+          expression: this.parseBitwise(),
+          fullMatch: true,
+        });
+      },
+    };
+  }
+
+  @cache
   static get FUNC_TOKENS (): Set<TokenType> {
     return new Set([
       ...Parser.FUNC_TOKENS,
@@ -637,6 +710,9 @@ class ExasolParser extends Parser {
       ])),
       JSON_VALUE: function (this: Parser) {
         return this.parseJsonValue();
+      },
+      JSON_EXTRACT: function (this: Parser) {
+        return (this as ExasolParser).parseJsonExtract();
       },
     };
   }
@@ -665,6 +741,28 @@ class ExasolParser extends Parser {
     }
 
     return column;
+  }
+
+  parseJsonExtract (): JsonExtractExpr {
+    const args = this.parseExpressions();
+
+    this.matchRParen();
+
+    const expression = this.expression(JsonExtractExpr, {
+      expressions: args,
+    });
+
+    if (this.matchTexts('EMITS')) {
+      const schema = this.parseSchema();
+
+      if (schema) {
+        expression.setArgKey('emits', schema.args.expressions);
+      } else {
+        this.raiseError('Expected schema after EMITS');
+      }
+    }
+
+    return expression;
   }
 
   // port from _Dialect metaclass logic
@@ -1379,6 +1477,12 @@ class ExasolGenerator extends Generator {
         renameFunc('MOD'),
       ],
       [
+        UnixToTimeExpr,
+        function (this: Generator, e: UnixToTimeExpr) {
+          return this.func('FROM_POSIX_TIME', [e.args.this]);
+        },
+      ],
+      [
         ConvertTimezoneExpr,
         function (this: Generator, e: ConvertTimezoneExpr) {
           return this.func('CONVERT_TZ', [
@@ -1418,6 +1522,15 @@ class ExasolGenerator extends Generator {
         },
       ],
       [
+        TimeToStrExpr,
+        function (this: Generator, e: TimeToStrExpr) {
+          return this.func('TO_CHAR', [
+            e.args.this,
+            this.formatTime(e),
+          ]);
+        },
+      ],
+      [
         ToCharExpr,
         function (this: Generator, e: ToCharExpr) {
           return this.func('TO_CHAR', [
@@ -1430,15 +1543,6 @@ class ExasolGenerator extends Generator {
         TsOrDsToDateExpr,
         function (this: Generator, e: TsOrDsToDateExpr) {
           return this.func('TO_DATE', [
-            e.args.this,
-            this.formatTime(e),
-          ]);
-        },
-      ],
-      [
-        TimeToStrExpr,
-        function (this: Generator, e: TimeToStrExpr) {
-          return this.func('TO_CHAR', [
             e.args.this,
             this.formatTime(e),
           ]);
@@ -1522,6 +1626,7 @@ class ExasolGenerator extends Generator {
         preprocess([
           qualifyUnscopedStar,
           addLocalPrefixForAliases,
+          groupByAll,
         ]),
       ],
       [
@@ -1567,6 +1672,51 @@ class ExasolGenerator extends Generator {
 
   collateSql (expression: CollateExpr): string {
     return this.sql(expression.args.this);
+  }
+
+  jsonExtractSql (expression: JsonExtractExpr): string {
+    let sql = this.func('JSON_EXTRACT', [
+      expression.args.this,
+      expression.args.expression,
+      ...(expression.args.expressions ?? []),
+    ]);
+    const columns = expression.getArgKey('emits');
+
+    if (Array.isArray(columns) && 0 < columns.length) {
+      const emits = this.expressions(undefined, {
+        sqls: columns as Expression[],
+      });
+
+      sql = `${sql} EMITS (${emits})`;
+    }
+
+    return sql;
+  }
+
+  regexpLikeSql (expression: RegexpLikeExpr): string {
+    if (expression.args.flag) {
+      this.unsupported('REGEXP_LIKE flag is not supported by Exasol');
+    }
+
+    if (!expression.args.fullMatch) {
+      const pattern = expression.args.expression;
+
+      if (pattern instanceof Expression && pattern.isString) {
+        expression.setArgKey('expression', LiteralExpr.string(`.*${pattern.name}.*`));
+      } else if (pattern instanceof Expression) {
+        expression.setArgKey('expression', new ParenExpr({
+          this: new ConcatExpr({
+            expressions: [
+              LiteralExpr.string('.*'),
+              pattern,
+              LiteralExpr.string('.*'),
+            ],
+          }),
+        }));
+      }
+    }
+
+    return this.binary(expression, 'REGEXP_LIKE');
   }
 
   private noArgWindowFunc (expression: Expression, name: string): string {

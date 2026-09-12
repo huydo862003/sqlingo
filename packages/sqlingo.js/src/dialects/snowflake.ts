@@ -4,14 +4,12 @@ import type {
   CommandExpr,
   CurrentDateExpr,
   DateSubExpr,
-  DescribeExpr,
   ExpressionOrString,
   ExpressionValue,
   FormatExpr,
   FuncExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   LogExpr,
-  PropertiesExpr,
   SearchExprArgs,
   TimestampSubExpr,
   TimeToStrExpr,
@@ -40,7 +38,10 @@ import {
   ProjectionPolicyColumnConstraintExpr,
   TagsExpr,
   UseExpr,
-  NthValueExpr, RegexpILikeExpr,
+  FirstValueExpr,
+  LastValueExpr,
+  NthValueExpr,
+  RegexpILikeExpr,
   SetExpr,
   SetItemExpr,
   ShowExpr,
@@ -81,6 +82,7 @@ import {
   NegExpr,
   null_,
   PropertyEqExpr,
+  SplitExpr,
   SplitPartExpr,
   StarMapExpr,
   StrToTimeExpr,
@@ -90,7 +92,19 @@ import {
   SelectExpr,
   alias,
   CreateExpr,
+  ApiPropertyExpr,
+  ApplicationPropertyExpr,
+  CatalogPropertyExpr,
+  ComputePropertyExpr,
+  DatabasePropertyExpr,
+  DynamicPropertyExpr,
+  ExternalPropertyExpr,
+  HybridPropertyExpr,
   IcebergPropertyExpr,
+  MaskingPropertyExpr,
+  NetworkPropertyExpr,
+  RowAccessPropertyExpr,
+  SecurityIntegrationPropertyExpr,
   SchemaExpr,
   ColumnDefExpr,
   IntervalExpr,
@@ -112,7 +126,6 @@ import {
   CurrentSchemasExpr,
   GenerateSeriesExpr,
   JarowinklerSimilarityExpr,
-  SubExpr,
   SortArrayExpr,
   FlattenExpr,
   BitwiseNotExpr,
@@ -166,7 +179,11 @@ import {
   ArrayConcatExpr,
   ArrayAppendExpr,
   ArrayPrependExpr,
+  ArrayExceptExpr,
   ArrayIntersectExpr,
+  ArrayOverlapsExpr,
+  ArrayPositionExpr,
+  ArraySliceExpr,
   AtTimeZoneExpr,
   LocaltimestampExpr,
   DatetimeAddExpr,
@@ -227,7 +244,15 @@ import {
   OrderExpr,
   WithinGroupExpr,
   AliasExpr,
+  BooleanExpr,
+  cast,
   ConvertTimezoneExpr,
+  DescribeExpr,
+  PropertiesExpr,
+  WindowExpr,
+  WindowSpecExpr,
+  RespectNullsExpr,
+  IgnoreNullsExpr,
   true_,
 } from '../expressions';
 import {
@@ -1106,16 +1131,22 @@ function buildRound (args: Expression[]): RoundExpr {
 
 /**
  * Build Generator expression, unwrapping Snowflake's named parameters.
- * Maps ROWCOUNT => rowcount, TIMELIMIT => time_limit
+ * Maps ROWCOUNT => rowcount, TIMELIMIT => timelimit
  */
 function buildGenerator (args: Expression[]): GeneratorExpr {
   const kwargMap: Record<string, string> = {
     ROWCOUNT: 'rowcount',
-    TIMELIMIT: 'timeLimit',
+    TIMELIMIT: 'timelimit',
   };
   const genArgs: Record<string, unknown> = {};
+  const positionalKeys = [
+    'rowcount',
+    'timelimit',
+  ];
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
     if (arg instanceof KwargExpr) {
       const key = arg.args.this?.name.toUpperCase();
       const genKey = key !== undefined ? kwargMap[key] : undefined;
@@ -1123,6 +1154,8 @@ function buildGenerator (args: Expression[]): GeneratorExpr {
       if (genKey) {
         genArgs[genKey] = arg.args.expression;
       }
+    } else if (i < positionalKeys.length) {
+      genArgs[positionalKeys[i]] = arg;
     }
   }
 
@@ -1202,13 +1235,19 @@ class SnowflakeTokenizer extends Tokenizer {
       'FILE://': TokenType.URI_START,
       'FILE FORMAT': TokenType.FILE_FORMAT,
       'GET': TokenType.GET,
+      'INTEGRATION': TokenType.INTEGRATION,
       'MATCH_CONDITION': TokenType.MATCH_CONDITION,
       'MATCH_RECOGNIZE': TokenType.MATCH_RECOGNIZE,
       'MINUS': TokenType.EXCEPT,
       'NCHAR VARYING': TokenType.VARCHAR,
+      'PACKAGE': TokenType.PACKAGE,
+      'POLICY': TokenType.POLICY,
+      'POOL': TokenType.POOL,
       'PUT': TokenType.PUT,
       'REMOVE': TokenType.COMMAND,
       'RM': TokenType.COMMAND,
+      'ROLE': TokenType.ROLE,
+      'RULE': TokenType.RULE,
       'SAMPLE': TokenType.TABLE_SAMPLE,
       'SEMANTIC VIEW': TokenType.SEMANTIC_VIEW,
       'SQL_DOUBLE': TokenType.DOUBLE,
@@ -1219,6 +1258,7 @@ class SnowflakeTokenizer extends Tokenizer {
       'TAG': TokenType.TAG,
       'TIMESTAMP_TZ': TokenType.TIMESTAMPTZ,
       'TOP': TokenType.TOP,
+      'VOLUME': TokenType.VOLUME,
       'WAREHOUSE': TokenType.WAREHOUSE,
       'FLOAT': TokenType.DOUBLE,
     };
@@ -1258,8 +1298,15 @@ class SnowflakeParser extends Parser {
       TokenType.SESSION_USER,
       TokenType.CURRENT_CATALOG,
       TokenType.EXCEPT,
+      TokenType.INTEGRATION,
       TokenType.MATCH_CONDITION,
+      TokenType.PACKAGE,
+      TokenType.POLICY,
+      TokenType.POOL,
+      TokenType.ROLE,
+      TokenType.RULE,
       TokenType.STRAIGHT_JOIN,
+      TokenType.VOLUME,
     ]);
   }
 
@@ -1269,10 +1316,43 @@ class SnowflakeParser extends Parser {
   static JSON_EXTRACT_REQUIRES_JSON_EXPRESSION = true;
 
   @cache
+  static get TYPE_TOKENS (): Set<TokenType> {
+    return new Set([
+      ...Parser.TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
+  }
+
+  @cache
+  static get STRUCT_TYPE_TOKENS (): Set<TokenType> {
+    return new Set([
+      ...Parser.STRUCT_TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
+  }
+
+  @cache
+  static get NESTED_TYPE_TOKENS (): Set<TokenType> {
+    return new Set([
+      ...Parser.NESTED_TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
+  }
+
+  @cache
   static get TABLE_ALIAS_TOKENS (): Set<TokenType> {
     return (() => {
       const s = new Set([
         ...Parser.TABLE_ALIAS_TOKENS,
+        TokenType.ANTI,
+        TokenType.INTEGRATION,
+        TokenType.PACKAGE,
+        TokenType.POLICY,
+        TokenType.POOL,
+        TokenType.ROLE,
+        TokenType.RULE,
+        TokenType.SEMI,
+        TokenType.VOLUME,
         TokenType.WINDOW,
         TokenType.STRAIGHT_JOIN,
       ]);
@@ -1341,13 +1421,51 @@ class SnowflakeParser extends Parser {
         ARRAY_GENERATE_RANGE: (args: Expression[]) =>
           new GenerateSeriesExpr({
             start: seqGet(args, 0),
-            end: new SubExpr({
-              this: seqGet(args, 1),
-              expression: LiteralExpr.number(1),
-            }),
+            end: seqGet(args, 1),
             step: seqGet(args, 2),
+            isEndExclusive: true,
           }),
-        ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
+        ARRAY_SLICE: (args: Expression[]) => new ArraySliceExpr({
+          this: seqGet(args, 0),
+          start: seqGet(args, 1),
+          end: seqGet(args, 2),
+          zeroBased: true,
+        }),
+        ARRAY_EXCEPT: (args: Expression[]) => new ArrayExceptExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          isMultiset: true,
+        }),
+        ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({
+          expressions: args,
+          isMultiset: true,
+        }),
+        ARRAY_POSITION: (args: Expression[]) => new ArrayPositionExpr({
+          this: seqGet(args, 1),
+          expression: seqGet(args, 0),
+          zeroBased: true,
+        }),
+        ARRAY_SORT: (args: Expression[]) => {
+          const asc = seqGet(args, 1);
+          let nullsFirst = seqGet(args, 2);
+
+          if (nullsFirst === undefined && asc instanceof BooleanExpr) {
+            nullsFirst = new BooleanExpr({
+              this: !asc.args.this,
+            });
+          }
+
+          return new SortArrayExpr({
+            this: seqGet(args, 0),
+            asc,
+            nullsFirst,
+          });
+        },
+        ARRAYS_OVERLAP: (args: Expression[]) => new ArrayOverlapsExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullsafe: true,
+        }),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BIT_AND: buildBitwise(BitwiseAndExpr, 'BITAND'),
@@ -1488,6 +1606,11 @@ class SnowflakeParser extends Parser {
         REGEXP_REPLACE: buildRegexpReplace,
         REGEXP_SUBSTR: buildRegexpExtract(RegexpExtractExpr),
         REGEXP_SUBSTR_ALL: buildRegexpExtract(RegexpExtractAllExpr),
+        RANDOM: (args: Expression[]) => new RandExpr({
+          this: seqGet(args, 0),
+          lower: LiteralExpr.number('-9.223372036854776e+18'),
+          upper: LiteralExpr.number('9.223372036854776e+18'),
+        }),
         REPLACE: buildReplaceWithOptionalReplacement,
         REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({
           this: seqGet(args, 0),
@@ -1506,6 +1629,12 @@ class SnowflakeParser extends Parser {
         SHA1_HEX: (args: unknown[]) => ShaExpr.fromArgList(args),
         SHA2_BINARY: (args: unknown[]) => Sha2DigestExpr.fromArgList(args),
         SHA2_HEX: (args: unknown[]) => Sha2Expr.fromArgList(args),
+        SPLIT: (args: Expression[]) => new SplitExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullReturnsNull: true,
+          emptyDelimiterReturnsWhole: true,
+        }),
         SQUARE: (args: Expression[]) =>
           new PowExpr({
             this: seqGet(args, 0),
@@ -1657,6 +1786,18 @@ class SnowflakeParser extends Parser {
         TO_TIMESTAMP_LTZ: buildDatetime('TO_TIMESTAMP_LTZ', DataTypeExprKind.TIMESTAMPLTZ),
         TO_TIMESTAMP_NTZ: buildDatetime('TO_TIMESTAMP_NTZ', DataTypeExprKind.TIMESTAMPNTZ),
         TO_TIMESTAMP_TZ: buildDatetime('TO_TIMESTAMP_TZ', DataTypeExprKind.TIMESTAMPTZ),
+        TO_GEOGRAPHY: (args: Expression[]) => args.length === 1
+          ? cast(args[0], DataTypeExprKind.GEOGRAPHY)
+          : new AnonymousExpr({
+            this: 'TO_GEOGRAPHY',
+            expressions: args,
+          }),
+        TO_GEOMETRY: (args: Expression[]) => args.length === 1
+          ? cast(args[0], DataTypeExprKind.GEOMETRY)
+          : new AnonymousExpr({
+            this: 'TO_GEOMETRY',
+            expressions: args,
+          }),
         TO_VARCHAR: buildTimeToStrOrToChar,
         TO_JSON: (args: unknown[]) => JsonFormatExpr.fromArgList(args),
         VECTOR_COSINE_SIMILARITY: (args: unknown[]) => CosineDistanceExpr.fromArgList(args),
@@ -1668,6 +1809,13 @@ class SnowflakeParser extends Parser {
         ILIKE: buildLike(ILikeExpr),
         SEARCH: buildSearch,
         SKEW: (args: unknown[]) => SkewnessExpr.fromArgList(args),
+        SPLIT_PART: (args: Expression[]) => new SplitPartExpr({
+          this: seqGet(args, 0),
+          delimiter: seqGet(args, 1),
+          partIndex: seqGet(args, 2),
+          partIndexZeroAsOne: true,
+          emptyDelimiterReturnsWhole: true,
+        }),
         SYSTIMESTAMP: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
         WEEKISO: (args: unknown[]) => WeekOfYearExpr.fromArgList(args),
         WEEKOFYEAR: (args: unknown[]) => WeekExpr.fromArgList(args),
@@ -1867,6 +2015,20 @@ class SnowflakeParser extends Parser {
   }
 
   @cache
+  static get CREATABLES (): Set<TokenType> {
+    return new Set([
+      ...Parser.CREATABLES,
+      TokenType.INTEGRATION,
+      TokenType.PACKAGE,
+      TokenType.POLICY,
+      TokenType.POOL,
+      TokenType.ROLE,
+      TokenType.RULE,
+      TokenType.VOLUME,
+    ]);
+  }
+
+  @cache
   static get NON_TABLE_CREATABLES (): Set<string> {
     return new Set([
       'STORAGE INTEGRATION',
@@ -1912,6 +2074,91 @@ class SnowflakeParser extends Parser {
     return this.expression(DirectoryStageExpr, {
       this: table,
     });
+  }
+
+  static DESCRIBE_QUALIFIER_PARSERS: Record<string, (this: SnowflakeParser) => Expression | undefined> = {
+    API: function () {
+      return this.expression(ApiPropertyExpr, {});
+    },
+    APPLICATION: function () {
+      return this.expression(ApplicationPropertyExpr, {});
+    },
+    CATALOG: function () {
+      return this.expression(CatalogPropertyExpr, {});
+    },
+    COMPUTE: function () {
+      return this.expression(ComputePropertyExpr, {});
+    },
+    DATABASE: function () {
+      return this.curr && this.curr.text.toUpperCase() === 'ROLE'
+        ? this.expression(DatabasePropertyExpr, {})
+        : undefined;
+    },
+    DYNAMIC: function () {
+      return this.expression(DynamicPropertyExpr, {});
+    },
+    EXTERNAL: function () {
+      return this.expression(ExternalPropertyExpr, {});
+    },
+    HYBRID: function () {
+      return this.expression(HybridPropertyExpr, {});
+    },
+    ICEBERG: function () {
+      return this.expression(IcebergPropertyExpr, {});
+    },
+    MASKING: function () {
+      return this.expression(MaskingPropertyExpr, {});
+    },
+    MATERIALIZED: function () {
+      return this.expression(MaterializedPropertyExpr, {});
+    },
+    NETWORK: function () {
+      return this.expression(NetworkPropertyExpr, {});
+    },
+    ROW: function () {
+      return this.matchTextSeq('ACCESS')
+        ? this.expression(RowAccessPropertyExpr, {})
+        : undefined;
+    },
+    SECURITY: function () {
+      return this.curr && this.curr.text.toUpperCase() === 'INTEGRATION'
+        ? this.expression(SecurityIntegrationPropertyExpr, {})
+        : undefined;
+    },
+  };
+
+  parseDescribe (): DescribeExpr {
+    const index = this.index;
+
+    if (this.matchTexts(Object.keys((this.constructor as typeof SnowflakeParser).DESCRIBE_QUALIFIER_PARSERS))) {
+      const qualifier = (this.constructor as typeof SnowflakeParser).DESCRIBE_QUALIFIER_PARSERS[this.prev!.text.toUpperCase()]?.call(this);
+
+      if (qualifier) {
+        const kind = (this.matchSet(this._constructor.CREATABLES) || undefined) && this.prev?.text.toUpperCase();
+
+        if (kind) {
+          const thisExpr = this.parseTable({
+            schema: true,
+          });
+          const properties = this.expression(PropertiesExpr, {
+            expressions: [qualifier],
+          });
+          const postProps = this.parseProperties();
+          const expressions = postProps?.args.expressions;
+
+          return this.expression(DescribeExpr, {
+            this: thisExpr,
+            kind,
+            properties,
+            expressions,
+          });
+        }
+      }
+    }
+
+    this.retreat(index);
+
+    return super.parseDescribe();
   }
 
   parseUse (): UseExpr {
@@ -2485,7 +2732,24 @@ class SnowflakeParser extends Parser {
       }
     }
 
-    return super.parseWindow(thisNode, options);
+    const result = super.parseWindow(thisNode, options);
+
+    // Set default window frame for ranking functions if not present
+    if (
+      result instanceof WindowExpr
+      && (thisNode instanceof FirstValueExpr || thisNode instanceof LastValueExpr || thisNode instanceof NthValueExpr)
+      && !result.args.spec
+    ) {
+      result.setArgKey('spec', new WindowSpecExpr({
+        kind: 'ROWS',
+        start: 'UNBOUNDED',
+        startSide: 'PRECEDING',
+        end: 'UNBOUNDED',
+        endSide: 'FOLLOWING',
+      }));
+    }
+
+    return result;
   }
 }
 
@@ -2600,6 +2864,19 @@ class SnowflakeGenerator extends Generator {
       [
         ArrayIntersectExpr,
         renameFunc('ARRAY_INTERSECTION'),
+      ],
+      [
+        ArrayOverlapsExpr,
+        renameFunc('ARRAYS_OVERLAP'),
+      ],
+      [
+        ArrayPositionExpr,
+        function (this: Generator, e: ArrayPositionExpr) {
+          return this.func('ARRAY_POSITION', [
+            e.args.expression,
+            e.args.this,
+          ]);
+        },
       ],
       [
         AtTimeZoneExpr,
@@ -2785,7 +3062,7 @@ class SnowflakeGenerator extends Generator {
         function (this: Generator, e: GenerateSeriesExpr) {
           return this.func('ARRAY_GENERATE_RANGE', [
             e.args.start,
-            e.args.end?.add(1),
+            e.args.isEndExclusive ? e.args.end : e.args.end?.add(1),
             e.args.step,
           ]);
         },
@@ -2966,10 +3243,6 @@ class SnowflakeGenerator extends Generator {
         regexpILikeSql,
       ],
       [
-        RandExpr,
-        renameFunc('RANDOM'),
-      ],
-      [
         SelectExpr,
         preprocess([
           eliminateWindowClause,
@@ -3004,10 +3277,6 @@ class SnowflakeGenerator extends Generator {
       [
         LowerHexExpr,
         renameFunc('TO_CHAR'),
-      ],
-      [
-        SortArrayExpr,
-        renameFunc('ARRAY_SORT'),
       ],
       [
         SkewnessExpr,
@@ -3217,6 +3486,27 @@ class SnowflakeGenerator extends Generator {
     ]);
 
     return transforms;
+  }
+
+  sortArraySql (expression: SortArrayExpr): string {
+    const asc = expression.args.asc;
+    let nullsFirst = expression.args.nullsFirst;
+
+    if (asc instanceof BooleanExpr && asc.args.this === false && nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true) {
+      nullsFirst = undefined;
+    }
+
+    return this.func('ARRAY_SORT', [
+      expression.args.this,
+      asc,
+      nullsFirst,
+    ]);
+  }
+
+  randSql (expression: RandExpr): string {
+    const seed = expression.args.this;
+
+    return seed ? this.func('RANDOM', [seed]) : this.func('RANDOM', []);
   }
 
   nthValueSql (expression: NthValueExpr): string {
@@ -3448,7 +3738,7 @@ class SnowflakeGenerator extends Generator {
   generatorSql (expression: GeneratorExpr): string {
     const args: Expression[] = [];
     const rowcount = expression.args.rowcount;
-    const timeLimit = expression.args.timeLimit;
+    const timelimit = expression.args.timelimit;
 
     if (rowcount) {
       args.push(new KwargExpr({
@@ -3458,12 +3748,12 @@ class SnowflakeGenerator extends Generator {
         expression: rowcount,
       }));
     }
-    if (timeLimit) {
+    if (timelimit) {
       args.push(new KwargExpr({
         this: new VarExpr({
           this: 'TIMELIMIT',
         }),
-        expression: timeLimit,
+        expression: timelimit,
       }));
     }
 
@@ -3563,7 +3853,20 @@ class SnowflakeGenerator extends Generator {
 
   describeSql (expression: DescribeExpr): string {
     const kindValue = expression.args.kind || 'TABLE';
-    const kind = kindValue ? ` ${kindValue}` : '';
+
+    const properties = expression.args.properties;
+    let kind: string;
+
+    if (properties) {
+      const qualifier = this.expressions(properties, {
+        sep: ' ',
+      });
+
+      kind = ` ${qualifier} ${kindValue}`;
+    } else {
+      kind = ` ${kindValue}`;
+    }
+
     const thisNode = ` ${this.sql(expression, 'this')}`;
 
     let expressions = this.expressions(expression, {
@@ -3915,6 +4218,42 @@ class SnowflakeGenerator extends Generator {
       expression.args.expression,
       gen,
     ]);
+  }
+
+  windowSql (expression: WindowExpr): string {
+    const spec = expression.args.spec;
+    const thisExpr = expression.args.this;
+
+    const isRankingFunc = thisExpr instanceof FirstValueExpr
+      || thisExpr instanceof LastValueExpr
+      || thisExpr instanceof NthValueExpr
+      || (
+        (thisExpr instanceof RespectNullsExpr || thisExpr instanceof IgnoreNullsExpr)
+        && (thisExpr.args.this instanceof FirstValueExpr
+          || thisExpr.args.this instanceof LastValueExpr
+          || thisExpr.args.this instanceof NthValueExpr)
+      );
+
+    if (isRankingFunc && spec instanceof WindowSpecExpr) {
+      const text = (v: unknown) => String(v ?? '').toUpperCase();
+      const kind = text(spec.args.kind);
+      const start = text(spec.args.start);
+      const startSide = text(spec.args.startSide);
+      const end = text(spec.args.end);
+      const endSide = text(spec.args.endSide);
+
+      if (
+        kind === 'ROWS'
+        && start === 'UNBOUNDED'
+        && startSide === 'PRECEDING'
+        && end === 'UNBOUNDED'
+        && endSide === 'FOLLOWING'
+      ) {
+        expression.setArgKey('spec', undefined);
+      }
+    }
+
+    return super.windowSql(expression);
   }
 }
 

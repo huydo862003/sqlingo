@@ -19,6 +19,7 @@ import {
   TanExpr,
   SoundexExpr,
   StuffExpr,
+  CurrentTimestampExpr,
   CurrentTimezoneExpr,
   RadiansExpr,
 } from '../expressions/expressions';
@@ -71,6 +72,10 @@ export class TSQLTyping {
 
     map.set(CurrentTimezoneExpr, {
       returns: DataTypeExprKind.NVARCHAR,
+    });
+
+    map.set(CurrentTimestampExpr, {
+      returns: DataTypeExprKind.DATETIME,
     });
 
     return map;

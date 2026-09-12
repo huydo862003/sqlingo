@@ -102,6 +102,10 @@ class TestClickHouse extends Validator {
     this.validateIdentity('SELECT 1 AND (1 = 2)');
     this.validateIdentity('SELECT json.a.:Int64');
     this.validateIdentity('SELECT json.a.:JSON.b.:Int64');
+    this.validateIdentity('SELECT json.a.b.:"Array(JSON)".c');
+    this.validateIdentity('SELECT json.a.b.:"Array(Array(JSON))".c');
+    this.validateIdentity('SELECT json.a.b[].c', 'SELECT json.a.b.:"Array(JSON)".c');
+    this.validateIdentity('SELECT json.a.b[][]', 'SELECT json.a.b.:"Array(Array(JSON))"');
     this.validateIdentity('WITH arrayJoin([(1, [2, 3])]) AS arr SELECT arr');
     this.validateIdentity('CAST(1 AS Bool)');
     this.validateIdentity('SELECT toString(CHAR(104.1, 101, 108.9, 108.9, 111, 32))');
@@ -267,6 +271,18 @@ class TestClickHouse extends Validator {
     this.validateIdentity(
       'CREATE TABLE t (foo String CODEC(LZ4HC(9), ZSTD, DELTA), size String ALIAS formatReadableSize(size_bytes), INDEX idx1 a TYPE bloom_filter(0.001) GRANULARITY 1, INDEX idx2 a TYPE set(100) GRANULARITY 2, INDEX idx3 a TYPE minmax GRANULARITY 3)',
     );
+    this.validateIdentity('CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK (a < 10)) ENGINE=MergeTree ORDER BY a');
+    this.validateIdentity('CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME (a > 5)) ENGINE=MergeTree ORDER BY a');
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK a < 10) ENGINE=MergeTree ORDER BY a',
+      'CREATE TABLE t (a UInt32, CONSTRAINT a_constraint CHECK (a < 10)) ENGINE=MergeTree ORDER BY a',
+    );
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME a > 5) ENGINE=MergeTree ORDER BY a',
+      'CREATE TABLE t (a UInt32, CONSTRAINT c1 ASSUME (a > 5)) ENGINE=MergeTree ORDER BY a',
+    );
+    this.validateIdentity('CREATE TABLE t (check UInt32)');
+    this.validateIdentity('CREATE TABLE t (assume UInt32)');
     this.validateIdentity(
       'SELECT generate_series FROM generate_series(0, 10) AS g(x)',
     );
@@ -772,6 +788,10 @@ class TestClickHouse extends Validator {
       'INSERT INTO FUNCTION hdfs(\'hdfs://hdfs1:9000/test\', \'TSV\', \'name String, column2 UInt32, column3 UInt32\') VALUES ((\'test\'), (1), (2))',
     );
 
+    this.validateIdentity(
+      'INSERT INTO t (n.a, n.b) VALUES (1, [1, 2])',
+      'INSERT INTO t (n.a, n.b) VALUES ((1), ([1, 2]))',
+    );
     this.validateIdentity('SELECT 1 FORMAT TabSeparated');
     this.validateIdentity('SELECT * FROM t FORMAT TabSeparated');
     this.validateIdentity('SELECT FORMAT');
@@ -849,12 +869,13 @@ class TestClickHouse extends Validator {
       'SELECT name FROM data WHERE NOT ((SELECT DISTINCT name FROM data) IS NULL)',
     );
 
-    this.validateIdentity('SELECT 1_2_3_4_5');
+    this.validateIdentity('SELECT 1_2_3_4_5', 'SELECT 12345');
     this.validateIdentity('SELECT 1_b', 'SELECT 1_b');
     this.validateIdentity(
       'SELECT COUNT(1) FROM table SETTINGS additional_table_filters = {\'a\': \'b\', \'c\': \'d\'}',
     );
     this.validateIdentity('SELECT arrayConcat([1, 2], [3, 4])');
+    this.validateIdentity('SELECT ARRAY_DISTINCT([1, 2, 2, 3, 1])', 'SELECT arrayDistinct([1, 2, 2, 3, 1])');
 
     this.validateIdentity('SELECT parseDateTime(\'2021-01-04+23:00:00\', \'%Y-%m-%d+%H:%i:%s\')');
     this.validateIdentity(
@@ -1677,6 +1698,57 @@ LIFETIME(MIN 0 MAX 0)`,
     );
   }
 
+  testAggFunctionsMultipleSuffixes () {
+    // Single-suffix
+    (this.validateIdentity('SELECT uniqExactIf(x, y) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Double suffix: If + Merge
+    (this.validateIdentity('SELECT countIfMerge(state) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT uniqExactIfMerge(state) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Triple suffix
+    (this.validateIdentity('SELECT avgArgMinIfState(x, y) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Double suffix + parameters
+    (this.validateIdentity('SELECT quantileIfState(0.5)(col, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedParameterizedAggExpr);
+    // Collision-prone bases: sumMap, minMap, maxMap should be base function
+    (this.validateIdentity('SELECT sumMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    (this.validateIdentity('SELECT minMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    (this.validateIdentity('SELECT maxMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
+    // Single-suffix on collision-prone bases
+    (this.validateIdentity('SELECT sumMapIf(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT sumMapState(k, v) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    // Multi-suffix chain on collision-prone base
+    (this.validateIdentity('SELECT sumMapIfState(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+  }
+
+  testDetach () {
+    for (const kind of ['TABLE', 'VIEW', 'DICTIONARY', 'DATABASE']) {
+      this.validateIdentity(`DETACH ${kind} t`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS t`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS db.t`);
+      this.validateIdentity(`DETACH ${kind} t ON CLUSTER c`);
+      this.validateIdentity(`DETACH ${kind} t PERMANENTLY`);
+      this.validateIdentity(`DETACH ${kind} t SYNC`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS db.t ON CLUSTER c PERMANENTLY SYNC`);
+    }
+  }
+
+  testSqlSecurity () {
+    const stmts = [
+      "CREATE VIEW v DEFINER='alice' SQL SECURITY DEFINER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY DEFINER DEFINER='alice' AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY DEFINER DEFINER=CURRENT_USER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY INVOKER AS SELECT 1",
+      "CREATE VIEW v SQL SECURITY NONE AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY DEFINER DEFINER='alice' AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY INVOKER AS SELECT 1",
+      "CREATE MATERIALIZED VIEW v TO t SQL SECURITY NONE AS SELECT 1",
+      "ALTER TABLE v MODIFY SQL SECURITY DEFINER DEFINER='alice'",
+      "ALTER TABLE v MODIFY SQL SECURITY DEFINER DEFINER=CURRENT_USER",
+    ];
+    for (const stmt of stmts) {
+      this.validateIdentity(stmt);
+    }
+  }
+
   testDropOnCluster () {
     for (const creatable of [
       'DATABASE',
@@ -2049,6 +2121,29 @@ LIFETIME(MIN 0 MAX 0)`,
     );
     this.validateIdentity('splitByChar(\'\', x)');
   }
+
+  testJsonNested () {
+    this.validateIdentity('SELECT col.^nested, t.col2.^nested, t.col3.^nested.twice FROM t');
+  }
+
+  testJsonType () {
+    const dataTypes = [
+      'JSON',
+      'JSON(col1 String, SKIP col2)',
+      'JSON(col1 String, SKIP REGEXP \'col[0-9]+\')',
+      'JSON(col1 String, max_dynamic_paths = 2)',
+      'JSON(col1.nested String, SKIP col2.nested)',
+    ];
+
+    for (const dataType of dataTypes) {
+      this.validateIdentity(`SELECT CAST(val AS ${dataType})`);
+    }
+
+    this.validateIdentity(
+      'SELECT CAST(val as JSON())',
+      'SELECT CAST(val AS JSON)',
+    );
+  }
 }
 
 const t = new TestClickHouse();
@@ -2066,6 +2161,9 @@ describe('TestClickHouse', () => {
   test('createTableAsAlias', () => t.testCreateTableAsAlias());
   test('ddl', () => t.testDdl());
   test('aggFunctions', () => t.testAggFunctions());
+  test('aggFunctionsMultipleSuffixes', () => t.testAggFunctionsMultipleSuffixes());
+  test('testDetach', () => t.testDetach());
+  test('testSqlSecurity', () => t.testSqlSecurity());
   test('dropOnCluster', () => t.testDropOnCluster());
   test('datetimeFuncs', () => t.testDatetimeFuncs());
   test('convert', () => t.testConvert());
@@ -2079,4 +2177,6 @@ describe('TestClickHouse', () => {
   test('arrayOffset', () => t.testArrayOffset());
   test('toStartOf', () => t.testToStartOf());
   test('stringSplit', () => t.testStringSplit());
+  test('testJsonNested', () => t.testJsonNested());
+  test('testJsonType', () => t.testJsonType());
 });

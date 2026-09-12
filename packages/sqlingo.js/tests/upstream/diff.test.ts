@@ -545,7 +545,12 @@ class TestDiff {
   }
 
   testNoneArgsAreNotTreatedAsLeaves (): void {
-    const exprSrc = parseOne('a.b');
+    const exprSrc = new ColumnExpr({
+      this: toIdentifier('b'),
+      table: toIdentifier('a'),
+      db: undefined,
+      catalog: undefined,
+    });
     const exprTgt = new ColumnExpr({
       this: toIdentifier('b'),
       table: toIdentifier('a'),

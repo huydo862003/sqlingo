@@ -150,6 +150,7 @@ import {
   WithExpr,
   YearExpr,
   toIdentifier,
+  true_,
   var_,
 } from '../expressions';
 import {
@@ -164,6 +165,9 @@ import {
 import {
   Tokenizer, TokenType,
 } from '../tokens';
+import {
+  JsonPathTokenizer,
+} from '../jsonpath/tokenizer';
 import {
   anyToExists,
   ctasWithTmpTablesToCreateTmpView,
@@ -463,6 +467,16 @@ function buildDateAdd (args: Expression[]): TsOrDsAddExpr {
     expression: expression,
     unit: var_('DAY'),
   });
+}
+
+export class HiveJsonPathTokenizer extends JsonPathTokenizer {
+  @cache
+  static get VAR_TOKENS (): Set<TokenType> {
+    return new Set([
+      ...JsonPathTokenizer.VAR_TOKENS,
+      TokenType.DASH,
+    ]);
+  }
 }
 
 class HiveTokenizer extends Tokenizer {
@@ -935,6 +949,7 @@ class HiveGenerator extends Generator {
   static NVL2_SUPPORTED = false;
   static LAST_DAY_SUPPORTS_DATE_PART = false;
   static JSON_PATH_SINGLE_QUOTE_ESCAPE = true;
+  static SAFE_JSON_PATH_KEY_RE = /^[_\-a-zA-Z][\-\w]*$/;
   static SUPPORTS_TO_NUMBER = false;
   static WITH_PROPERTIES_PREFIX = 'TBLPROPERTIES';
   static PARSE_JSON_NAME?: string = undefined;
@@ -1521,6 +1536,26 @@ class HiveGenerator extends Generator {
     ]);
   }
 
+  static IGNORE_NULLS_FUNCS: (typeof Expression)[] = [
+    FirstExpr,
+    LastExpr,
+    FirstValueExpr,
+    LastValueExpr,
+  ];
+
+  ignoreNullsSql (expression: IgnoreNullsExpr): string {
+    const thisExpr = expression.args.this;
+
+    if ((this._constructor as typeof HiveGenerator).IGNORE_NULLS_FUNCS.some((cls) => thisExpr instanceof cls)) {
+      return this.func((thisExpr!._constructor as any).sqlNames()[0], [
+        thisExpr!.args.this,
+        true_(),
+      ]);
+    }
+
+    return super.ignoreNullsSql(expression);
+  }
+
   unnestSql (expression: UnnestExpr): string {
     return renameFunc('EXPLODE').call(this, expression);
   }
@@ -1797,6 +1832,8 @@ export class Hive extends Dialect {
 
     return coercesTo;
   }
+
+  static JsonPathTokenizer = HiveJsonPathTokenizer;
 
   static SAFE_DIVISION = true;
   static ARRAY_AGG_INCLUDES_NULLS = undefined;

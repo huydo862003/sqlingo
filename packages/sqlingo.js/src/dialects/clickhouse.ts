@@ -51,6 +51,7 @@ import {
   QuantileExpr,
   CteExpr,
   NotExpr,
+  VarExpr,
   VarMapExpr,
   IdentifierExpr,
   EnginePropertyExpr,
@@ -61,6 +62,14 @@ import {
   TimestampTruncExpr,
   ArrayContainsExpr,
   TimeToStrExpr,
+  TsOrDsToTimestampExpr,
+  NestedJsonSelectExpr,
+  AlterModifySqlSecurityExpr,
+  AssumeColumnConstraintExpr,
+  CheckColumnConstraintExpr,
+  DefinerPropertyExpr,
+  DetachExpr,
+  DotExpr,
   ExplodeExpr,
   PartitionedByPropertyExpr,
   PivotExpr,
@@ -71,6 +80,7 @@ import {
   ArrayCompactExpr,
   ArrayConcatExpr,
   ArrayDistinctExpr,
+  ArrayExceptExpr,
   ArrayMaxExpr,
   ArrayMinExpr,
   ArraySumExpr,
@@ -146,6 +156,7 @@ import {
   PlaceholderExpr,
   PropertyEqExpr,
   CastToStrTypeExpr,
+  CityHash64Expr,
   ComputedColumnConstraintExpr,
   CurrentDateExpr,
   DateStrToDateExpr,
@@ -528,7 +539,9 @@ class ClickHouseTokenizer extends Tokenizer {
     const keywords: Record<string, TokenType> = {
       ...Tokenizer.KEYWORDS,
       '.:': TokenType.DOTCOLON,
+      '.^': TokenType.DOTCARET,
       'ATTACH': TokenType.COMMAND,
+      'DETACH': TokenType.DETACH,
       'DATE32': TokenType.DATE32,
       'DATETIME64': TokenType.DATETIME64,
       'DICTIONARY': TokenType.DICTIONARY,
@@ -630,11 +643,13 @@ class ClickHouseParser extends Parser {
       ARRAYCOMPACT: (args: unknown[]) => ArrayCompactExpr.fromArgList(args),
       ARRAYCONCAT: (args: unknown[]) => ArrayConcatExpr.fromArgList(args),
       ARRAYDISTINCT: (args: unknown[]) => ArrayDistinctExpr.fromArgList(args),
+      ARRAYEXCEPT: (args: unknown[]) => ArrayExceptExpr.fromArgList(args),
       ARRAYMAX: (args: unknown[]) => ArrayMaxExpr.fromArgList(args),
       ARRAYMIN: (args: unknown[]) => ArrayMinExpr.fromArgList(args),
       ARRAYSLICE: (args: unknown[]) => ArraySliceExpr.fromArgList(args),
       CURRENTDATABASE: (args: unknown[]) => CurrentDatabaseExpr.fromArgList(args),
       CURRENTSCHEMAS: (args: unknown[]) => CurrentSchemasExpr.fromArgList(args),
+      CITYHASH64: (args: unknown[]) => CityHash64Expr.fromArgList(args),
       COUNTIF: buildCountIf,
       COSINEDISTANCE: (args: unknown[]) => CosineDistanceExpr.fromArgList(args),
       VERSION: (args: unknown[]) => CurrentVersionExpr.fromArgList(args),
@@ -864,7 +879,7 @@ class ClickHouseParser extends Parser {
       'Resample',
       'ArgMin',
       'ArgMax',
-    ];
+    ].sort((a, b) => b.length - a.length);
   }
 
   @cache
@@ -885,14 +900,11 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
-  static get AGG_FUNC_MAPPING (): Record<string, [string, string]> {
-    const mapping: Record<string, [string, string]> = {};
-    const suffixes = [
-      ...ClickHouseParser.AGG_FUNCTIONS_SUFFIXES,
-      '',
-    ];
+  static get AGG_FUNC_MAPPING (): Record<string, [string, string | undefined]> {
+    const mapping: Record<string, [string, string | undefined]> = {};
 
-    for (const sfx of suffixes) {
+    // 1-suffix entries first
+    for (const sfx of ClickHouseParser.AGG_FUNCTIONS_SUFFIXES) {
       for (const f of ClickHouseParser.AGG_FUNCTIONS) {
         mapping[`${f}${sfx}`] = [
           f,
@@ -901,7 +913,50 @@ class ClickHouseParser extends Parser {
       }
     }
 
+    // 0-suffix entries override collisions (e.g. sumMap is base, not sum+Map)
+    for (const f of ClickHouseParser.AGG_FUNCTIONS) {
+      mapping[f] = [
+        f,
+        undefined,
+      ];
+    }
+
     return mapping;
+  }
+
+  static resolveClickhouseAgg (name: string): [string, string[]] | undefined {
+    const suffixes: string[] = [];
+
+    const mapping = ClickHouseParser.AGG_FUNC_MAPPING;
+
+    while (!Object.hasOwn(mapping, name)) {
+      let found = false;
+
+      for (const suffix of ClickHouseParser.AGG_FUNCTIONS_SUFFIXES) {
+        if (name.endsWith(suffix) && name.length !== suffix.length) {
+          suffixes.unshift(suffix);
+          name = name.slice(0, -suffix.length);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return undefined;
+    }
+
+    const parts = mapping[name];
+    const [
+      aggFuncName,
+      innerSuffix,
+    ] = parts;
+
+    if (innerSuffix) {
+      suffixes.unshift(innerSuffix);
+    }
+
+    return [
+      aggFuncName,
+      suffixes,
+    ];
   }
 
   @cache
@@ -983,6 +1038,12 @@ class ClickHouseParser extends Parser {
   static get COLUMN_OPERATORS (): Partial<Record<TokenType, undefined | ((this: Parser, this_?: Expression, to?: Expression) => Expression)>> {
     const parsers = {
       ...Parser.COLUMN_OPERATORS,
+      [TokenType.DOTCARET]: function (this: Parser, thisExpr?: Expression, field?: Expression) {
+        return this.expression(NestedJsonSelectExpr, {
+          this: thisExpr,
+          expression: field,
+        });
+      },
     };
 
     delete parsers[TokenType.PLACEHOLDER];
@@ -994,6 +1055,7 @@ class ClickHouseParser extends Parser {
   static get JOIN_KINDS (): Set<TokenType> {
     return new Set([
       ...Parser.JOIN_KINDS,
+      TokenType.ALL,
       TokenType.ANY,
       TokenType.ASOF,
       TokenType.ARRAY,
@@ -1004,8 +1066,10 @@ class ClickHouseParser extends Parser {
   static get TABLE_ALIAS_TOKENS (): Set<TokenType> {
     return new Set(
       [...Parser.TABLE_ALIAS_TOKENS].filter((t) =>
-        t !== TokenType.ANY
+        t !== TokenType.ALL
+        && t !== TokenType.ANY
         && t !== TokenType.ARRAY
+        && t !== TokenType.ASOF
         && t !== TokenType.FINAL
         && t !== TokenType.FORMAT
         && t !== TokenType.SETTINGS),
@@ -1041,6 +1105,15 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
+  static get STATEMENT_PARSERS (): Partial<Record<TokenType, (this: Parser) => Expression | undefined>> {
+    return {
+      ...Parser.STATEMENT_PARSERS,
+      [TokenType.DETACH]: function (this: Parser) {
+        return (this as ClickHouseParser).parseDetach();
+      },
+    };
+  }
+
   static get CONSTRAINT_PARSERS (): Record<string, (this: Parser) => Expression> {
     return {
       ...Parser.CONSTRAINT_PARSERS,
@@ -1050,6 +1123,9 @@ class ClickHouseParser extends Parser {
       CODEC: function (this: Parser) {
         return (this as ClickHouseParser).parseCompress();
       },
+      ASSUME: function (this: Parser): Expression {
+        return (this as ClickHouseParser).parseAssumeConstraint()!;
+      },
     };
   }
 
@@ -1057,6 +1133,9 @@ class ClickHouseParser extends Parser {
   static get ALTER_PARSERS (): Record<string, (this: Parser) => Expression> {
     return {
       ...Parser.ALTER_PARSERS,
+      MODIFY: function (this: Parser) {
+        return (this as ClickHouseParser).parseAlterTableModify()!;
+      },
       REPLACE: function (this: Parser) {
         return (this as ClickHouseParser).parseAlterTableReplace()!;
       },
@@ -1065,10 +1144,14 @@ class ClickHouseParser extends Parser {
 
   @cache
   static get SCHEMA_UNNAMED_CONSTRAINTS (): Set<string> {
-    return new Set([
+    const s = new Set([
       ...Parser.SCHEMA_UNNAMED_CONSTRAINTS,
       'INDEX',
     ]);
+
+    s.delete('CHECK');
+
+    return s;
   }
 
   @cache
@@ -1192,6 +1275,31 @@ class ClickHouseParser extends Parser {
   }
 
   parseBracket (thisNode?: Expression): Expression | undefined {
+    if (thisNode) {
+      let bracketJsonType: DataTypeExpr | undefined;
+
+      while (this.matchPair(TokenType.L_BRACKET, TokenType.R_BRACKET)) {
+        bracketJsonType = new DataTypeExpr({
+          this: DataTypeExprKind.ARRAY,
+          expressions: [
+            bracketJsonType
+              || DataTypeExpr.build(DataTypeExprKind.JSON, {
+                dialect: this.dialect,
+                nullable: false,
+              })!,
+          ],
+          nested: true,
+        });
+      }
+
+      if (bracketJsonType) {
+        return this.expression(JsonCastExpr, {
+          this: thisNode,
+          to: bracketJsonType,
+        });
+      }
+    }
+
     const lBrace = this.match(TokenType.L_BRACE, {
       advance: false,
     });
@@ -1324,27 +1432,15 @@ class ClickHouseParser extends Parser {
     kind: Token | undefined;
   } {
     const isGlobal = this.match(TokenType.GLOBAL) ? this.prev : undefined;
-    const kindPre = this.matchSet(this._constructor.JOIN_KINDS, {
-      advance: false,
-    })
-      ? this.prev
-      : undefined;
 
-    if (kindPre) {
-      const kind = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
-      const side = this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined;
-
-      return {
-        method: isGlobal,
-        side,
-        kind,
-      };
-    }
+    const kindPre = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
+    const side = this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined;
+    const kind = this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined;
 
     return {
       method: isGlobal,
-      side: this.matchSet(this._constructor.JOIN_SIDES) ? this.prev : undefined,
-      kind: this.matchSet(this._constructor.JOIN_KINDS) ? this.prev : undefined,
+      side: side || kind,
+      kind: kindPre || kind,
     };
   }
 
@@ -1400,10 +1496,10 @@ class ClickHouseParser extends Parser {
 
     let func = expr instanceof WindowExpr ? expr.args.this : expr;
 
-    // Aggregate functions can be split in 2 parts: <func_name><suffix>
+    // Aggregate functions can be split in 2+ parts: <func_name><suffix[es]>
     const parts =
       func instanceof AnonymousExpr
-        ? (this._constructor as typeof ClickHouseParser).AGG_FUNC_MAPPING[(func.args.this ?? '').toString()]
+        ? (this._constructor as typeof ClickHouseParser).resolveClickhouseAgg((func.args.this ?? '').toString())
         : undefined;
 
     if (parts) {
@@ -1417,7 +1513,7 @@ class ClickHouseParser extends Parser {
 
       let expClass: typeof Expression;
 
-      if (parts[1]) {
+      if (0 < parts[1].length) {
         expClass = params ? CombinedParameterizedAggExpr : CombinedAggFuncExpr;
       } else {
         expClass = params ? ParameterizedAggExpr : AnonymousAggFuncExpr;
@@ -1480,6 +1576,67 @@ class ClickHouseParser extends Parser {
     return super.parseWrappedIdVars({
       optional: true,
     });
+  }
+
+  parseDefiner (): DefinerPropertyExpr | undefined {
+    this.match(TokenType.EQ);
+    if (this.match(TokenType.CURRENT_USER)) {
+      return new DefinerPropertyExpr({
+        this: new VarExpr({
+          this: this.prev!.text.toUpperCase(),
+        }),
+      });
+    }
+
+    return new DefinerPropertyExpr({
+      this: this.parseString(),
+    });
+  }
+
+  parseDetach (): DetachExpr {
+    const kind = (this.matchSet(this._constructor.DB_CREATABLES) || undefined) && this.prev?.text.toUpperCase();
+    const exists = this.parseExists();
+    const thisExpr = this.parseTableParts();
+
+    return this.expression(DetachExpr, {
+      this: thisExpr,
+      kind,
+      exists,
+      cluster: this.match(TokenType.ON) ? this.parseOnProperty() : undefined,
+      permanent: this.matchTextSeq('PERMANENTLY') || undefined,
+      sync: this.matchTextSeq('SYNC') || undefined,
+    });
+  }
+
+  parseWrappedSelectOrAssignment (): Expression | undefined {
+    return this.parseWrapped(() => this.parseSelect() || this.parseAssignment(), {
+      optional: true,
+    });
+  }
+
+  parseCheckConstraint (): CheckColumnConstraintExpr | undefined {
+    return this.expression(CheckColumnConstraintExpr, {
+      this: this.parseWrappedSelectOrAssignment(),
+    });
+  }
+
+  parseAssumeConstraint (): AssumeColumnConstraintExpr | undefined {
+    return this.expression(AssumeColumnConstraintExpr, {
+      this: this.parseWrappedSelectOrAssignment(),
+    });
+  }
+
+  parseColumnDef (thisExpr: Expression | undefined, options: {
+    computedColumn?: boolean;
+  } = {}): Expression | undefined {
+    if (this.match(TokenType.DOT)) {
+      return new DotExpr({
+        this: thisExpr,
+        expression: this.parseIdVar(),
+      });
+    }
+
+    return super.parseColumnDef(thisExpr, options);
   }
 
   parsePrimaryKey (options: {
@@ -1557,6 +1714,18 @@ class ClickHouseParser extends Parser {
     return this.expression(PartitionExpr, {
       expressions,
     });
+  }
+
+  parseAlterTableModify (): Expression | undefined {
+    const properties = this.parseProperties();
+
+    if (properties) {
+      return this.expression(AlterModifySqlSecurityExpr, {
+        expressions: properties.args.expressions,
+      });
+    }
+
+    return undefined;
   }
 
   parseAlterTableReplace (): Expression | undefined {
@@ -2014,6 +2183,10 @@ export class ClickHouseGenerator extends Generator {
         renameFunc('uniq'),
       ],
       [
+        ArrayDistinctExpr,
+        renameFunc('arrayDistinct'),
+      ],
+      [
         ArrayConcatExpr,
         renameFunc('arrayConcat'),
       ],
@@ -2057,6 +2230,10 @@ export class ClickHouseGenerator extends Generator {
       [
         ArrayExpr,
         inlineArraySql,
+      ],
+      [
+        CityHash64Expr,
+        renameFunc('cityHash64'),
       ],
       [
         CastToStrTypeExpr,
@@ -2140,7 +2317,15 @@ export class ClickHouseGenerator extends Generator {
       [
         JsonCastExpr,
         function (this: Generator, e: JsonCastExpr) {
-          return `${this.sql(e, 'this')}.:${this.sql(e, 'to')}`;
+          const thisSql = this.sql(e, 'this');
+          const to = e.args.to;
+          let toSql = this.sql(to);
+
+          if (to && to instanceof DataTypeExpr && to.args.expressions?.length) {
+            toSql = this.sql(toIdentifier(toSql));
+          }
+
+          return `${thisSql}.:${toSql}`;
         },
       ],
       [
@@ -2239,8 +2424,10 @@ export class ClickHouseGenerator extends Generator {
       [
         TimeToStrExpr,
         function (this: Generator, e: TimeToStrExpr) {
+          const thisArg = e.args.this instanceof TsOrDsToTimestampExpr ? e.args.this.args.this : e.args.this;
+
           return this.func('formatDateTime', [
-            e.args.this,
+            thisArg,
             this.formatTime(e),
             e.args.zone,
           ]);
@@ -2410,6 +2597,10 @@ export class ClickHouseGenerator extends Generator {
   static get PROPERTIES_LOCATION () {
     return new Map<typeof Expression, PropertiesLocation>([
       ...Generator.PROPERTIES_LOCATION,
+      [
+        DefinerPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
       [
         OnClusterExpr,
         PropertiesLocation.POST_NAME,
@@ -2733,6 +2924,10 @@ export class ClickHouseGenerator extends Generator {
 
   projectionDefSql (expression: ProjectionDefExpr): string {
     return `PROJECTION ${this.sql(expression.args.this)} ${this.wrap(expression.args.expression ?? '')}`;
+  }
+
+  nestedJsonSelectSql (expression: NestedJsonSelectExpr): string {
+    return `${this.sql(expression, 'this')}.^${this.sql(expression, 'expression')}`;
   }
 
   isSql (expression: IsExpr): string {

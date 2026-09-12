@@ -39,6 +39,7 @@ import {
   GeneratedAsIdentityColumnConstraintExpr,
   RegexpLikeExpr,
   LiteralExpr,
+  SAFE_IDENTIFIER_RE,
 } from '../expressions';
 import {
   seqGet,
@@ -47,14 +48,14 @@ import {
   TypeAnnotator,
 } from '../optimizer';
 import {
-  JsonPathTokenizer,
-} from '../jsonpath/tokenizer';
-import {
   anyToExists, eliminateDistinctOn, preprocess, unnestToExplode,
 } from '../transforms';
 import {
   cache, narrowInstanceOf,
 } from '../port_internals';
+import {
+  HiveJsonPathTokenizer,
+} from './hive';
 import {
   Spark,
 } from './spark';
@@ -76,7 +77,7 @@ function jsonExtractSql (this: Generator, expression: JsonExtractExpr | JsonExtr
   return `${thisSql}:${exprSql}`;
 }
 
-class DatabricksJsonPathTokenizer extends JsonPathTokenizer {
+class DatabricksJsonPathTokenizer extends HiveJsonPathTokenizer {
   @cache
   static get IDENTIFIERS () {
     return [
@@ -211,6 +212,7 @@ class DatabricksGenerator extends Spark.Generator {
   static COPY_PARAMS_ARE_WRAPPED = false;
   static COPY_PARAMS_EQ_REQUIRED = true;
   static JSON_PATH_SINGLE_QUOTE_ESCAPE = false;
+  static SAFE_JSON_PATH_KEY_RE = SAFE_IDENTIFIER_RE;
   static QUOTE_JSON_PATH = false;
   static PARSE_JSON_NAME = 'PARSE_JSON' as const;
   static DECLARE_DEFAULT_ASSIGNMENT = '=';
@@ -355,12 +357,6 @@ class DatabricksGenerator extends Spark.Generator {
     return super.columnDefSql(expression, {
       sep,
     });
-  }
-
-  generatedAsIdentityColumnConstraintSql (expression: GeneratedAsIdentityColumnConstraintExpr): string {
-    expression.setArgKey('this', true); // trigger ALWAYS in super class
-
-    return super.generatedAsIdentityColumnConstraintSql(expression);
   }
 
   jsonPathSql (expression: JsonPathExpr): string {

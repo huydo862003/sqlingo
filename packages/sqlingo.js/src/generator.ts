@@ -137,6 +137,7 @@ import type {
   JsonSchemaExpr,
   JsonTableExpr,
   JsonValueExpr,
+  SkipJsonColumnExpr,
   JoinHintExpr,
   KwargExpr,
   LteExpr,
@@ -257,7 +258,6 @@ import type {
   WhenExpr,
   WhensExpr,
   WhileBlockExpr,
-  WindowSpecExpr,
   WithFillExpr,
   WithinGroupExpr,
   XmlElementExpr,
@@ -278,7 +278,6 @@ import type {
   OrExpr,
   AndExpr,
   AddExpr,
-  SubExpr,
   MulExpr,
   ExpressionValue,
   ExpressionOrString,
@@ -287,6 +286,8 @@ import type {
   PreWhereExpr,
   StoredProcedureExpr,
   ExecuteExpr,
+
+  AlterModifySqlSecurityExpr,
 } from './expressions';
 import {
   DistinctExpr,
@@ -298,7 +299,9 @@ import {
   DateAddExpr,
   DateDiffExpr,
   RandExpr,
+  SubExpr,
   WindowExpr,
+  WindowSpecExpr,
   WithTableHintExpr,
   Expression, LiteralExpr, TableExpr, IntoExpr, literal,
   FuncExpr, PropertyExpr,
@@ -352,6 +355,9 @@ import {
   AnalyzeWithExpr,
   ArrayContainsAllExpr,
   ArrayOverlapsExpr,
+  ApiPropertyExpr,
+  ApplicationPropertyExpr,
+  AssumeColumnConstraintExpr,
   AutoRefreshPropertyExpr,
   BackupPropertyExpr,
   CaseSpecificColumnConstraintExpr,
@@ -363,6 +369,8 @@ import {
   CommentColumnConstraintExpr,
   ConnectByRootExpr,
   ConvertToCharsetExpr,
+  CatalogPropertyExpr,
+  ComputePropertyExpr,
   CopyGrantsPropertyExpr,
   CredentialsPropertyExpr,
   CurrentCatalogExpr,
@@ -370,12 +378,15 @@ import {
   CurrentTimeExpr,
   CurrentTimestampExpr,
   DateFormatColumnConstraintExpr,
+  DatabasePropertyExpr,
   DefaultColumnConstraintExpr,
   DynamicPropertyExpr,
   EmptyPropertyExpr,
   EndStatementExpr,
   EncodeColumnConstraintExpr,
   EnviromentPropertyExpr,
+  HandlerPropertyExpr,
+  ParameterStylePropertyExpr,
   EphemeralColumnConstraintExpr,
   ExcludeColumnConstraintExpr,
   ExceptExpr,
@@ -388,6 +399,7 @@ import {
   GetExpr,
   GlobalPropertyExpr,
   HeapPropertyExpr,
+  HybridPropertyExpr,
   IcebergPropertyExpr,
   InheritsPropertyExpr,
   InlineLengthColumnConstraintExpr,
@@ -400,8 +412,10 @@ import {
   LanguagePropertyExpr,
   LocationPropertyExpr,
   LogPropertyExpr,
+  MaskingPropertyExpr,
   MaterializedPropertyExpr,
   NetFuncExpr,
+  NetworkPropertyExpr,
   NonClusteredColumnConstraintExpr,
   NoPrimaryIndexPropertyExpr,
   NotForReplicationColumnConstraintExpr,
@@ -418,10 +432,11 @@ import {
   ProjectionPolicyColumnConstraintExpr,
   RemoteWithConnectionModelPropertyExpr,
   ReturnsPropertyExpr,
+  RowAccessPropertyExpr,
   SafeFuncExpr,
   SamplePropertyExpr,
   SecurePropertyExpr,
-  SecurityPropertyExpr,
+  SecurityIntegrationPropertyExpr,
   SessionUserExpr,
   SetConfigPropertyExpr,
   SetPropertyExpr,
@@ -660,9 +675,15 @@ export class Generator {
     return NullOrderingSupported.SUPPORTED;
   }
 
+  // Window functions that support NULLS FIRST/LAST
+  static WINDOW_FUNCS_WITH_NULL_ORDERING: (typeof Expression)[] = [];
+
   // Whether ignore nulls is inside the agg or outside
   // FIRST(x IGNORE NULLS) OVER vs FIRST (x) IGNORE NULLS OVER
   static IGNORE_NULLS_IN_FUNC = false;
+  // Whether IGNORE NULLS is placed before ORDER BY in the agg
+  // FIRST(x IGNORE NULLS ORDER BY y) vs FIRST(x ORDER BY y IGNORE NULLS)
+  static IGNORE_NULLS_BEFORE_ORDER = true;
   static RESPECT_IGNORE_NULLS_UNSUPPORTED_EXPRESSIONS: (typeof Expression)[] = [];
 
   // Whether locking reads (i.e. SELECT ... FOR UPDATE/SHARE) are supported
@@ -1189,6 +1210,12 @@ export class Generator {
           },
         ],
         [
+          AssumeColumnConstraintExpr,
+          function (this: Generator, e) {
+            return `ASSUME (${this.sql(e, 'this')})`;
+          },
+        ],
+        [
           AutoRefreshPropertyExpr,
           function (this: Generator, e) {
             return `AUTO REFRESH ${this.sql(e, 'this')}`;
@@ -1293,6 +1320,26 @@ export class Generator {
           },
         ],
         [
+          ApiPropertyExpr,
+          () => 'API',
+        ],
+        [
+          ApplicationPropertyExpr,
+          () => 'APPLICATION',
+        ],
+        [
+          CatalogPropertyExpr,
+          () => 'CATALOG',
+        ],
+        [
+          ComputePropertyExpr,
+          () => 'COMPUTE',
+        ],
+        [
+          DatabasePropertyExpr,
+          () => 'DATABASE',
+        ],
+        [
           DynamicPropertyExpr,
           () => 'DYNAMIC',
         ],
@@ -1316,6 +1363,18 @@ export class Generator {
             return `ENVIRONMENT (${this.expressions(e, {
               flat: true,
             })})`;
+          },
+        ],
+        [
+          HandlerPropertyExpr,
+          function (this: Generator, e) {
+            return `HANDLER ${this.sql(e, 'this')}`;
+          },
+        ],
+        [
+          ParameterStylePropertyExpr,
+          function (this: Generator, e) {
+            return `PARAMETER STYLE ${this.sql(e, 'this')}`;
           },
         ],
         [
@@ -1365,6 +1424,10 @@ export class Generator {
         [
           HeapPropertyExpr,
           () => 'HEAP',
+        ],
+        [
+          HybridPropertyExpr,
+          () => 'HYBRID',
         ],
         [
           IcebergPropertyExpr,
@@ -1496,8 +1559,16 @@ export class Generator {
           (e: Expression) => `${e.getArgKey('no') ? 'NO ' : ''}LOG`,
         ],
         [
+          MaskingPropertyExpr,
+          () => 'MASKING',
+        ],
+        [
           MaterializedPropertyExpr,
           () => 'MATERIALIZED',
+        ],
+        [
+          NetworkPropertyExpr,
+          () => 'NETWORK',
         ],
         [
           NetFuncExpr,
@@ -1639,14 +1710,16 @@ export class Generator {
           },
         ],
         [
+          RowAccessPropertyExpr,
+          () => 'ROW ACCESS',
+        ],
+        [
           SecurePropertyExpr,
           () => 'SECURE',
         ],
         [
-          SecurityPropertyExpr,
-          function (this: Generator, e) {
-            return `SECURITY ${this.sql(e, 'this')}`;
-          },
+          SecurityIntegrationPropertyExpr,
+          () => 'SECURITY',
         ],
         [
           SetConfigPropertyExpr,
@@ -1886,6 +1959,14 @@ export class Generator {
         PropertiesLocation.POST_CREATE,
       ],
       [
+        ApiPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
+        ApplicationPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         AutoIncrementPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -1902,6 +1983,10 @@ export class Generator {
         PropertiesLocation.POST_NAME,
       ],
       [
+        CatalogPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         CharacterSetPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -1912,6 +1997,10 @@ export class Generator {
       [
         CollatePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        ComputePropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         CopyGrantsPropertyExpr,
@@ -1936,6 +2025,10 @@ export class Generator {
       [
         DataBlocksizePropertyExpr,
         PropertiesLocation.POST_NAME,
+      ],
+      [
+        DatabasePropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         DataDeletionPropertyExpr,
@@ -1982,6 +2075,14 @@ export class Generator {
         PropertiesLocation.POST_SCHEMA,
       ],
       [
+        HandlerPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        ParameterStylePropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
         ExecuteAsPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -2008,6 +2109,10 @@ export class Generator {
       [
         HeapPropertyExpr,
         PropertiesLocation.POST_WITH,
+      ],
+      [
+        HybridPropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         InheritsPropertyExpr,
@@ -2058,12 +2163,20 @@ export class Generator {
         PropertiesLocation.POST_NAME,
       ],
       [
+        MaskingPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         MaterializedPropertyExpr,
         PropertiesLocation.POST_CREATE,
       ],
       [
         MergeBlockRatioPropertyExpr,
         PropertiesLocation.POST_NAME,
+      ],
+      [
+        NetworkPropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         NoPrimaryIndexPropertyExpr,
@@ -2130,6 +2243,10 @@ export class Generator {
         PropertiesLocation.POST_SCHEMA,
       ],
       [
+        RowAccessPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         SamplePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -2142,8 +2259,8 @@ export class Generator {
         PropertiesLocation.POST_CREATE,
       ],
       [
-        SecurityPropertyExpr,
-        PropertiesLocation.POST_SCHEMA,
+        SecurityIntegrationPropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         SerdePropertiesExpr,
@@ -2187,7 +2304,7 @@ export class Generator {
       ],
       [
         SqlSecurityPropertyExpr,
-        PropertiesLocation.POST_CREATE,
+        PropertiesLocation.POST_SCHEMA,
       ],
       [
         StabilityPropertyExpr,
@@ -3577,8 +3694,9 @@ export class Generator {
     const cascade = expression.args.cascade ? ' CASCADE' : '';
     const constraints = expression.args.constraints ? ' CONSTRAINTS' : '';
     const purge = expression.args.purge ? ' PURGE' : '';
+    const sync = expression.args.sync ? ' SYNC' : '';
 
-    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}`;
+    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}${sync}`;
   }
 
   setOperation (expression: SetOperationExpr): string {
@@ -5354,40 +5472,58 @@ export class Generator {
     if (nullsSortChange && this._constructor.NULL_ORDERING_SUPPORTED !== NullOrderingSupported.SUPPORTED) {
       const window = expression.findAncestor<WindowExpr | SelectExpr>(WindowExpr, SelectExpr);
 
-      if (window instanceof WindowExpr && window.args.spec) {
-        this.unsupported(
-          `'${nullsSortChange.trim()}' translation not supported in window functions`,
-        );
-        nullsSortChange = '';
-      } else if (
-        this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.PARTIAL
-        && ((asc && nullsSortChange === ' NULLS LAST') || (desc && nullsSortChange === ' NULLS FIRST'))
-      ) {
-        // BigQuery does not allow these ordering/nulls combinations when used under
-        // an aggregation func or under a window containing one
-        let ancestor: Expression | undefined = expression.findAncestor<AggFuncExpr | WindowExpr | SelectExpr>(AggFuncExpr, WindowExpr, SelectExpr);
+      let windowThis: Expression | undefined;
+      let spec: Expression | undefined;
 
-        if (ancestor instanceof WindowExpr) {
-          ancestor = ancestor.args.this;
-        }
+      if (window instanceof WindowExpr) {
+        windowThis = window.args.this;
+        spec = window.args.spec;
+      }
 
-        if (ancestor instanceof AggFuncExpr) {
+      // Some window functions (e.g. LAST_VALUE, RANK) support NULLS FIRST/LAST
+      // without a spec or with a ROWS spec, but not with RANGE
+      const isWindowFuncWithNullOrdering = windowThis instanceof Expression
+        && this._constructor.WINDOW_FUNCS_WITH_NULL_ORDERING.some(
+          (cls: typeof Expression) => windowThis instanceof cls,
+        )
+        && (!spec || (spec instanceof WindowSpecExpr && String(spec.args.kind).toUpperCase() === 'ROWS'));
+
+      if (!isWindowFuncWithNullOrdering) {
+        if (windowThis && spec) {
           this.unsupported(
-            `'${nullsSortChange.trim()}' translation not supported for aggregate functions with ${sortOrder} sort order`,
+            `'${nullsSortChange.trim()}' translation not supported in window function ${windowThis._constructor.name}`,
           );
           nullsSortChange = '';
-        }
-      } else if (this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.UNSUPPORTED) {
-        if (expression.args.this?.isInteger) {
-          this.unsupported(
-            `'${nullsSortChange.trim()}' translation not supported with positional ordering`,
-          );
-        } else if (!(expression.args.this instanceof RandExpr)) {
-          const nullSortOrder = nullsSortChange === ' NULLS FIRST' ? ' DESC' : '';
+        } else if (
+          this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.PARTIAL
+          && ((asc && nullsSortChange === ' NULLS LAST') || (desc && nullsSortChange === ' NULLS FIRST'))
+        ) {
+          // BigQuery does not allow these ordering/nulls combinations when used under
+          // an aggregation func or under a window containing one
+          let ancestor: Expression | undefined = expression.findAncestor<AggFuncExpr | WindowExpr | SelectExpr>(AggFuncExpr, WindowExpr, SelectExpr);
 
-          thisStr = `CASE WHEN ${thisStr} IS NULL THEN 1 ELSE 0 END${nullSortOrder}, ${thisStr}`;
+          if (ancestor instanceof WindowExpr) {
+            ancestor = ancestor.args.this;
+          }
+
+          if (ancestor instanceof AggFuncExpr) {
+            this.unsupported(
+              `'${nullsSortChange.trim()}' translation not supported for aggregate function ${ancestor._constructor.name} with ${sortOrder} sort order`,
+            );
+            nullsSortChange = '';
+          }
+        } else if (this._constructor.NULL_ORDERING_SUPPORTED === NullOrderingSupported.UNSUPPORTED) {
+          if (expression.args.this?.isInteger) {
+            this.unsupported(
+              `'${nullsSortChange.trim()}' translation not supported with positional ordering`,
+            );
+          } else if (!(expression.args.this instanceof RandExpr)) {
+            const nullSortOrder = nullsSortChange === ' NULLS FIRST' ? ' DESC' : '';
+
+            thisStr = `CASE WHEN ${thisStr} IS NULL THEN 1 ELSE 0 END${nullSortOrder}, ${thisStr}`;
+          }
+          nullsSortChange = '';
         }
-        nullsSortChange = '';
       }
     }
 
@@ -8447,37 +8583,39 @@ export class Generator {
     }
 
     if (this._constructor.IGNORE_NULLS_IN_FUNC && !expression.meta?.inline) {
-      // Sort modifiers: HavingMax -> Order -> Limit
-      const mods = [
-        ...expression.findAll<HavingMaxExpr | OrderExpr | LimitExpr>([
-          HavingMaxExpr,
-          OrderExpr,
-          LimitExpr,
-        ]),
-      ].sort((a, b) => {
-        const getPriority = (x: Expression) => {
-          if (x instanceof HavingMaxExpr) return 0;
-          if (x instanceof OrderExpr) return 1;
+      if (this._constructor.IGNORE_NULLS_BEFORE_ORDER) {
+        // Sort modifiers: HavingMax -> Order -> Limit
+        const mods = [
+          ...expression.findAll<HavingMaxExpr | OrderExpr | LimitExpr>([
+            HavingMaxExpr,
+            OrderExpr,
+            LimitExpr,
+          ]),
+        ].sort((a, b) => {
+          const getPriority = (x: Expression) => {
+            if (x instanceof HavingMaxExpr) return 0;
+            if (x instanceof OrderExpr) return 1;
 
-          return 2;
-        };
+            return 2;
+          };
 
-        return getPriority(a) - getPriority(b);
-      });
-
-      if (0 < mods.length) {
-        const mod = mods[0];
-        const newThis = new expression._constructor({
-          this: mod.args.this?.copy(),
+          return getPriority(a) - getPriority(b);
         });
 
-        newThis.meta = {
-          ...newThis.meta,
-          inline: true,
-        };
-        mod.args.this?.replace(newThis);
+        if (0 < mods.length) {
+          const mod = mods[0];
+          const newThis = new expression._constructor({
+            this: mod.args.this?.copy(),
+          });
 
-        return this.sql(expression.args.this);
+          newThis.meta = {
+            ...newThis.meta,
+            inline: true,
+          };
+          mod.args.this?.replace(newThis);
+
+          return this.sql(expression.args.this);
+        }
       }
 
       const aggFunc = expression.find(AggFuncExpr);
@@ -8813,6 +8951,12 @@ export class Generator {
       expression.args.this,
       `${path}${returning}${onCondition}`,
     ]);
+  }
+
+  skipJsonColumnSql (expression: SkipJsonColumnExpr): string {
+    const regexp = expression.args.regexp ? ' REGEXP' : '';
+
+    return `SKIP${regexp} ${this.sql(expression.args.expression)}`;
   }
 
   conditionalInsertSql (expression: ConditionalInsertExpr): string {
@@ -9185,10 +9329,23 @@ export class Generator {
   }
 
   detachSql (expression: DetachExpr): string {
-    const thisStr = this.sql(expression, 'this');
-    const existsSql = expression.args.exists ? ' DATABASE IF EXISTS' : '';
+    let kind = this.sql(expression, 'kind');
 
-    return `DETACH${existsSql} ${thisStr}`;
+    kind = kind ? ` ${kind}` : '';
+    let exists = expression.args.exists ? ' IF EXISTS' : '';
+
+    if (exists) {
+      kind = kind || ' DATABASE';
+    }
+    const thisStr = this.sql(expression, 'this');
+    const thisPart = thisStr ? ` ${thisStr}` : '';
+    let cluster = this.sql(expression, 'cluster');
+
+    cluster = cluster ? ` ${cluster}` : '';
+    const permanent = expression.args.permanent ? ' PERMANENTLY' : '';
+    const sync = expression.args.sync ? ' SYNC' : '';
+
+    return `DETACH${kind}${exists}${thisPart}${cluster}${permanent}${sync}`;
   }
 
   attachOptionSql (expression: AttachOptionExpr): string {
@@ -9413,7 +9570,9 @@ export class Generator {
   }
 
   declareSql (expression: DeclareExpr): string {
-    return `DECLARE ${this.expressions(expression, {
+    const replace = expression.args.replace ? 'OR REPLACE ' : '';
+
+    return `DECLARE ${replace}${this.expressions(expression, {
       flat: true,
     })}`;
   }
@@ -9874,6 +10033,28 @@ export class Generator {
     return this.ceilFloor(expression);
   }
 
+  generateSeriesSql (expression: GenerateSeriesExpr): string {
+    if (expression.args.isEndExclusive) {
+      const start = expression.args.start;
+      const end = expression.args.end;
+      const step = expression.args.step;
+      const adjustedEnd = end instanceof Expression
+        ? new SubExpr({
+          this: end,
+          expression: LiteralExpr.number(1),
+        })
+        : end;
+
+      return this.func((expression._constructor as typeof FuncExpr).sqlName(), [
+        start,
+        adjustedEnd,
+        step,
+      ]);
+    }
+
+    return this.functionFallbackSql(expression);
+  }
+
   offsetLimitModifiers (expression: Expression, options: {
     fetch: boolean;
   }, limit: Expression | undefined): string[] {
@@ -9915,6 +10096,14 @@ export class Generator {
     this.unsupported('Unsupported Execute syntax');
 
     return '';
+  }
+
+  alterModifySqlSecuritySql (expression: AlterModifySqlSecurityExpr): string {
+    const props = this.expressions(expression, {
+      sep: ' ',
+    });
+
+    return `MODIFY ${props}`;
   }
 }
 
