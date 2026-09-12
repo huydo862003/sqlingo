@@ -4,14 +4,12 @@ import type {
   CommandExpr,
   CurrentDateExpr,
   DateSubExpr,
-  DescribeExpr,
   ExpressionOrString,
   ExpressionValue,
   FormatExpr,
   FuncExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   LogExpr,
-  PropertiesExpr,
   SearchExprArgs,
   TimestampSubExpr,
   TimeToStrExpr,
@@ -94,7 +92,20 @@ import {
   SelectExpr,
   alias,
   CreateExpr,
+  ApiPropertyExpr,
+  ApplicationPropertyExpr,
+  CatalogPropertyExpr,
+  ComputePropertyExpr,
+  DatabasePropertyExpr,
+  DescribeExpr,
+  DynamicPropertyExpr,
+  ExternalPropertyExpr,
+  HybridPropertyExpr,
   IcebergPropertyExpr,
+  MaskingPropertyExpr,
+  NetworkPropertyExpr,
+  RowAccessPropertyExpr,
+  SecurityIntegrationPropertyExpr,
   SchemaExpr,
   ColumnDefExpr,
   IntervalExpr,
@@ -237,6 +248,8 @@ import {
   BooleanExpr,
   cast,
   ConvertTimezoneExpr,
+  DescribeExpr,
+  PropertiesExpr,
   WindowExpr,
   WindowSpecExpr,
   RespectNullsExpr,
@@ -1219,13 +1232,19 @@ class SnowflakeTokenizer extends Tokenizer {
       'FILE://': TokenType.URI_START,
       'FILE FORMAT': TokenType.FILE_FORMAT,
       'GET': TokenType.GET,
+      'INTEGRATION': TokenType.INTEGRATION,
       'MATCH_CONDITION': TokenType.MATCH_CONDITION,
       'MATCH_RECOGNIZE': TokenType.MATCH_RECOGNIZE,
       'MINUS': TokenType.EXCEPT,
       'NCHAR VARYING': TokenType.VARCHAR,
+      'PACKAGE': TokenType.PACKAGE,
+      'POLICY': TokenType.POLICY,
+      'POOL': TokenType.POOL,
       'PUT': TokenType.PUT,
       'REMOVE': TokenType.COMMAND,
       'RM': TokenType.COMMAND,
+      'ROLE': TokenType.ROLE,
+      'RULE': TokenType.RULE,
       'SAMPLE': TokenType.TABLE_SAMPLE,
       'SEMANTIC VIEW': TokenType.SEMANTIC_VIEW,
       'SQL_DOUBLE': TokenType.DOUBLE,
@@ -1236,6 +1255,7 @@ class SnowflakeTokenizer extends Tokenizer {
       'TAG': TokenType.TAG,
       'TIMESTAMP_TZ': TokenType.TIMESTAMPTZ,
       'TOP': TokenType.TOP,
+      'VOLUME': TokenType.VOLUME,
       'WAREHOUSE': TokenType.WAREHOUSE,
       'FLOAT': TokenType.DOUBLE,
     };
@@ -1275,8 +1295,15 @@ class SnowflakeParser extends Parser {
       TokenType.SESSION_USER,
       TokenType.CURRENT_CATALOG,
       TokenType.EXCEPT,
+      TokenType.INTEGRATION,
       TokenType.MATCH_CONDITION,
+      TokenType.PACKAGE,
+      TokenType.POLICY,
+      TokenType.POOL,
+      TokenType.ROLE,
+      TokenType.RULE,
       TokenType.STRAIGHT_JOIN,
+      TokenType.VOLUME,
     ]);
   }
 
@@ -1305,6 +1332,15 @@ class SnowflakeParser extends Parser {
     return (() => {
       const s = new Set([
         ...Parser.TABLE_ALIAS_TOKENS,
+        TokenType.ANTI,
+        TokenType.INTEGRATION,
+        TokenType.PACKAGE,
+        TokenType.POLICY,
+        TokenType.POOL,
+        TokenType.ROLE,
+        TokenType.RULE,
+        TokenType.SEMI,
+        TokenType.VOLUME,
         TokenType.WINDOW,
         TokenType.STRAIGHT_JOIN,
       ]);
@@ -1948,6 +1984,20 @@ class SnowflakeParser extends Parser {
   }
 
   @cache
+  static get CREATABLES (): Set<TokenType> {
+    return new Set([
+      ...Parser.CREATABLES,
+      TokenType.INTEGRATION,
+      TokenType.PACKAGE,
+      TokenType.POLICY,
+      TokenType.POOL,
+      TokenType.ROLE,
+      TokenType.RULE,
+      TokenType.VOLUME,
+    ]);
+  }
+
+  @cache
   static get NON_TABLE_CREATABLES (): Set<string> {
     return new Set([
       'STORAGE INTEGRATION',
@@ -1993,6 +2043,63 @@ class SnowflakeParser extends Parser {
     return this.expression(DirectoryStageExpr, {
       this: table,
     });
+  }
+
+  static DESCRIBE_QUALIFIER_PARSERS: Record<string, (this: SnowflakeParser) => Expression | undefined> = {
+    API: function () { return this.expression(ApiPropertyExpr, {}); },
+    APPLICATION: function () { return this.expression(ApplicationPropertyExpr, {}); },
+    CATALOG: function () { return this.expression(CatalogPropertyExpr, {}); },
+    COMPUTE: function () { return this.expression(ComputePropertyExpr, {}); },
+    DATABASE: function () {
+      return this.curr && this.curr.text.toUpperCase() === 'ROLE'
+        ? this.expression(DatabasePropertyExpr, {})
+        : undefined;
+    },
+    DYNAMIC: function () { return this.expression(DynamicPropertyExpr, {}); },
+    EXTERNAL: function () { return this.expression(ExternalPropertyExpr, {}); },
+    HYBRID: function () { return this.expression(HybridPropertyExpr, {}); },
+    ICEBERG: function () { return this.expression(IcebergPropertyExpr, {}); },
+    MASKING: function () { return this.expression(MaskingPropertyExpr, {}); },
+    MATERIALIZED: function () { return this.expression(MaterializedPropertyExpr, {}); },
+    NETWORK: function () { return this.expression(NetworkPropertyExpr, {}); },
+    ROW: function () {
+      return this.matchTextSeq('ACCESS')
+        ? this.expression(RowAccessPropertyExpr, {})
+        : undefined;
+    },
+    SECURITY: function () {
+      return this.curr && this.curr.text.toUpperCase() === 'INTEGRATION'
+        ? this.expression(SecurityIntegrationPropertyExpr, {})
+        : undefined;
+    },
+  };
+
+  parseDescribe (): DescribeExpr {
+    const index = this.index;
+
+    if (this.matchTexts(Object.keys((this.constructor as typeof SnowflakeParser).DESCRIBE_QUALIFIER_PARSERS))) {
+      const qualifier = (this.constructor as typeof SnowflakeParser).DESCRIBE_QUALIFIER_PARSERS[this.prev!.text.toUpperCase()]?.call(this);
+
+      if (qualifier) {
+        const kind = (this.matchSet(this._constructor.CREATABLES) || undefined) && this.prev?.text.toUpperCase();
+
+        if (kind) {
+          const thisExpr = this.parseTable({ schema: true });
+          const properties = this.expression(PropertiesExpr, { expressions: [qualifier] });
+          const postProps = this.parseProperties();
+          const expressions = postProps?.args.expressions;
+          return this.expression(DescribeExpr, {
+            this: thisExpr,
+            kind,
+            properties,
+            expressions,
+          });
+        }
+      }
+    }
+
+    this.retreat(index);
+    return super.parseDescribe();
   }
 
   parseUse (): UseExpr {
@@ -3673,7 +3780,16 @@ class SnowflakeGenerator extends Generator {
 
   describeSql (expression: DescribeExpr): string {
     const kindValue = expression.args.kind || 'TABLE';
-    const kind = kindValue ? ` ${kindValue}` : '';
+
+    const properties = expression.args.properties;
+    let kind: string;
+    if (properties) {
+      const qualifier = this.expressions(properties, { sep: ' ' });
+      kind = ` ${qualifier} ${kindValue}`;
+    } else {
+      kind = ` ${kindValue}`;
+    }
+
     const thisNode = ` ${this.sql(expression, 'this')}`;
 
     let expressions = this.expressions(expression, {

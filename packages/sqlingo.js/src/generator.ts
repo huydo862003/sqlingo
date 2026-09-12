@@ -354,6 +354,8 @@ import {
   AnalyzeWithExpr,
   ArrayContainsAllExpr,
   ArrayOverlapsExpr,
+  ApiPropertyExpr,
+  ApplicationPropertyExpr,
   AssumeColumnConstraintExpr,
   AutoRefreshPropertyExpr,
   BackupPropertyExpr,
@@ -366,6 +368,8 @@ import {
   CommentColumnConstraintExpr,
   ConnectByRootExpr,
   ConvertToCharsetExpr,
+  CatalogPropertyExpr,
+  ComputePropertyExpr,
   CopyGrantsPropertyExpr,
   CredentialsPropertyExpr,
   CurrentCatalogExpr,
@@ -373,6 +377,7 @@ import {
   CurrentTimeExpr,
   CurrentTimestampExpr,
   DateFormatColumnConstraintExpr,
+  DatabasePropertyExpr,
   DefaultColumnConstraintExpr,
   DynamicPropertyExpr,
   EmptyPropertyExpr,
@@ -393,6 +398,7 @@ import {
   GetExpr,
   GlobalPropertyExpr,
   HeapPropertyExpr,
+  HybridPropertyExpr,
   IcebergPropertyExpr,
   InheritsPropertyExpr,
   InlineLengthColumnConstraintExpr,
@@ -405,8 +411,10 @@ import {
   LanguagePropertyExpr,
   LocationPropertyExpr,
   LogPropertyExpr,
+  MaskingPropertyExpr,
   MaterializedPropertyExpr,
   NetFuncExpr,
+  NetworkPropertyExpr,
   NonClusteredColumnConstraintExpr,
   NoPrimaryIndexPropertyExpr,
   NotForReplicationColumnConstraintExpr,
@@ -423,9 +431,11 @@ import {
   ProjectionPolicyColumnConstraintExpr,
   RemoteWithConnectionModelPropertyExpr,
   ReturnsPropertyExpr,
+  RowAccessPropertyExpr,
   SafeFuncExpr,
   SamplePropertyExpr,
   SecurePropertyExpr,
+  SecurityIntegrationPropertyExpr,
   SessionUserExpr,
   SetConfigPropertyExpr,
   SetPropertyExpr,
@@ -1309,6 +1319,26 @@ export class Generator {
           },
         ],
         [
+          ApiPropertyExpr,
+          () => 'API',
+        ],
+        [
+          ApplicationPropertyExpr,
+          () => 'APPLICATION',
+        ],
+        [
+          CatalogPropertyExpr,
+          () => 'CATALOG',
+        ],
+        [
+          ComputePropertyExpr,
+          () => 'COMPUTE',
+        ],
+        [
+          DatabasePropertyExpr,
+          () => 'DATABASE',
+        ],
+        [
           DynamicPropertyExpr,
           () => 'DYNAMIC',
         ],
@@ -1393,6 +1423,10 @@ export class Generator {
         [
           HeapPropertyExpr,
           () => 'HEAP',
+        ],
+        [
+          HybridPropertyExpr,
+          () => 'HYBRID',
         ],
         [
           IcebergPropertyExpr,
@@ -1524,8 +1558,16 @@ export class Generator {
           (e: Expression) => `${e.getArgKey('no') ? 'NO ' : ''}LOG`,
         ],
         [
+          MaskingPropertyExpr,
+          () => 'MASKING',
+        ],
+        [
           MaterializedPropertyExpr,
           () => 'MATERIALIZED',
+        ],
+        [
+          NetworkPropertyExpr,
+          () => 'NETWORK',
         ],
         [
           NetFuncExpr,
@@ -1667,8 +1709,16 @@ export class Generator {
           },
         ],
         [
+          RowAccessPropertyExpr,
+          () => 'ROW ACCESS',
+        ],
+        [
           SecurePropertyExpr,
           () => 'SECURE',
+        ],
+        [
+          SecurityIntegrationPropertyExpr,
+          () => 'SECURITY',
         ],
         [
           SetConfigPropertyExpr,
@@ -1908,6 +1958,14 @@ export class Generator {
         PropertiesLocation.POST_CREATE,
       ],
       [
+        ApiPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
+        ApplicationPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         AutoIncrementPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -1924,6 +1982,10 @@ export class Generator {
         PropertiesLocation.POST_NAME,
       ],
       [
+        CatalogPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         CharacterSetPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -1934,6 +1996,10 @@ export class Generator {
       [
         CollatePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        ComputePropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         CopyGrantsPropertyExpr,
@@ -1958,6 +2024,10 @@ export class Generator {
       [
         DataBlocksizePropertyExpr,
         PropertiesLocation.POST_NAME,
+      ],
+      [
+        DatabasePropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         DataDeletionPropertyExpr,
@@ -2040,6 +2110,10 @@ export class Generator {
         PropertiesLocation.POST_WITH,
       ],
       [
+        HybridPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         InheritsPropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -2088,12 +2162,20 @@ export class Generator {
         PropertiesLocation.POST_NAME,
       ],
       [
+        MaskingPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         MaterializedPropertyExpr,
         PropertiesLocation.POST_CREATE,
       ],
       [
         MergeBlockRatioPropertyExpr,
         PropertiesLocation.POST_NAME,
+      ],
+      [
+        NetworkPropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         NoPrimaryIndexPropertyExpr,
@@ -2160,6 +2242,10 @@ export class Generator {
         PropertiesLocation.POST_SCHEMA,
       ],
       [
+        RowAccessPropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
         SamplePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
       ],
@@ -2169,6 +2255,10 @@ export class Generator {
       ],
       [
         SecurePropertyExpr,
+        PropertiesLocation.POST_CREATE,
+      ],
+      [
+        SecurityIntegrationPropertyExpr,
         PropertiesLocation.POST_CREATE,
       ],
       [

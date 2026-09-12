@@ -2943,6 +2943,7 @@ export type DescribeExprArgs = Merge<[
   {
     style?: Expression;
     kind?: DescribeExprKind;
+    properties?: Expression;
     partition?: Expression;
     format?: string;
     asJson?: Expression;
@@ -2958,6 +2959,7 @@ export class DescribeExpr extends Expression {
 
   static availableArgs = new Set([
     'this',
+    'properties',
     'style',
     'kind',
     'expressions',
@@ -12475,6 +12477,66 @@ export class SecurePropertyExpr extends PropertyExpr {
   constructor (args: SecurePropertyExprArgs = {}) {
     super(args);
   }
+}
+
+export class ApiPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.API_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class ApplicationPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.APPLICATION_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class CatalogPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.CATALOG_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class ComputePropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.COMPUTE_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class DatabasePropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.DATABASE_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class HybridPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.HYBRID_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class MaskingPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.MASKING_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class NetworkPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.NETWORK_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class RowAccessPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.ROW_ACCESS_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
+}
+
+export class SecurityIntegrationPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.SECURITY_INTEGRATION_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
 }
 
 export type TagsExprArgs = Merge<[
