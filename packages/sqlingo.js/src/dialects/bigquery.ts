@@ -66,7 +66,6 @@ import {
   DatetimeSubExpr,
   DateFromUnixDateExpr,
   GenerateSeriesExpr,
-  SubExpr,
   DivExpr,
   GroupConcatExpr,
   IfExpr,

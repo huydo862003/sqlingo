@@ -114,7 +114,6 @@ import {
   ColumnConstraintExpr,
   NotNullColumnConstraintExpr,
   LiteralExpr,
-  SubExpr,
   CaseExpr,
   IsExpr,
   CoalesceExpr,

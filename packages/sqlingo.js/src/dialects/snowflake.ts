@@ -126,7 +126,6 @@ import {
   CurrentSchemasExpr,
   GenerateSeriesExpr,
   JarowinklerSimilarityExpr,
-  SubExpr,
   SortArrayExpr,
   FlattenExpr,
   BitwiseNotExpr,

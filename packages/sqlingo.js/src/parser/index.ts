@@ -10943,7 +10943,12 @@ export class Parser {
 
           while (node instanceof DotExpr) {
             const dotExpr = node.args.expression;
-            suffixes.push(dotExpr instanceof Expression ? dotExpr.sql({ dialect: this.dialect }) : '');
+
+            suffixes.push(dotExpr instanceof Expression
+              ? dotExpr.sql({
+                dialect: this.dialect,
+              })
+              : '');
             node = node.args.this as Expression | undefined;
           }
 
@@ -10963,7 +10968,12 @@ export class Parser {
 
         if (0 < segments.length) {
           const segThis = segments[segments.length - 1][0].args.this;
-          jsonPath.push(segThis instanceof Expression ? segThis.sql({ dialect: this.dialect }) : '');
+
+          jsonPath.push(segThis instanceof Expression
+            ? segThis.sql({
+              dialect: this.dialect,
+            })
+            : '');
           for (const [
             bracket,
             suffixes,

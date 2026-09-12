@@ -6415,7 +6415,7 @@ class DuckDBGenerator extends Generator {
     if (value !== undefined && mapArg) {
       const mapType = mapArg.type;
 
-      if (mapType instanceof DataTypeExpr && mapType.args.expressions && mapType.args.expressions.length > 1) {
+      if (mapType instanceof DataTypeExpr && mapType.args.expressions && 1 < mapType.args.expressions.length) {
         const valueType = mapType.args.expressions[1] as DataTypeExpr;
 
         value = cast(value, valueType);

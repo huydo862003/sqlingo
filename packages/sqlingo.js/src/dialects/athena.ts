@@ -34,9 +34,6 @@ import {
   SchemaExpr,
   ColumnDefExpr,
   PropertiesLocation,
-  CreateExprKind,
-  DropExprKind,
-  AlterExprKind,
 } from '../expressions';
 import {
   cache,
