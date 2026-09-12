@@ -359,12 +359,6 @@ class DatabricksGenerator extends Spark.Generator {
     });
   }
 
-  generatedAsIdentityColumnConstraintSql (expression: GeneratedAsIdentityColumnConstraintExpr): string {
-    expression.setArgKey('this', true); // trigger ALWAYS in super class
-
-    return super.generatedAsIdentityColumnConstraintSql(expression);
-  }
-
   jsonPathSql (expression: JsonPathExpr): string {
     expression.setArgKey('escape', undefined);
 
