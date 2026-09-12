@@ -205,6 +205,7 @@ import {
   HexExpr,
   MapDeleteExpr,
   MapInsertExpr,
+  MapPickExpr,
   MapSizeExpr,
   RightExpr,
   BitwiseXorAggExpr,
@@ -6273,6 +6274,35 @@ class DuckDBGenerator extends Generator {
 
   mapSizeSql (expression: MapSizeExpr): string {
     return this.func('CARDINALITY', [expression.args.this]);
+  }
+
+  mapPickSql (expression: MapPickExpr): string {
+    const mapArg = expression.args.this;
+    const keysToPick = expression.args.expressions ?? [];
+
+    const xDotKey = new DotExpr({
+      this: toIdentifier('x'),
+      expression: toIdentifier('key'),
+    });
+
+    let lambdaExpr: LambdaExpr;
+    if (keysToPick.length === 1 && keysToPick[0].isType?.(DataTypeExprKind.ARRAY)) {
+      lambdaExpr = new LambdaExpr({
+        this: func('ARRAY_CONTAINS', keysToPick[0], xDotKey),
+        expressions: [toIdentifier('x')],
+      });
+    } else {
+      lambdaExpr = new LambdaExpr({
+        this: new InExpr({ this: xDotKey, expressions: keysToPick }),
+        expressions: [toIdentifier('x')],
+      });
+    }
+
+    const result = func(
+      'MAP_FROM_ENTRIES',
+      func('LIST_FILTER', func('MAP_ENTRIES', mapArg), lambdaExpr),
+    );
+    return this.sql(result);
   }
 
   mapInsertSql (expression: MapInsertExpr): string {
