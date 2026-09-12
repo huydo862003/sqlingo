@@ -9,6 +9,8 @@ import type {
   IfBlockExpr,
   ReadParquetExpr,
   RenameColumnExpr,
+
+  IgnoreNullsExpr,
 } from '../expressions';
 import {
   TryCastExpr,
@@ -38,7 +40,6 @@ import {
   DatetimeSubExpr,
   EndsWithExpr,
   GetbitExpr,
-  IgnoreNullsExpr,
   SafeAddExpr,
   SafeMultiplyExpr,
   SafeSubtractExpr,
@@ -248,10 +249,14 @@ class SparkParser extends Spark2.Parser {
     return {
       ...Spark2.Parser.SET_PARSERS,
       VAR: function (this: Parser) {
-        return this.parseSetItemAssignment({ kind: 'VARIABLE' });
+        return this.parseSetItemAssignment({
+          kind: 'VARIABLE',
+        });
       },
       VARIABLE: function (this: Parser) {
-        return this.parseSetItemAssignment({ kind: 'VARIABLE' });
+        return this.parseSetItemAssignment({
+          kind: 'VARIABLE',
+        });
       },
     };
   }

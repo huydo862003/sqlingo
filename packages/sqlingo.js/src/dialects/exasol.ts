@@ -1682,7 +1682,7 @@ class ExasolGenerator extends Generator {
     ]);
     const columns = expression.args.emits;
 
-    if (Array.isArray(columns) && columns.length > 0) {
+    if (Array.isArray(columns) && 0 < columns.length) {
       const emits = this.expressions(undefined, {
         sqls: columns,
       });

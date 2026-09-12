@@ -5,6 +5,8 @@ import type {
   CastExpr, UnnestExpr,
   ArrayExpr,
   AlterSetExpr,
+
+  IgnoreNullsExpr, RespectNullsExpr,
 } from '../expressions';
 import {
   AliasExpr,
@@ -24,7 +26,6 @@ import {
   DistStylePropertyExpr,
   ExplodeExpr,
   FarmFingerprintExpr,
-  IgnoreNullsExpr,
   FromBaseExpr,
   FromExpr,
   GeneratedAsIdentityColumnConstraintExpr,
@@ -41,7 +42,7 @@ import {
   PivotExpr,
   RegexpExtractExpr,
   RoundExpr, SelectExpr, Sha2DigestExpr, Sha2Expr, SortKeyPropertyExpr, StartsWithExpr, StringToArrayExpr, TableSampleExpr, TryCastExpr, TsOrDsAddExpr, TsOrDsDiffExpr, UnixToTimeExpr, var_,
-  Expression, RespectNullsExpr, SchemaExpr, TupleExpr, VarExpr,
+  Expression, SchemaExpr, TupleExpr, VarExpr,
 } from '../expressions';
 import {
   Generator,
@@ -58,6 +59,9 @@ import {
 import {
   eliminateDistinctOn, eliminateSemiAndAntiJoins, eliminateWindowClause, preprocess, unnestGenerateDateArrayUsingRecursiveCte, unqualifyUnnest,
 } from '../transforms';
+import {
+  RedshiftTyping,
+} from '../typing/redshift';
 import type {
   Dialect,
 } from './dialect';
@@ -73,9 +77,6 @@ import {
   renameFunc,
   dateDeltaSql,
 } from './dialect';
-import {
-  RedshiftTyping,
-} from '../typing/redshift';
 import {
   Postgres,
 } from './postgres';

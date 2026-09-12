@@ -10395,6 +10395,7 @@ export class LiteralExpr extends ConditionExpr {
       const absStr = typeof number === 'string' && number.startsWith('-')
         ? number.slice(1)
         : String(Math.abs(numValue));
+
       expr = new LiteralExpr({
         this: absStr,
         isString: false,
@@ -12208,7 +12209,6 @@ export class SamplePropertyExpr extends PropertyExpr {
     super(args);
   }
 }
-
 
 export type SchemaCommentPropertyExprArgs = Merge<[
   PropertyExprArgs,
@@ -17282,8 +17282,12 @@ export class CityHash64Expr extends FuncExpr {
   static isVarLenArgs = true;
   static availableArgs = new Set(['expressions']);
   declare args: CityHash64ExprArgs;
-  constructor (args: CityHash64ExprArgs = {}) { super(args); }
-  static { this.register(); }
+  constructor (args: CityHash64ExprArgs = {}) {
+    super(args);
+  }
+  static {
+    this.register();
+  }
 }
 
 export type FarmFingerprintExprArgs = Merge<[
@@ -19083,7 +19087,10 @@ export class ArrayIntersectExpr extends FuncExpr {
 
   static requiredArgs = new Set(['expressions']);
 
-  static availableArgs = new Set(['expressions', 'isMultiset']);
+  static availableArgs = new Set([
+    'expressions',
+    'isMultiset',
+  ]);
 
   static argOrder = ['expressions'];
 

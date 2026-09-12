@@ -1133,7 +1133,7 @@ function buildRound (args: Expression[]): RoundExpr {
 
 /**
  * Build Generator expression, unwrapping Snowflake's named parameters.
- * Maps ROWCOUNT => rowcount, TIMELIMIT => timelimit.
+ * Maps ROWCOUNT => rowcount, TIMELIMIT => timelimit
  */
 function buildGenerator (args: Expression[]): GeneratorExpr {
   const kwargMap: Record<string, string> = {
@@ -1141,10 +1141,14 @@ function buildGenerator (args: Expression[]): GeneratorExpr {
     TIMELIMIT: 'timelimit',
   };
   const genArgs: Record<string, unknown> = {};
-  const positionalKeys = ['rowcount', 'timelimit'];
+  const positionalKeys = [
+    'rowcount',
+    'timelimit',
+  ];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+
     if (arg instanceof KwargExpr) {
       const key = arg.args.this?.name.toUpperCase();
       const genKey = key !== undefined ? kwargMap[key] : undefined;
@@ -1315,17 +1319,26 @@ class SnowflakeParser extends Parser {
 
   @cache
   static get TYPE_TOKENS (): Set<TokenType> {
-    return new Set([...Parser.TYPE_TOKENS, TokenType.FILE]);
+    return new Set([
+      ...Parser.TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
   }
 
   @cache
   static get STRUCT_TYPE_TOKENS (): Set<TokenType> {
-    return new Set([...Parser.STRUCT_TYPE_TOKENS, TokenType.FILE]);
+    return new Set([
+      ...Parser.STRUCT_TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
   }
 
   @cache
   static get NESTED_TYPE_TOKENS (): Set<TokenType> {
-    return new Set([...Parser.NESTED_TYPE_TOKENS, TokenType.FILE]);
+    return new Set([
+      ...Parser.NESTED_TYPE_TOKENS,
+      TokenType.FILE,
+    ]);
   }
 
   @cache
@@ -1437,10 +1450,18 @@ class SnowflakeParser extends Parser {
         ARRAY_SORT: (args: Expression[]) => {
           const asc = seqGet(args, 1);
           let nullsFirst = seqGet(args, 2);
+
           if (nullsFirst === undefined && asc instanceof BooleanExpr) {
-            nullsFirst = new BooleanExpr({ this: !asc.args.this });
+            nullsFirst = new BooleanExpr({
+              this: !asc.args.this,
+            });
           }
-          return new SortArrayExpr({ this: seqGet(args, 0), asc, nullsFirst });
+
+          return new SortArrayExpr({
+            this: seqGet(args, 0),
+            asc,
+            nullsFirst,
+          });
         },
         ARRAYS_OVERLAP: (args: Expression[]) => new ArrayOverlapsExpr({
           this: seqGet(args, 0),
@@ -1769,10 +1790,16 @@ class SnowflakeParser extends Parser {
         TO_TIMESTAMP_TZ: buildDatetime('TO_TIMESTAMP_TZ', DataTypeExprKind.TIMESTAMPTZ),
         TO_GEOGRAPHY: (args: Expression[]) => args.length === 1
           ? cast(args[0], DataTypeExprKind.GEOGRAPHY)
-          : new AnonymousExpr({ this: 'TO_GEOGRAPHY', expressions: args }),
+          : new AnonymousExpr({
+            this: 'TO_GEOGRAPHY',
+            expressions: args,
+          }),
         TO_GEOMETRY: (args: Expression[]) => args.length === 1
           ? cast(args[0], DataTypeExprKind.GEOMETRY)
-          : new AnonymousExpr({ this: 'TO_GEOMETRY', expressions: args }),
+          : new AnonymousExpr({
+            this: 'TO_GEOMETRY',
+            expressions: args,
+          }),
         TO_VARCHAR: buildTimeToStrOrToChar,
         TO_JSON: (args: unknown[]) => JsonFormatExpr.fromArgList(args),
         VECTOR_COSINE_SIMILARITY: (args: unknown[]) => CosineDistanceExpr.fromArgList(args),
@@ -2052,22 +2079,44 @@ class SnowflakeParser extends Parser {
   }
 
   static DESCRIBE_QUALIFIER_PARSERS: Record<string, (this: SnowflakeParser) => Expression | undefined> = {
-    API: function () { return this.expression(ApiPropertyExpr, {}); },
-    APPLICATION: function () { return this.expression(ApplicationPropertyExpr, {}); },
-    CATALOG: function () { return this.expression(CatalogPropertyExpr, {}); },
-    COMPUTE: function () { return this.expression(ComputePropertyExpr, {}); },
+    API: function () {
+      return this.expression(ApiPropertyExpr, {});
+    },
+    APPLICATION: function () {
+      return this.expression(ApplicationPropertyExpr, {});
+    },
+    CATALOG: function () {
+      return this.expression(CatalogPropertyExpr, {});
+    },
+    COMPUTE: function () {
+      return this.expression(ComputePropertyExpr, {});
+    },
     DATABASE: function () {
       return this.curr && this.curr.text.toUpperCase() === 'ROLE'
         ? this.expression(DatabasePropertyExpr, {})
         : undefined;
     },
-    DYNAMIC: function () { return this.expression(DynamicPropertyExpr, {}); },
-    EXTERNAL: function () { return this.expression(ExternalPropertyExpr, {}); },
-    HYBRID: function () { return this.expression(HybridPropertyExpr, {}); },
-    ICEBERG: function () { return this.expression(IcebergPropertyExpr, {}); },
-    MASKING: function () { return this.expression(MaskingPropertyExpr, {}); },
-    MATERIALIZED: function () { return this.expression(MaterializedPropertyExpr, {}); },
-    NETWORK: function () { return this.expression(NetworkPropertyExpr, {}); },
+    DYNAMIC: function () {
+      return this.expression(DynamicPropertyExpr, {});
+    },
+    EXTERNAL: function () {
+      return this.expression(ExternalPropertyExpr, {});
+    },
+    HYBRID: function () {
+      return this.expression(HybridPropertyExpr, {});
+    },
+    ICEBERG: function () {
+      return this.expression(IcebergPropertyExpr, {});
+    },
+    MASKING: function () {
+      return this.expression(MaskingPropertyExpr, {});
+    },
+    MATERIALIZED: function () {
+      return this.expression(MaterializedPropertyExpr, {});
+    },
+    NETWORK: function () {
+      return this.expression(NetworkPropertyExpr, {});
+    },
     ROW: function () {
       return this.matchTextSeq('ACCESS')
         ? this.expression(RowAccessPropertyExpr, {})
@@ -2090,10 +2139,15 @@ class SnowflakeParser extends Parser {
         const kind = (this.matchSet(this._constructor.CREATABLES) || undefined) && this.prev?.text.toUpperCase();
 
         if (kind) {
-          const thisExpr = this.parseTable({ schema: true });
-          const properties = this.expression(PropertiesExpr, { expressions: [qualifier] });
+          const thisExpr = this.parseTable({
+            schema: true,
+          });
+          const properties = this.expression(PropertiesExpr, {
+            expressions: [qualifier],
+          });
           const postProps = this.parseProperties();
           const expressions = postProps?.args.expressions;
+
           return this.expression(DescribeExpr, {
             this: thisExpr,
             kind,
@@ -2105,6 +2159,7 @@ class SnowflakeParser extends Parser {
     }
 
     this.retreat(index);
+
     return super.parseDescribe();
   }
 
@@ -2819,7 +2874,10 @@ class SnowflakeGenerator extends Generator {
       [
         ArrayPositionExpr,
         function (this: Generator, e: ArrayPositionExpr) {
-          return this.func('ARRAY_POSITION', [e.args.expression, e.args.this]);
+          return this.func('ARRAY_POSITION', [
+            e.args.expression,
+            e.args.this,
+          ]);
         },
       ],
       [
@@ -3435,14 +3493,21 @@ class SnowflakeGenerator extends Generator {
   sortArraySql (expression: SortArrayExpr): string {
     const asc = expression.args.asc;
     let nullsFirst = expression.args.nullsFirst;
+
     if (asc instanceof BooleanExpr && asc.args.this === false && nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true) {
       nullsFirst = undefined;
     }
-    return this.func('ARRAY_SORT', [expression.args.this, asc, nullsFirst]);
+
+    return this.func('ARRAY_SORT', [
+      expression.args.this,
+      asc,
+      nullsFirst,
+    ]);
   }
 
   randSql (expression: RandExpr): string {
     const seed = expression.args.this;
+
     return seed ? this.func('RANDOM', [seed]) : this.func('RANDOM', []);
   }
 
@@ -3793,8 +3858,12 @@ class SnowflakeGenerator extends Generator {
 
     const properties = expression.args.properties;
     let kind: string;
+
     if (properties) {
-      const qualifier = this.expressions(properties, { sep: ' ' });
+      const qualifier = this.expressions(properties, {
+        sep: ' ',
+      });
+
       kind = ` ${qualifier} ${kindValue}`;
     } else {
       kind = ` ${kindValue}`;

@@ -48,14 +48,14 @@ import {
   TypeAnnotator,
 } from '../optimizer';
 import {
-  HiveJsonPathTokenizer,
-} from './hive';
-import {
   anyToExists, eliminateDistinctOn, preprocess, unnestToExplode,
 } from '../transforms';
 import {
   cache, narrowInstanceOf,
 } from '../port_internals';
+import {
+  HiveJsonPathTokenizer,
+} from './hive';
 import {
   Spark,
 } from './spark';

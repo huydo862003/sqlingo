@@ -102,6 +102,7 @@ function tokenizeAsHive (tokensList: Token[]): boolean {
 function generateAsHive (expression: Expression): boolean {
   if (expression instanceof CreateExpr) {
     const kind = String(expression.args.kind ?? '').toUpperCase();
+
     if (kind === 'TABLE') {
       const properties = expression.args.properties;
 

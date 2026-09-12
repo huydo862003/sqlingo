@@ -2052,17 +2052,32 @@ export function generateSeriesSql (
 
     if (expression.args.isEndExclusive) {
       if (exclusiveFuncName) {
-        return this.func(exclusiveFuncName, [start, end, step]);
+        return this.func(exclusiveFuncName, [
+          start,
+          end,
+          step,
+        ]);
       }
 
       const adjustedEnd = end instanceof Expression
-        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        ? new SubExpr({
+          this: end,
+          expression: LiteralExpr.number(1),
+        })
         : end;
 
-      return this.func(funcName, [start, adjustedEnd, step]);
+      return this.func(funcName, [
+        start,
+        adjustedEnd,
+        step,
+      ]);
     }
 
-    return this.func(funcName, [start, end, step]);
+    return this.func(funcName, [
+      start,
+      end,
+      step,
+    ]);
   };
 }
 

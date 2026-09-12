@@ -17,6 +17,8 @@ import type {
   AlterRenameExpr,
   AlterColumnExpr,
   FuncExpr,
+
+  PropertiesExpr,
 } from '../expressions';
 import {
   AlterIndexExpr, ColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr,
@@ -88,7 +90,6 @@ import {
   ChrExpr,
   IntervalExpr,
   CreateExpr,
-  PropertiesExpr,
   PropertiesLocation,
   SqlSecurityPropertyExpr,
   TransientPropertyExpr,
@@ -635,7 +636,9 @@ class MySQLParser extends Parser {
         }),
       DATE_ADD: (args: Expression[]) => buildDateDeltaWithInterval(DateAddExpr)(args),
       DATE_FORMAT: (args: Expression[]) => new TimeToStrExpr({
-        this: new TsOrDsToTimestampExpr({ this: seqGet(args, 0) }),
+        this: new TsOrDsToTimestampExpr({
+          this: seqGet(args, 0),
+        }),
         format: Dialect.getOrRaise(Dialects.MYSQL)._constructor.formatTime(seqGet(args, 1)),
       }),
       DATE_SUB: (args: Expression[]) => buildDateDeltaWithInterval(DateSubExpr)(args),
@@ -2289,13 +2292,16 @@ class MySQLGenerator extends Generator {
 
     // MySQL puts SQL SECURITY before VIEW but after the schema for functions/procedures
     const create = properties.parent;
+
     if (create instanceof CreateExpr && create.args.kind?.toUpperCase() === 'VIEW') {
       const postSchema = locations.get(PropertiesLocation.POST_SCHEMA);
+
       if (postSchema) {
         for (let i = 0; i < postSchema.length; i++) {
           if (postSchema[i] instanceof SqlSecurityPropertyExpr) {
             const [p] = postSchema.splice(i, 1);
             const loc = (this._constructor as typeof MySQLGenerator).SQL_SECURITY_VIEW_LOCATION;
+
             if (!locations.has(loc)) {
               locations.set(loc, []);
             }

@@ -287,13 +287,14 @@ import type {
   PreWhereExpr,
   StoredProcedureExpr,
   ExecuteExpr,
+
+  AlterModifySqlSecurityExpr,
 } from './expressions';
 import {
   DistinctExpr,
   FilterExpr,
   JsonExtractExpr,
   ConnectorExpr,
-  AlterModifySqlSecurityExpr,
   AlterRenameExpr,
   BracketExpr,
   DateAddExpr,
@@ -680,7 +681,7 @@ export class Generator {
   // Whether ignore nulls is inside the agg or outside
   // FIRST(x IGNORE NULLS) OVER vs FIRST (x) IGNORE NULLS OVER
   static IGNORE_NULLS_IN_FUNC = false;
-  // Whether IGNORE NULLS is placed before ORDER BY in the agg.
+  // Whether IGNORE NULLS is placed before ORDER BY in the agg
   // FIRST(x IGNORE NULLS ORDER BY y) vs FIRST(x ORDER BY y IGNORE NULLS)
   static IGNORE_NULLS_BEFORE_ORDER = true;
   static RESPECT_IGNORE_NULLS_UNSUPPORTED_EXPRESSIONS: (typeof Expression)[] = [];
@@ -9329,17 +9330,21 @@ export class Generator {
 
   detachSql (expression: DetachExpr): string {
     let kind = this.sql(expression, 'kind');
+
     kind = kind ? ` ${kind}` : '';
     let exists = expression.args.exists ? ' IF EXISTS' : '';
+
     if (exists) {
       kind = kind || ' DATABASE';
     }
     const thisStr = this.sql(expression, 'this');
     const thisPart = thisStr ? ` ${thisStr}` : '';
     let cluster = this.sql(expression, 'cluster');
+
     cluster = cluster ? ` ${cluster}` : '';
     const permanent = expression.args.permanent ? ' PERMANENTLY' : '';
     const sync = expression.args.sync ? ' SYNC' : '';
+
     return `DETACH${kind}${exists}${thisPart}${cluster}${permanent}${sync}`;
   }
 
@@ -10034,10 +10039,17 @@ export class Generator {
       const end = expression.args.end;
       const step = expression.args.step;
       const adjustedEnd = end instanceof Expression
-        ? new SubExpr({ this: end, expression: LiteralExpr.number(1) })
+        ? new SubExpr({
+          this: end,
+          expression: LiteralExpr.number(1),
+        })
         : end;
 
-      return this.func((expression._constructor as typeof FuncExpr).sqlName(), [start, adjustedEnd, step]);
+      return this.func((expression._constructor as typeof FuncExpr).sqlName(), [
+        start,
+        adjustedEnd,
+        step,
+      ]);
     }
 
     return this.functionFallbackSql(expression);

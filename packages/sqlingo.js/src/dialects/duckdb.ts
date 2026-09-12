@@ -52,6 +52,15 @@ import type {
   ArrayToStringExpr,
   RespectNullsExpr,
   ExpressionValue,
+
+  MapDeleteExpr,
+  MapInsertExpr,
+  MapPickExpr,
+  MapSizeExpr,
+  RightExpr,
+  ArraySliceExpr,
+  DateTruncExpr,
+  SplitPartExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -203,11 +212,6 @@ import {
   DotExpr,
   ArrayPositionExpr,
   HexExpr,
-  MapDeleteExpr,
-  MapInsertExpr,
-  MapPickExpr,
-  MapSizeExpr,
-  RightExpr,
   BitwiseXorAggExpr,
   BitwiseXorExpr,
   CosineDistanceExpr,
@@ -248,7 +252,6 @@ import {
   AnonymousExpr,
   ArrayExpr,
   ArrayPrependExpr,
-  ArraySliceExpr,
   AtTimeZoneExpr,
   BitwiseAndAggExpr,
   BitwiseOrAggExpr,
@@ -263,7 +266,6 @@ import {
   DataTypeExprKind,
   DateAddExpr,
   DateDiffExpr,
-  DateTruncExpr,
   DecodeExpr,
   DivExpr,
   FromBase64Expr,
@@ -296,7 +298,6 @@ import {
   SelectExpr,
   SliceExpr,
   SortArrayExpr,
-  SplitPartExpr,
   SubExpr,
   TimestampFromPartsExpr,
   UnhexExpr,
@@ -1092,7 +1093,6 @@ function arraySortSql (this: Generator, expression: ArraySortExpr): string {
   return this.func('ARRAY_SORT', [expression.args.this]);
 }
 
-
 function buildSortArrayDesc (args: Expression[]): SortArrayExpr {
   return new SortArrayExpr({
     this: seqGet(args, 0),
@@ -1413,10 +1413,16 @@ function weekUnitToDow (unit: Expression | undefined): number | undefined {
 }
 
 /** Custom DATE_TRUNC logic for non-Monday week starts */
-function buildWeekTruncExpression (dateExpr: Expression, startDow: number, options: { preserveStartDay?: boolean } = {}): Expression {
-  const { preserveStartDay = false } = options;
+function buildWeekTruncExpression (dateExpr: Expression, startDow: number, options: {
+  preserveStartDay?: boolean;
+} = {}): Expression {
+  const {
+    preserveStartDay = false,
+  } = options;
   const shiftDays = startDow === 7 ? 1 : 1 - startDow;
-  const truncated = func('DATE_TRUNC', new VarExpr({ this: 'WEEK' }), dateExpr);
+  const truncated = func('DATE_TRUNC', new VarExpr({
+    this: 'WEEK',
+  }), dateExpr);
 
   if (shiftDays === 0) {
     return truncated;
@@ -1424,18 +1430,30 @@ function buildWeekTruncExpression (dateExpr: Expression, startDow: number, optio
 
   const shift = new IntervalExpr({
     this: LiteralExpr.string(shiftDays.toString()),
-    unit: new VarExpr({ this: 'DAY' }),
+    unit: new VarExpr({
+      this: 'DAY',
+    }),
   });
-  const shiftedDate = new DateAddExpr({ this: dateExpr, expression: shift });
+  const shiftedDate = new DateAddExpr({
+    this: dateExpr,
+    expression: shift,
+  });
+
   (truncated as Expression).setArgKey('this', shiftedDate);
 
   if (preserveStartDay) {
     const interval = new IntervalExpr({
       this: LiteralExpr.string((-shiftDays).toString()),
-      unit: new VarExpr({ this: 'DAY' }),
+      unit: new VarExpr({
+        this: 'DAY',
+      }),
     });
+
     return cast(
-      new DateAddExpr({ this: truncated, expression: interval }),
+      new DateAddExpr({
+        this: truncated,
+        expression: interval,
+      }),
       DataTypeExprKind.DATE,
     ) as Expression;
   }
@@ -2418,7 +2436,9 @@ class DuckDBParser extends Parser {
         }),
         APPROX_QUANTILE: (args: unknown[]) => ApproxQuantileExpr.fromArgList(args),
         ARRAY_PREPEND: buildArrayPrepend,
-        ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({ expressions: args as Expression[] }),
+        ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({
+          expressions: args as Expression[],
+        }),
         ARRAY_REVERSE_SORT: buildSortArrayDesc,
         ARRAY_SORT: (args: unknown[]) => SortArrayExpr.fromArgList(args),
         BIT_AND: (args: unknown[]) => BitwiseAndAggExpr.fromArgList(args),
@@ -3029,7 +3049,10 @@ class DuckDBGenerator extends Generator {
             }));
           }
 
-          return this.func('ARRAY_POSITION', [e.args.this, e.args.expression]);
+          return this.func('ARRAY_POSITION', [
+            e.args.this,
+            e.args.expression,
+          ]);
         },
       ],
       [
@@ -3744,7 +3767,9 @@ class DuckDBGenerator extends Generator {
       [
         ToVariantExpr,
         function (this: Generator, e: ToVariantExpr) {
-          return this.sql(cast(e.args.this, DataTypeExpr.build('VARIANT', { dialect: 'duckdb' })));
+          return this.sql(cast(e.args.this, DataTypeExpr.build('VARIANT', {
+            dialect: 'duckdb',
+          })));
         },
       ],
       [
@@ -4615,14 +4640,22 @@ class DuckDBGenerator extends Generator {
     const nullsFirst = expression.args.nullsFirst;
 
     if (!(asc instanceof BooleanExpr) && !(nullsFirst instanceof BooleanExpr)) {
-      return this.func('LIST_SORT', [arr, asc, nullsFirst]);
+      return this.func('LIST_SORT', [
+        arr,
+        asc,
+        nullsFirst,
+      ]);
     }
 
     const nullsAreFirst = nullsFirst instanceof BooleanExpr && nullsFirst.args.this === true;
     const nullsFirstSql = nullsAreFirst ? LiteralExpr.string('NULLS FIRST') : undefined;
 
     if (!(asc instanceof BooleanExpr)) {
-      return this.func('LIST_SORT', [arr, asc, nullsFirstSql]);
+      return this.func('LIST_SORT', [
+        arr,
+        asc,
+        nullsFirstSql,
+      ]);
     }
 
     const descending = asc.args.this === false;
@@ -4633,6 +4666,7 @@ class DuckDBGenerator extends Generator {
     if (!nullsAreFirst) {
       return this.func('ARRAY_REVERSE_SORT', [arr]);
     }
+
     return this.func('LIST_SORT', [
       arr,
       LiteralExpr.string(descending ? 'DESC' : 'ASC'),
@@ -4832,9 +4866,20 @@ class DuckDBGenerator extends Generator {
     const arr1 = expression.args.this!;
     const arr2 = expression.args.expression!;
     const nullSafe = this.sql(and([
-      new NeqExpr({ this: new ArraySizeExpr({ this: arr1.copy() }), expression: func('LIST_COUNT', arr1.copy()) }),
-      new NeqExpr({ this: new ArraySizeExpr({ this: arr2.copy() }), expression: func('LIST_COUNT', arr2.copy()) }),
+      new NeqExpr({
+        this: new ArraySizeExpr({
+          this: arr1.copy(),
+        }),
+        expression: func('LIST_COUNT', arr1.copy()),
+      }),
+      new NeqExpr({
+        this: new ArraySizeExpr({
+          this: arr2.copy(),
+        }),
+        expression: func('LIST_COUNT', arr2.copy()),
+      }),
     ]));
+
     return `(${this.binary(expression, '&&')}) OR (${nullSafe})`;
   }
 
@@ -5206,11 +5251,11 @@ class DuckDBGenerator extends Generator {
   );
 
   static ARRAY_EXCEPT_CONDITION = maybeParse(
-    `LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) > LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))`,
+    'LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) > LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))',
   );
 
   static ARRAY_INTERSECTION_CONDITION = maybeParse(
-    `LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) <= LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))`,
+    'LEN(LIST_FILTER(:arr1[1:pair[1]], e -> e IS NOT DISTINCT FROM pair[0])) <= LEN(LIST_FILTER(:arr2, e -> e IS NOT DISTINCT FROM pair[0]))',
   );
 
   static ARRAY_EXCEPT_SET_TEMPLATE = maybeParse(
@@ -5224,11 +5269,21 @@ class DuckDBGenerator extends Generator {
   );
 
   private arrayBagSql (condition: Expression, arr1: Expression, arr2: Expression): string {
-    const cond = new ParenExpr({ this: replacePlaceholders(condition.copy(), [], { arr1, arr2 }) });
+    const cond = new ParenExpr({
+      this: replacePlaceholders(condition.copy(), [], {
+        arr1,
+        arr2,
+      }),
+    });
+
     return this.sql(replacePlaceholders(
       (this._constructor as typeof DuckDBGenerator).ARRAY_BAG_TEMPLATE.copy(),
       [],
-      { arr1, arr2, cond },
+      {
+        arr1,
+        arr2,
+        cond,
+      },
     ));
   }
 
@@ -5240,6 +5295,7 @@ class DuckDBGenerator extends Generator {
         expression.args.expressions[1],
       );
     }
+
     return this.functionFallbackSql(expression);
   }
 
@@ -5254,10 +5310,14 @@ class DuckDBGenerator extends Generator {
         arr2!,
       );
     }
+
     return this.sql(replacePlaceholders(
       (this._constructor as typeof DuckDBGenerator).ARRAY_EXCEPT_SET_TEMPLATE.copy(),
       [],
-      { arr1, arr2 },
+      {
+        arr1,
+        arr2,
+      },
     ));
   }
 
@@ -5710,7 +5770,9 @@ class DuckDBGenerator extends Generator {
 
   generateSeriesSql (expression: GenerateSeriesExpr): string {
     // GENERATE_SERIES(a, b) -> [a, b] (inclusive), RANGE(a, b) -> [a, b) (exclusive)
-    return generateSeriesSqlHelper('GENERATE_SERIES', { exclusiveFuncName: 'RANGE' }).call(this, expression);
+    return generateSeriesSqlHelper('GENERATE_SERIES', {
+      exclusiveFuncName: 'RANGE',
+    }).call(this, expression);
   }
 
   countIfSql (expression: CountIfExpr): string {
@@ -5971,23 +6033,44 @@ class DuckDBGenerator extends Generator {
     if (expression.args.zeroBased) {
       if (start) {
         start = case_().when(
-          new GteExpr({ this: start.copy(), expression: LiteralExpr.number(0) }),
-          new AddExpr({ this: start.copy(), expression: LiteralExpr.number(1) }),
-          { copy: false },
+          new GteExpr({
+            this: start.copy(),
+            expression: LiteralExpr.number(0),
+          }),
+          new AddExpr({
+            this: start.copy(),
+            expression: LiteralExpr.number(1),
+          }),
+          {
+            copy: false,
+          },
         );
         (start as CaseExpr).setArgKey('default', expression.args.start);
       }
       if (end) {
         end = case_().when(
-          new LtExpr({ this: end.copy(), expression: LiteralExpr.number(0) }),
-          new SubExpr({ this: end.copy(), expression: LiteralExpr.number(1) }),
-          { copy: false },
+          new LtExpr({
+            this: end.copy(),
+            expression: LiteralExpr.number(0),
+          }),
+          new SubExpr({
+            this: end.copy(),
+            expression: LiteralExpr.number(1),
+          }),
+          {
+            copy: false,
+          },
         );
         (end as CaseExpr).setArgKey('default', expression.args.end);
       }
     }
 
-    return this.func('ARRAY_SLICE', [expression.args.this, start, end, expression.args.step]);
+    return this.func('ARRAY_SLICE', [
+      expression.args.this,
+      start,
+      end,
+      expression.args.step,
+    ]);
   }
 
   arraysZipSql (expression: ArraysZipExpr): string {
@@ -6091,6 +6174,7 @@ class DuckDBGenerator extends Generator {
    */
   randSql (expression: RandExpr): string {
     const seed = expression.args.this;
+
     if (seed) {
       this.unsupported('RANDOM with seed is not supported in DuckDB');
     }
@@ -6100,7 +6184,10 @@ class DuckDBGenerator extends Generator {
 
     if (lower && upper) {
       const rangeSize = new ParenExpr({
-        this: new SubExpr({ this: upper, expression: lower }),
+        this: new SubExpr({
+          this: upper,
+          expression: lower,
+        }),
       });
       const scaled = new AddExpr({
         this: lower,
@@ -6109,6 +6196,7 @@ class DuckDBGenerator extends Generator {
           expression: rangeSize,
         }),
       });
+
       return this.sql(cast(scaled, DataTypeExprKind.BIGINT));
     }
 
@@ -6120,18 +6208,28 @@ class DuckDBGenerator extends Generator {
     const length = expression.args.expression;
 
     if (isBinary(arg)) {
-      const hexArg = new HexExpr({ this: arg });
+      const hexArg = new HexExpr({
+        this: arg,
+      });
       const hexLength = new MulExpr({
         this: length,
         expression: LiteralExpr.number(2),
       });
-      const hexRight = this.func('RIGHT', [hexArg, hexLength]);
-      const result = new UnhexExpr({ this: hexRight });
+      const hexRight = this.func('RIGHT', [
+        hexArg,
+        hexLength,
+      ]);
+      const result = new UnhexExpr({
+        this: hexRight,
+      });
 
       return this.sql(result);
     }
 
-    return this.func('RIGHT', [arg, length]);
+    return this.func('RIGHT', [
+      arg,
+      length,
+    ]);
   }
 
   base64EncodeSql (expression: Base64EncodeExpr): string {
@@ -6286,6 +6384,7 @@ class DuckDBGenerator extends Generator {
     });
 
     let lambdaExpr: LambdaExpr;
+
     if (keysToPick.length === 1 && keysToPick[0].isType?.(DataTypeExprKind.ARRAY)) {
       lambdaExpr = new LambdaExpr({
         this: func('ARRAY_CONTAINS', keysToPick[0], xDotKey),
@@ -6293,7 +6392,10 @@ class DuckDBGenerator extends Generator {
       });
     } else {
       lambdaExpr = new LambdaExpr({
-        this: new InExpr({ this: xDotKey, expressions: keysToPick }),
+        this: new InExpr({
+          this: xDotKey,
+          expressions: keysToPick,
+        }),
         expressions: [toIdentifier('x')],
       });
     }
@@ -6302,6 +6404,7 @@ class DuckDBGenerator extends Generator {
       'MAP_FROM_ENTRIES',
       func('LIST_FILTER', func('MAP_ENTRIES', mapArg), lambdaExpr),
     );
+
     return this.sql(result);
   }
 
@@ -6316,16 +6419,25 @@ class DuckDBGenerator extends Generator {
 
     if (value !== undefined && mapArg) {
       const mapType = mapArg.type;
-      if (mapType instanceof DataTypeExpr && mapType.args.expressions?.length > 1) {
+
+      if (mapType instanceof DataTypeExpr && 1 < mapType.args.expressions?.length) {
         const valueType = mapType.args.expressions[1];
+
         value = cast(value, valueType);
       }
     }
 
     const newEntryStruct = new StructExpr({
-      expressions: [new PropertyEqExpr({ this: key, expression: value })],
+      expressions: [
+        new PropertyEqExpr({
+          this: key,
+          expression: value,
+        }),
+      ],
     });
-    const newEntry = new ToMapExpr({ this: newEntryStruct });
+    const newEntry = new ToMapExpr({
+      this: newEntryStruct,
+    });
     const result = func('MAP_CONCAT', mapArg, newEntry);
 
     return this.sql(result);
@@ -6433,23 +6545,34 @@ class DuckDBGenerator extends Generator {
     const baseFunc = func('STR_SPLIT', expression.args.this, expression.args.expression);
 
     let caseExpr = case_();
+
     caseExpr.setArgKey('default', baseFunc);
     let needsCase = false;
 
     if (expression.args.nullReturnsNull) {
       caseExpr = caseExpr.when(
-        new IsExpr({ this: expression.args.expression, expression: new NullExpr({}) }),
+        new IsExpr({
+          this: expression.args.expression,
+          expression: new NullExpr({}),
+        }),
         new NullExpr({}),
-        { copy: false },
+        {
+          copy: false,
+        },
       );
       needsCase = true;
     }
 
     if (expression.args.emptyDelimiterReturnsWhole) {
       caseExpr = caseExpr.when(
-        new EqExpr({ this: expression.args.expression!.copy(), expression: LiteralExpr.string('') }),
+        new EqExpr({
+          this: expression.args.expression!.copy(),
+          expression: LiteralExpr.string(''),
+        }),
         array([expression.args.this!]),
-        { copy: false },
+        {
+          copy: false,
+        },
       );
       needsCase = true;
     }
@@ -6466,41 +6589,66 @@ class DuckDBGenerator extends Generator {
       if (expression.args.partIndexZeroAsOne) {
         partIndexArg = new ParenExpr({
           this: case_().when(
-            new EqExpr({ this: partIndexArg.copy(), expression: LiteralExpr.number(0) }),
+            new EqExpr({
+              this: partIndexArg.copy(),
+              expression: LiteralExpr.number(0),
+            }),
             LiteralExpr.number(1),
-            { copy: false },
+            {
+              copy: false,
+            },
           ),
         });
         const caseExpr = (partIndexArg as ParenExpr).args.this as CaseExpr;
+
         caseExpr.setArgKey('default', expression.args.partIndex);
       }
 
       let baseFuncExpr: Expression = new AnonymousExpr({
         this: 'SPLIT_PART',
-        expressions: [stringArg, delimiterArg, partIndexArg].filter(Boolean) as Expression[],
+        expressions: [
+          stringArg,
+          delimiterArg,
+          partIndexArg,
+        ].filter(Boolean) as Expression[],
       });
       let needsCaseTransform = false;
       let caseExpr = case_();
+
       caseExpr.setArgKey('default', baseFuncExpr);
 
       if (expression.args.emptyDelimiterReturnsWhole) {
         const emptyCase = new ParenExpr({
           this: case_().when(
             new OrExpr({
-              this: new EqExpr({ this: partIndexArg!.copy(), expression: LiteralExpr.number(1) }),
-              expression: new EqExpr({ this: partIndexArg!.copy(), expression: LiteralExpr.number(-1) }),
+              this: new EqExpr({
+                this: partIndexArg!.copy(),
+                expression: LiteralExpr.number(1),
+              }),
+              expression: new EqExpr({
+                this: partIndexArg!.copy(),
+                expression: LiteralExpr.number(-1),
+              }),
             }),
             stringArg!,
-            { copy: false },
+            {
+              copy: false,
+            },
           ),
         });
         const innerCase = (emptyCase.args.this as CaseExpr);
+
         innerCase.setArgKey('default', LiteralExpr.string(''));
 
         caseExpr = caseExpr.when(
-          new EqExpr({ this: delimiterArg!.copy(), expression: LiteralExpr.string('') }),
+          new EqExpr({
+            this: delimiterArg!.copy(),
+            expression: LiteralExpr.string(''),
+          }),
           emptyCase,
-          { copy: false },
+          {
+            copy: false,
+          },
         );
         needsCaseTransform = true;
       }
@@ -6843,10 +6991,16 @@ class DuckDBGenerator extends Generator {
     const unit = unitToStr(expression);
 
     let result: string;
+
     if (weekStart) {
-      result = this.sql(buildWeekTruncExpression(dateNode!, weekStart, { preserveStartDay: true }));
+      result = this.sql(buildWeekTruncExpression(dateNode!, weekStart, {
+        preserveStartDay: true,
+      }));
     } else {
-      result = this.func('DATE_TRUNC', [unit, dateNode]);
+      result = this.func('DATE_TRUNC', [
+        unit,
+        dateNode,
+      ]);
     }
 
     if (

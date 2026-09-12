@@ -311,7 +311,10 @@ function pushdownDnf (
       if (node instanceof JoinExpr) {
         if (joinIndex) {
           const thisIndex = joinIndex.get(name) ?? -1;
-          const predicateTables = columnTableNames(condition, { exclude: name });
+          const predicateTables = columnTableNames(condition, {
+            exclude: name,
+          });
+
           if (!Array.from(predicateTables).every((t) => (joinIndex.get(t) ?? -1) < thisIndex)) {
             continue;
           }

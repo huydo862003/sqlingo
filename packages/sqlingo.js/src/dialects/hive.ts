@@ -472,7 +472,10 @@ function buildDateAdd (args: Expression[]): TsOrDsAddExpr {
 export class HiveJsonPathTokenizer extends JsonPathTokenizer {
   @cache
   static get VAR_TOKENS (): Set<TokenType> {
-    return new Set([...JsonPathTokenizer.VAR_TOKENS, TokenType.DASH]);
+    return new Set([
+      ...JsonPathTokenizer.VAR_TOKENS,
+      TokenType.DASH,
+    ]);
   }
 }
 
@@ -1533,13 +1536,23 @@ class HiveGenerator extends Generator {
     ]);
   }
 
-  static IGNORE_NULLS_FUNCS: (typeof Expression)[] = [FirstExpr, LastExpr, FirstValueExpr, LastValueExpr];
+  static IGNORE_NULLS_FUNCS: (typeof Expression)[] = [
+    FirstExpr,
+    LastExpr,
+    FirstValueExpr,
+    LastValueExpr,
+  ];
 
   ignoreNullsSql (expression: IgnoreNullsExpr): string {
     const thisExpr = expression.args.this;
-    if ((this._constructor as typeof HiveGenerator).IGNORE_NULLS_FUNCS.some(cls => thisExpr instanceof cls)) {
-      return this.func(thisExpr!._constructor.sqlNames()[0], [thisExpr!.args.this, true_()]);
+
+    if ((this._constructor as typeof HiveGenerator).IGNORE_NULLS_FUNCS.some((cls) => thisExpr instanceof cls)) {
+      return this.func(thisExpr!._constructor.sqlNames()[0], [
+        thisExpr!.args.this,
+        true_(),
+      ]);
     }
+
     return super.ignoreNullsSql(expression);
   }
 

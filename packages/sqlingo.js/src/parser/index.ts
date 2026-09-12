@@ -1764,9 +1764,15 @@ export class Parser {
     );
   }
 
-  static FAST_COLUMN_TOKENS: Set<TokenType> = new Set([TokenType.VAR, TokenType.IDENTIFIER]);
+  static FAST_COLUMN_TOKENS: Set<TokenType> = new Set([
+    TokenType.VAR,
+    TokenType.IDENTIFIER,
+  ]);
 
-  static BRACKETS: Set<TokenType> = new Set([TokenType.L_BRACKET, TokenType.L_BRACE]);
+  static BRACKETS: Set<TokenType> = new Set([
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+  ]);
 
   static COLUMN_POSTFIX_TOKENS: Set<TokenType> = new Set([
     TokenType.L_PAREN,
@@ -3969,7 +3975,11 @@ export class Parser {
     'CYCLE',
   ]);
 
-  static SECURITY_PROPERTY_KEYWORDS: string[] = ['DEFINER', 'INVOKER', 'NONE'];
+  static SECURITY_PROPERTY_KEYWORDS: string[] = [
+    'DEFINER',
+    'INVOKER',
+    'NONE',
+  ];
 
   @cache
   static get MODIFIABLES (): (typeof Expression)[] {
@@ -10048,18 +10058,30 @@ export class Parser {
     if (nextTokenType !== undefined && !(nextTokenType in this._constructor.COLUMN_OPERATORS)) {
       if (currTokenType === TokenType.STRING && nextTokenType !== TokenType.STRING) {
         const curr = this.curr!;
+
         this.advance();
-        const lit = new LiteralExpr({ this: curr.text, isString: true });
+        const lit = new LiteralExpr({
+          this: curr.text,
+          isString: true,
+        });
+
         lit.updatePositions(curr);
         this.addComments(lit);
+
         return lit;
       }
       if (currTokenType === TokenType.NUMBER) {
         const curr = this.curr!;
+
         this.advance();
-        const lit = new LiteralExpr({ this: curr.text, isString: false });
+        const lit = new LiteralExpr({
+          this: curr.text,
+          isString: false,
+        });
+
         lit.updatePositions(curr);
         this.addComments(lit);
+
         return lit;
       }
     }
@@ -10219,8 +10241,10 @@ export class Parser {
         }
 
         if (tokens && this._constructor.TYPE_TOKENS.has(tokens[0].tokenType)) {
-          if (tokens.length > 1) {
-            return DataTypeExpr.build(identifier.name, { dialect: this.dialect });
+          if (1 < tokens.length) {
+            return DataTypeExpr.build(identifier.name, {
+              dialect: this.dialect,
+            });
           }
           typeToken = tokens[0].tokenType;
           _typeTokenText = tokens[0].text;
@@ -10703,8 +10727,10 @@ export class Parser {
 
   parseColumn (): Expression | undefined {
     let column: Expression | undefined = this.parseColumnFastPath();
+
     if (column === undefined) {
       let thisExpr = this.parseColumnReference();
+
       if (!thisExpr) {
         thisExpr = this.parseBracket(thisExpr);
       }
@@ -10734,6 +10760,7 @@ export class Parser {
 
       if (parts === undefined && token.text.toUpperCase() in this._constructor.NO_PAREN_FUNCTION_PARSERS) {
         this.retreat(index);
+
         return undefined;
       }
 
@@ -10743,10 +10770,12 @@ export class Parser {
       if (!hasDot) {
         if (currTt !== undefined && ((currTt in this._constructor.COLUMN_OPERATORS) || this._constructor.COLUMN_POSTFIX_TOKENS.has(currTt))) {
           this.retreat(index);
+
           return undefined;
         }
       } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
         this.retreat(index);
+
         return undefined;
       }
 
@@ -10754,7 +10783,7 @@ export class Parser {
         parts = [];
       }
 
-      if (comments && comments.length > 0) {
+      if (comments && 0 < comments.length) {
         if (allComments === undefined) {
           allComments = [];
         }
@@ -10766,6 +10795,7 @@ export class Parser {
         this: token.text,
         quoted: token.tokenType === TokenType.IDENTIFIER,
       });
+
       ident.updatePositions(token);
       parts.push(ident);
 
@@ -10782,15 +10812,32 @@ export class Parser {
     let column: ColumnExpr | DotExpr;
 
     if (n === 1) {
-      column = new ColumnExpr({ this: parts[0] });
+      column = new ColumnExpr({
+        this: parts[0],
+      });
     } else if (n === 2) {
-      column = new ColumnExpr({ this: parts[1], table: parts[0] });
+      column = new ColumnExpr({
+        this: parts[1],
+        table: parts[0],
+      });
     } else if (n === 3) {
-      column = new ColumnExpr({ this: parts[2], table: parts[1], db: parts[0] });
+      column = new ColumnExpr({
+        this: parts[2],
+        table: parts[1],
+        db: parts[0],
+      });
     } else {
-      column = new ColumnExpr({ this: parts[3], table: parts[2], db: parts[1], catalog: parts[0] });
+      column = new ColumnExpr({
+        this: parts[3],
+        table: parts[2],
+        db: parts[1],
+        catalog: parts[0],
+      });
       for (let i = 4; i < n; i++) {
-        column = new DotExpr({ this: column, expression: parts[i] });
+        column = new DotExpr({
+          this: column,
+          expression: parts[i],
+        });
       }
     }
 
@@ -10887,13 +10934,17 @@ export class Parser {
 
         // Dynamic brackets (e.g. value:a[s.x].b.c) can't be in the JSON path string
         // since the index is a column reference. Traverse Dot/Bracket layers collecting
-        // segments, then process them inside out.
+        // segments, then process them inside out
         const segments: [BracketExpr, string[]][] = [];
         let node: Expression | undefined = path as Expression;
+
         while (true) {
           const suffixes: string[] = [];
+
           while (node instanceof DotExpr) {
-            suffixes.push(node.args.expression?.sql({ dialect: this.dialect }) ?? '');
+            suffixes.push(node.args.expression?.sql({
+              dialect: this.dialect,
+            }) ?? '');
             node = node.args.this;
           }
 
@@ -10901,22 +10952,33 @@ export class Parser {
             (e: Expression) => e.find(ColumnExpr),
           )) {
             suffixes.reverse();
-            segments.push([node, suffixes]);
+            segments.push([
+              node,
+              suffixes,
+            ]);
             node = node.args.this;
           } else {
             break;
           }
         }
 
-        if (segments.length > 0) {
-          jsonPath.push(segments[segments.length - 1][0].args.this?.sql({ dialect: this.dialect }) ?? '');
-          for (const [bracket, suffixes] of [...segments].reverse()) {
+        if (0 < segments.length) {
+          jsonPath.push(segments[segments.length - 1][0].args.this?.sql({
+            dialect: this.dialect,
+          }) ?? '');
+          for (const [
+            bracket,
+            suffixes,
+          ] of [...segments].reverse()) {
             thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
-            thisExpr = new BracketExpr({ this: thisExpr, expressions: bracket.args.expressions });
+            thisExpr = new BracketExpr({
+              this: thisExpr,
+              expressions: bracket.args.expressions,
+            });
             jsonPath = suffixes;
           }
 
-          if (jsonPath.length > 0) {
+          if (0 < jsonPath.length) {
             thisExpr = this.buildJsonExtract(thisExpr, jsonPath, undefined);
           }
 
@@ -10948,6 +11010,7 @@ export class Parser {
 
   parseColumnOps (thisExpr?: Expression): Expression | undefined {
     let current = thisExpr;
+
     while (this.curr && this._constructor.BRACKETS.has(this.curr.tokenType)) {
       current = this.parseBracket(current);
     }
