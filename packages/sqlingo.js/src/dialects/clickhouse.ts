@@ -1090,8 +1090,7 @@ class ClickHouseParser extends Parser {
   }
 
   @cache
-  @cache
-  static get STATEMENT_PARSERS (): Record<string, (this: Parser, ...args: unknown[]) => Expression | Expression[]> {
+  static get STATEMENT_PARSERS (): Partial<Record<string, ((this: Parser, ...args: unknown[]) => Expression | Expression[]) | undefined>> {
     return {
       ...Parser.STATEMENT_PARSERS,
       [TokenType.DETACH]: function (this: Parser) {
@@ -1109,8 +1108,8 @@ class ClickHouseParser extends Parser {
       CODEC: function (this: Parser) {
         return (this as ClickHouseParser).parseCompress();
       },
-      ASSUME: function (this: Parser) {
-        return (this as ClickHouseParser).parseAssumeConstraint();
+      ASSUME: function (this: Parser): Expression {
+        return (this as ClickHouseParser).parseAssumeConstraint()!;
       },
     };
   }
@@ -1267,7 +1266,7 @@ class ClickHouseParser extends Parser {
           this: DataTypeExprKind.ARRAY,
           expressions: [
             bracketJsonType
-              || DataTypeExpr.build(DataTypeExprKind.JSON, { dialect: this.dialect, nullable: false }),
+              || DataTypeExpr.build(DataTypeExprKind.JSON, { dialect: this.dialect, nullable: false })!,
           ],
           nested: true,
         });

@@ -10791,7 +10791,7 @@ export class DataDeletionPropertyExpr extends PropertyExpr {
 export type DefinerPropertyExprArgs = Merge<[
   PropertyExprArgs,
   {
-    this?: string;
+    this?: string | Expression;
   },
 ]>;
 
