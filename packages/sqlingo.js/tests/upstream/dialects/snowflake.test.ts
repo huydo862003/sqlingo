@@ -7483,6 +7483,30 @@ FROM SEMANTIC_VIEW(
 
   }
 
+  testArrayExcept () {
+    this.validateAll(
+      'SELECT ARRAY_EXCEPT([1, 2, 3], [2])',
+      {
+        write: {
+          snowflake: 'SELECT ARRAY_EXCEPT([1, 2, 3], [2])',
+          duckdb: "SELECT CASE WHEN [1, 2, 3] IS NULL OR [2] IS NULL THEN NULL ELSE LIST_TRANSFORM(LIST_FILTER(LIST_ZIP([1, 2, 3], GENERATE_SERIES(1, LENGTH([1, 2, 3]))), pair -> (LENGTH(LIST_FILTER([1, 2, 3][1:pair[2]], e -> e IS NOT DISTINCT FROM pair[1])) > LENGTH(LIST_FILTER([2], e -> e IS NOT DISTINCT FROM pair[1])))), pair -> pair[1]) END",
+        },
+      },
+    );
+  }
+
+  testArrayPosition () {
+    this.validateAll(
+      'SELECT ARRAY_POSITION(2, ARRAY_CONSTRUCT(1, 2, 3))',
+      {
+        write: {
+          snowflake: 'SELECT ARRAY_POSITION(2, [1, 2, 3])',
+          duckdb: 'SELECT ARRAY_POSITION([1, 2, 3], 2) - 1',
+        },
+      },
+    );
+  }
+
   testArrayFlatten () {
     // String array flattening
     this.validateAll(
@@ -7941,6 +7965,14 @@ describe('TestSnowflake', () => {
 
   test('test type sensitive bitshift transpilation', () => {
     validator.testTypeSensitiveBitshiftTranspilation();
+  });
+
+  test('test array except', () => {
+    validator.testArrayExcept();
+  });
+
+  test('test array position', () => {
+    validator.testArrayPosition();
   });
 
   test('test array flatten', () => {

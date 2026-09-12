@@ -2077,6 +2077,44 @@ class TestDuckDB extends Validator {
       },
     );
   }
+  testMapInsert () {
+    this.validateAll(
+      "SELECT id, MAP_CONCAT(attrs, MAP {'new_key': 'new_value'}) AS attrs_with_insert FROM demo_maps",
+      {
+        read: {
+          snowflake: "SELECT id, MAP_INSERT(attrs, 'new_key', 'new_value') AS attrs_with_insert FROM demo_maps",
+        },
+        write: {
+          duckdb: "SELECT id, MAP_CONCAT(attrs, MAP {'new_key': 'new_value'}) AS attrs_with_insert FROM demo_maps",
+        },
+      },
+    );
+  }
+
+  testToArray () {
+    this.validateAll(
+      "SELECT CASE WHEN 'hello, snowman' IS NULL THEN NULL ELSE ['hello, snowman'] END AS result",
+      {
+        read: {
+          snowflake: "SELECT TO_ARRAY('hello, snowman') AS result",
+        },
+        write: {
+          duckdb: "SELECT CASE WHEN 'hello, snowman' IS NULL THEN NULL ELSE ['hello, snowman'] END AS result",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT ['a', 'b'] AS result",
+      {
+        read: {
+          snowflake: "SELECT TO_ARRAY(ARRAY_CONSTRUCT('a', 'b')) AS result",
+        },
+        write: {
+          duckdb: "SELECT ['a', 'b'] AS result",
+        },
+      },
+    );
+  }
 }
 
 const t = new TestDuckDB();
@@ -2119,4 +2157,6 @@ describe('TestDuckDB', () => {
   test('testCurrentSchema', () => t.testCurrentSchema());
   test('testMapDelete', () => t.testMapDelete());
   test('testMapSize', () => t.testMapSize());
+  test('testMapInsert', () => t.testMapInsert());
+  test('testToArray', () => t.testToArray());
 });

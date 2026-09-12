@@ -973,6 +973,50 @@ class TestExasol extends Validator {
       },
     );
   }
+  testGroupByAll () {
+    this.validateAll('SELECT id, city, COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT id, city, COUNT(*) FROM dealer GROUP BY 1, 2',
+        databricks: 'SELECT id, city, COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY 1',
+        databricks: 'SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT car_model, city FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT car_model, city FROM dealer GROUP BY 1, 2',
+        databricks: 'SELECT car_model, city FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT COUNT(*) FROM dealer',
+        databricks: 'SELECT COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY 1',
+        databricks: 'SELECT UPPER(city), COUNT(*) FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY 1',
+        databricks: 'SELECT city AS c, COUNT(*) + 1 FROM dealer GROUP BY ALL',
+      },
+    });
+    this.validateAll('SELECT city, COUNT(*) OVER () FROM dealer GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT city, COUNT(*) OVER () FROM dealer GROUP BY 1',
+        databricks: 'SELECT city, COUNT(*) OVER () FROM dealer GROUP BY ALL',
+      },
+    });
+  }
 }
 
 const t = new TestExasol();
@@ -991,4 +1035,5 @@ describe('TestExasol', () => {
   test('testOdbcDateLiterals', () => t.testOdbcDateLiterals());
   test('testLocalPrefixForAlias', () => t.testLocalPrefixForAlias());
   test('testRegexpLike', () => t.testRegexpLike());
+  test('testGroupByAll', () => t.testGroupByAll());
 });

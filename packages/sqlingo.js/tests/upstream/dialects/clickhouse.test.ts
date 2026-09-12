@@ -1719,6 +1719,18 @@ LIFETIME(MIN 0 MAX 0)`,
     (this.validateIdentity('SELECT sumMapIfState(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
   }
 
+  testDetach () {
+    for (const kind of ['TABLE', 'VIEW', 'DICTIONARY', 'DATABASE']) {
+      this.validateIdentity(`DETACH ${kind} t`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS t`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS db.t`);
+      this.validateIdentity(`DETACH ${kind} t ON CLUSTER c`);
+      this.validateIdentity(`DETACH ${kind} t PERMANENTLY`);
+      this.validateIdentity(`DETACH ${kind} t SYNC`);
+      this.validateIdentity(`DETACH ${kind} IF EXISTS db.t ON CLUSTER c PERMANENTLY SYNC`);
+    }
+  }
+
   testDropOnCluster () {
     for (const creatable of [
       'DATABASE',
@@ -2132,6 +2144,7 @@ describe('TestClickHouse', () => {
   test('ddl', () => t.testDdl());
   test('aggFunctions', () => t.testAggFunctions());
   test('aggFunctionsMultipleSuffixes', () => t.testAggFunctionsMultipleSuffixes());
+  test('testDetach', () => t.testDetach());
   test('dropOnCluster', () => t.testDropOnCluster());
   test('datetimeFuncs', () => t.testDatetimeFuncs());
   test('convert', () => t.testConvert());
