@@ -2,7 +2,7 @@
 _icon: icon.database
 ---
 
-32 SQL dialects, each importable as a standalone module for tree-shaking.
+32 SQL dialects, each importable as a standalone module for tree-shaking. See [Dialects](07-dialect) for how to use them.
 
 | Dialect | Import |
 |---------|--------|
@@ -37,3 +37,5 @@ _icon: icon.database
 | Teradata | `import { Teradata } from "@hdnax/sqlingo.js/teradata"` |
 | Trino | `import { Trino } from "@hdnax/sqlingo.js/trino"` |
 | TSQL | `import { TSQL } from "@hdnax/sqlingo.js/tsql"` |
+
+## Next: [FAQ](09-faq)

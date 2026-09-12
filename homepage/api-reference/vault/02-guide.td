@@ -2,139 +2,124 @@
 _icon: icon.compass
 ---
 
-A walkthrough of the main features: parsing, transpiling, building queries, column lineage, and optimization.
+This guide walks through the core concept behind sqlingo.js: SQL goes in as a string, becomes a tree, and comes back out as a string. Everything else (transpiling, optimizing, building) is a variation of this cycle.
 
-## Parsing
+## SQL in, tree out
 
-`parse` returns an array of AST expressions, one per statement. `parseOne` returns a single expression.
+`parseOne` turns a SQL string into an AST (abstract syntax tree). Each node in the tree represents a SQL concept: a column, a table, a WHERE clause, a function call.
 
 ```typescript
-import { parse, parseOne } from "@hdnax/sqlingo.js";
+import { parseOne } from "@hdnax/sqlingo.js";
 
-const expressions = parse("SELECT 1; SELECT 2");
-console.log(expressions.length); // 2
-
-const ast = parseOne("SELECT a, b FROM t WHERE a > 1");
-console.log(ast.sql()); // "SELECT a, b FROM t WHERE a > 1"
+const ast = parseOne("SELECT a, b + 1 AS c FROM users WHERE active = true");
 ```
 
-Pass a dialect to parse dialect-specific syntax:
+The result is not a string. It is a tree of `Expression` objects that you can inspect and modify.
+
+## Finding things in the tree
+
+Use `.findAll(Type)` to search for specific node types. This is how you extract metadata from SQL:
 
 ```typescript
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
+import { ColumnExpr, TableExpr } from "@hdnax/sqlingo.js";
 
-const [ast] = parse("SELECT `name` FROM users", { read: MySQL });
-```
-
-## Transpiling
-
-Convert SQL from one dialect to another with `transpile`:
-
-```typescript
-import { transpile } from "@hdnax/sqlingo.js";
-import { DuckDB } from "@hdnax/sqlingo.js/duckdb";
-import { Hive } from "@hdnax/sqlingo.js/hive";
-
-const [result] = transpile("SELECT EPOCH_MS(1618088028295)", {
-  read: DuckDB,
-  write: Hive,
-});
-console.log(result);
-// "SELECT FROM_UNIXTIME(1618088028295 / POW(10, 3))"
-```
-
-## Building queries
-
-Build SQL programmatically with a fluent API instead of string concatenation:
-
-```typescript
-import { select, condition } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-
-const query = select("a", "b")
-  .from("t")
-  .where(condition("a > 1"))
-  .limit(10);
-
-console.log(query.sql({ dialect: MySQL }));
-// "SELECT a, b FROM t WHERE a > 1 LIMIT 10"
-```
-
-Compose conditions separately:
-
-```typescript
-import { condition } from "@hdnax/sqlingo.js";
-
-const filter = condition("status = 'active'")
-  .and("created_at > '2024-01-01'")
-  .or("role = 'admin'");
-
-console.log(filter.sql());
-// "(status = 'active' AND created_at > '2024-01-01') OR role = 'admin'"
-```
-
-## Navigating the AST
-
-Every parsed element is an `Expression`. Walk, search, and transform the tree:
-
-```typescript
-import { parseOne, ColumnExpr } from "@hdnax/sqlingo.js";
-
-const ast = parseOne("SELECT a, b FROM t WHERE x > 1");
-
+// Find all column references
 for (const col of ast.findAll(ColumnExpr)) {
   console.log(col.name);
 }
-// "a", "b", "x"
+// "a", "b", "active"
+
+// Find all table references
+for (const table of ast.findAll(TableExpr)) {
+  console.log(table.name);
+}
+// "users"
 ```
 
-Transform nodes in place:
+`.find(Type)` returns the first match. `.walk()` iterates every node.
+
+## Tree out, SQL back
+
+Call `.sql()` on any node to generate SQL. Without arguments, you get the base dialect. Pass a dialect to get dialect-specific output:
+
+```typescript
+import { Postgres } from "@hdnax/sqlingo.js/postgres";
+
+console.log(ast.sql());
+// "SELECT a, b + 1 AS c FROM users WHERE active = TRUE"
+
+console.log(ast.sql({ dialect: Postgres }));
+// "SELECT a, b + 1 AS c FROM users WHERE active = TRUE"
+```
+
+The base dialect uppercases booleans (`true` becomes `TRUE`). Each dialect knows its own conventions for booleans, identifier quoting, function names, and data types.
+
+## Transforming the tree
+
+`.transform()` walks the tree and lets you replace nodes:
 
 ```typescript
 const transformed = ast.transform((node) => {
-  // Return a new node to replace, or undefined to keep as-is
-  return undefined;
+  // Rename column "a" to "id"
+  if (node instanceof ColumnExpr && node.name === "a") {
+    return parseOne("id");
+  }
+  return node; // keep everything else
 });
+
+console.log(transformed.sql());
+// "SELECT id, b + 1 AS c FROM users WHERE active = TRUE"
+```
+
+This is how transpilation works internally: the generator walks the tree and outputs dialect-specific SQL for each node type.
+
+## Parsing multiple statements
+
+`parse` (not `parseOne`) handles multiple statements separated by semicolons:
+
+```typescript
+import { parse } from "@hdnax/sqlingo.js";
+
+const statements = parse("SELECT 1; SELECT 2; SELECT 3");
+console.log(statements.length); // 3
 ```
 
 ## Column lineage
 
-Trace the origin of columns through subqueries and joins:
+Trace where a column comes from through subqueries and aliases:
 
 ```typescript
 import { lineage } from "@hdnax/sqlingo.js";
 
 const node = lineage("b", "SELECT a AS b FROM (SELECT x AS a FROM y)");
-console.log(node.source.name);
-// "y"
+console.log(node.name); // "b"
+console.log(node.downstream[0].name); // "_0.a"
 ```
 
-## Tokenizing
+The lineage tracer follows the alias chain through subqueries, qualifying columns along the way.
 
-Extract tokens from a SQL string for lower-level analysis:
+## Error handling
 
-```typescript
-import { tokenize } from "@hdnax/sqlingo.js";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
-
-const tokens = tokenize("SELECT 1", { dialect: Postgres });
-```
-
-## Custom dialects
-
-Extend `Dialect` to add your own SQL flavor:
+When SQL cannot be parsed, a `ParseError` is thrown with structured details:
 
 ```typescript
-import { Dialect, Generator, transpile } from "@hdnax/sqlingo.js";
+import { parseOne, ParseError } from "@hdnax/sqlingo.js";
 
-class MyDialect extends Dialect {
-  static DIALECT_NAME = "my_dialect";
-
-  static Generator = class extends Generator {
-    // Override how specific expressions are generated
-  };
+try {
+  parseOne("SELECT foo FROM (SELECT baz FROM t");
+} catch (e) {
+  if (e instanceof ParseError) {
+    console.log(e.errors);
+    // [{ description: "...", line: 1, col: 35, ... }]
+  }
 }
-
-Dialect.register(MyDialect);
-const [result] = transpile("SELECT 1", { write: MyDialect });
 ```
+
+## What's next
+
+Now that you understand the parse-tree-generate cycle, the rest of the docs go deeper:
+
+- [Transpiling](03-transpiling) shows how dialects map functions, types, and syntax between databases
+- [Optimization](04-optimize) shows how schema information enables query simplification
+- [Building SQL](05-builders) shows how to construct ASTs without parsing a string first
+- [Expressions](06-expression) is the full reference for the AST node API

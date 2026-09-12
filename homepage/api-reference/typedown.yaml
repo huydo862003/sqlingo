@@ -6,3 +6,8 @@ site:
   title: "sqlingo.js API Reference"
   description: "API reference for sqlingo.js - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
   base_path: "/sqlingo.js/api-reference"
+  nav:
+    - label: "Home"
+      href: "/sqlingo.js/"
+    - label: "Playground"
+      href: "/sqlingo.js/playground/"
