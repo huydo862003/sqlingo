@@ -5,9 +5,11 @@ import {
   ToCharExpr,
 } from '../../../src/expressions';
 import {
-  transpile, ErrorLevel,
+  transpile, ErrorLevel, parseOne,
   UnsupportedError,
 } from '../../../src/index';
+import { annotateTypes } from '../../../src/optimizer/annotate_types';
+import { DivExpr, DataTypeExprKind } from '../../../src/expressions';
 import {
   Validator,
 } from './validator';
@@ -254,6 +256,16 @@ class TestDremio extends Validator {
     );
   }
 
+  testTypedDivision () {
+    const divResultType = (sql: string, dialect: string) => {
+      const tree = parseOne(sql, { dialect });
+      annotateTypes(tree, { dialect });
+      return tree.find(DivExpr)?.type?.args?.this;
+    };
+    expect(divResultType('SELECT 5 / 2', 'dremio')).toBe(DataTypeExprKind.BIGINT);
+    expect(divResultType('SELECT 5 / 2', 'oracle')).toBe(DataTypeExprKind.DOUBLE);
+  }
+
   testUserDefinedTypesUnsupported () {
     expect(() => this.parseOne('CAST(x AS MY_CUSTOM_TYPE)')).toThrow();
   }
@@ -281,5 +293,6 @@ describe('TestDremio', () => {
   test('testDatePart', () => t.testDatePart());
   test('testDatetype', () => t.testDatetype());
   test('testTryCast', () => t.testTryCast());
+  test('testTypedDivision', () => t.testTypedDivision());
   test('testUserDefinedTypesUnsupported', () => t.testUserDefinedTypesUnsupported());
 });

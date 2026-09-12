@@ -6,6 +6,9 @@ import {
   UnsupportedError,
 } from '../../../src/index';
 import {
+  annotateTypes,
+} from '../../../src/optimizer/annotate_types';
+import {
   TruncExpr, ArrayOverlapsExpr,
   InstallExpr, ShowExpr,
   AnonymousExpr, ColumnExpr,
@@ -2125,6 +2128,47 @@ class TestDuckDB extends Validator {
       },
     });
   }
+
+  testIgnoreNulls () {
+    // Window functions should render IGNORE NULLS, aggregate functions should not
+    const windowFuncs = ['LEAD', 'LAG', 'FIRST_VALUE', 'LAST_VALUE'];
+    for (const fn of windowFuncs) {
+      const sql = `SELECT ${fn}(col IGNORE NULLS) OVER (ORDER BY x)`;
+      const result = this.parseOne(sql, { dialect: 'duckdb' }).sql({ dialect: 'duckdb' });
+      expect(result).toContain('IGNORE NULLS');
+    }
+    // NTH_VALUE needs offset
+    const nthSql = 'SELECT NTH_VALUE(col, 2 IGNORE NULLS) OVER (ORDER BY x)';
+    expect(this.parseOne(nthSql, { dialect: 'duckdb' }).sql({ dialect: 'duckdb' })).toContain('IGNORE NULLS');
+  }
+
+  testMapPick () {
+    const sql = 'SELECT MAP_PICK(t.t_map, t.t_key) FROM t';
+    let annotated = annotateTypes(
+      parseOne(sql, { dialect: 'snowflake' }),
+      { schema: { t: { t_map: 'MAP(VARCHAR, INT)', t_key: 'VARCHAR' } }, dialect: 'snowflake' },
+    );
+    expect(annotated.sql({ dialect: 'duckdb' })).toBe(
+      'SELECT MAP_FROM_ENTRIES(LIST_FILTER(MAP_ENTRIES(t.t_map), x -> x.key IN (t.t_key))) FROM t',
+    );
+
+    annotated = annotateTypes(
+      parseOne(sql, { dialect: 'snowflake' }),
+      { schema: { t: { t_map: 'MAP(VARCHAR, INT)', t_key: 'ARRAY(VARCHAR)' } }, dialect: 'snowflake' },
+    );
+    expect(annotated.sql({ dialect: 'duckdb' })).toBe(
+      'SELECT MAP_FROM_ENTRIES(LIST_FILTER(MAP_ENTRIES(t.t_map), x -> ARRAY_CONTAINS(t.t_key, x.key))) FROM t',
+    );
+
+    const sql2 = 'SELECT MAP_PICK(t.t_map, t.t_key1, t.t_key2) FROM t';
+    annotated = annotateTypes(
+      parseOne(sql2, { dialect: 'snowflake' }),
+      { schema: { t: { t_map: 'MAP(VARCHAR, INT)', t_key1: 'VARCHAR', t_key2: 'VARCHAR' } }, dialect: 'snowflake' },
+    );
+    expect(annotated.sql({ dialect: 'duckdb' })).toBe(
+      'SELECT MAP_FROM_ENTRIES(LIST_FILTER(MAP_ENTRIES(t.t_map), x -> x.key IN (t.t_key1, t.t_key2))) FROM t',
+    );
+  }
 }
 
 const t = new TestDuckDB();
@@ -2170,4 +2214,6 @@ describe('TestDuckDB', () => {
   test('testMapInsert', () => t.testMapInsert());
   test('testToArray', () => t.testToArray());
   test('testCurrentSchemas', () => t.testCurrentSchemas());
+  test('testIgnoreNulls', () => t.testIgnoreNulls());
+  test('testMapPick', () => t.testMapPick());
 });
