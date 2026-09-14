@@ -9,11 +9,11 @@ The previous pages started with SQL strings. This page shows the opposite: build
 ```typescript
 import { select } from "@hdnax/sqlingo.js";
 
-select("x").from("t").where("x > 1").sql();
-// "SELECT x FROM t WHERE x > 1"
+select(["x", "y"]).from("t").where("x > 1").sql();
+// "SELECT x, y FROM t WHERE x > 1"
 ```
 
-Chain `.select()` to add more columns:
+You can also chain `.select()` to add columns incrementally:
 
 ```typescript
 select("x").select("y").from("t").sql();
