@@ -1,12 +1,14 @@
 ---
-_icon: icon.file_code
+_label: "Transpiling"
+_icon: icon.arrow_left_right
+description: "Cross-dialect SQL translation: how functions, types, quoting, and syntax get mapped between databases."
 ---
 
-Transpilation is the main use case: read SQL in one dialect, write it in another. The [Guide](02-guide) showed the basic cycle. This page covers what actually changes between dialects and how to control it.
+Transpilation is the main use case: read SQL in one dialect, write it in another. The [previous page](01-parsing-and-trees) showed the parse-tree-generate cycle. This page covers what actually changes between dialects and how to control it.
 
 ## What gets translated
 
-Dialects differ in function names, date handling, quoting, types, and syntax. sqlingo.js maps between them:
+Dialects differ in function names, date handling, quoting, types, and syntax. sqlingo.js maps between them automatically when you specify source and target dialects.
 
 ```typescript
 import { transpile } from "@hdnax/sqlingo.js";
@@ -30,6 +32,8 @@ transpile("SELECT a || b", { read: Postgres, write: MySQL })[0];
 
 ## `transpile(sql, options?)`
 
+The main entry point for dialect-to-dialect translation. It returns one SQL string per statement in the input.
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `sql` | `string` | SQL to transpile |
@@ -38,38 +42,25 @@ transpile("SELECT a || b", { read: Postgres, write: MySQL })[0];
 | `options.pretty` | `boolean` | Pretty-print the output with indentation |
 | `options.identify` | `boolean` | Quote all identifiers |
 
-Returns `string[]`: one SQL string per statement.
-
 When `read` is omitted, the input is parsed with the base dialect (a superset that accepts most syntax). When `write` is omitted, the output uses the same base dialect.
 
-## `parse` and `parseOne`
+## Two-step transpilation
 
-If you need the AST instead of a string, use `parse` or `parseOne`:
+If you need to inspect or modify the AST between parsing and generating, use `parseOne` and `.sql()` separately. This gives you full control over the tree before output.
 
 ```typescript
-import { parse, parseOne } from "@hdnax/sqlingo.js";
+import { parseOne } from "@hdnax/sqlingo.js";
 import { MySQL } from "@hdnax/sqlingo.js/mysql";
-
-// Multiple statements
-const stmts = parse("SELECT 1; SELECT 2", { read: MySQL });
-
-// Single statement
-const ast = parseOne("SELECT 1", { read: MySQL });
-```
-
-Then generate SQL from the AST:
-
-```typescript
 import { Postgres } from "@hdnax/sqlingo.js/postgres";
 
+const ast = parseOne("SELECT 1", { read: MySQL });
+// inspect or transform the AST here
 console.log(ast.sql({ dialect: Postgres, pretty: true }));
 ```
 
-This two-step approach is useful when you want to inspect or modify the AST between parsing and generating, as described in the [Guide](02-guide).
-
 ## Unsupported features
 
-When a dialect does not support a feature, a warning is emitted rather than an error. The SQL is generated on a best-effort basis:
+When a dialect does not support a feature, a warning is emitted rather than an error. The SQL is generated on a best-effort basis.
 
 ```typescript
 const [sql] = transpile("SELECT APPROX_DISTINCT(x) FROM t", {
@@ -78,7 +69,3 @@ const [sql] = transpile("SELECT APPROX_DISTINCT(x) FROM t", {
 });
 // MySQL doesn't have APPROX_DISTINCT; a warning is logged
 ```
-
-## Next: [Optimization](04-optimize)
-
-Once you can transpile SQL, the next step is optimizing it. The optimizer uses schema information to simplify conditions, qualify columns, and eliminate dead code.

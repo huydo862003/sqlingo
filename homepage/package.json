@@ -13,19 +13,19 @@
   },
   "dependencies": {
     "@dbml/parse": "^7.1.2",
-    "@hdnax/genuix": "^0.18.1",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@hdnax/genuix": "^0.19.0",
     "@hdnax/sqlingo.js": "workspace:*",
     "@unhead/vue": "^3.4.0",
     "highlight.js": "^11.12.0",
     "marked": "^18.0.11",
     "monaco-editor": "^0.55.1",
     "pinia": "^3.0.4",
-    "typerighter": "^0.30.7",
+    "typerighter": "^0.32.2",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "@fontsource-variable/archivo": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^25.9.5",
