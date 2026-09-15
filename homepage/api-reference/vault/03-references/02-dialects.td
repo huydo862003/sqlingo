@@ -1,8 +1,53 @@
 ---
-_icon: icon.database
+_label: "Dialects"
+_icon: icon.globe
+description: "How dialects work, class-based vs string-based usage, tree-shaking, and all 32 supported SQL dialects."
 ---
 
-32 SQL dialects, each importable as a standalone module for tree-shaking. See [Dialects](07-dialect) for how to use them.
+Dialects control how SQL is parsed and generated. The [Transpiling](../02-guide/02-transpiling) page showed them in action. This page explains how they work under the hood and lists every supported dialect.
+
+## Class-based (recommended)
+
+Pass dialect classes directly. No registration needed, fully tree-shakeable.
+
+```typescript
+import { parse, transpile } from "@hdnax/sqlingo.js";
+import { MySQL } from "@hdnax/sqlingo.js/mysql";
+import { Postgres } from "@hdnax/sqlingo.js/postgres";
+
+parse("SELECT 1", { read: MySQL });
+transpile("SELECT 1", { read: MySQL, write: Postgres });
+```
+
+Each dialect is a separate import, so your bundler only ships the ones you use.
+
+## String-based (opt-in)
+
+For apps that resolve dialects from config or user input, register them first with `Dialect.register()`.
+
+```typescript
+import { Dialect } from "@hdnax/sqlingo.js";
+import { MySQL } from "@hdnax/sqlingo.js/mysql";
+import { Postgres } from "@hdnax/sqlingo.js/postgres";
+
+Dialect.register(MySQL, Postgres);
+
+parse("SELECT 1", { read: "mysql" });
+```
+
+## How dialects work
+
+Each dialect is a class with three parts:
+
+1. **Tokenizer rules**: how to break SQL into tokens (keywords, identifier quoting, escape sequences)
+2. **Parser overrides**: dialect-specific syntax (MySQL backtick quoting, BigQuery struct syntax, etc.)
+3. **Generator transforms**: how to map AST nodes to SQL (converting `NVL` to `COALESCE`, etc.)
+
+When you pass `{ read: MySQL, write: Postgres }`, sqlingo.js uses MySQL's tokenizer and parser to read the input, then Postgres's generator to write the output.
+
+## Supported dialects
+
+32 SQL dialects, each importable as a standalone module for tree-shaking.
 
 | Dialect | Import |
 |---------|--------|
@@ -37,5 +82,3 @@ _icon: icon.database
 | Teradata | `import { Teradata } from "@hdnax/sqlingo.js/teradata"` |
 | Trino | `import { Trino } from "@hdnax/sqlingo.js/trino"` |
 | TSQL | `import { TSQL } from "@hdnax/sqlingo.js/tsql"` |
-
-## Next: [FAQ](09-faq)

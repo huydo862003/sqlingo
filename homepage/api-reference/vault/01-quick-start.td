@@ -1,16 +1,18 @@
 ---
+_label: "Quick start"
 _icon: icon.rocket
+description: "Install sqlingo.js, parse your first query, transpile between dialects, and optimize with schema information."
 ---
 
-Get sqlingo.js running in under a minute.
+Get sqlingo.js running in under a minute. This page covers installation and the three core operations: parsing, transpiling, and optimizing.
 
 ## Install
+
+sqlingo.js ships as a single npm package. `luxon` is a peer dependency used for date and time operations.
 
 ```bash
 npm install @hdnax/sqlingo.js luxon
 ```
-
-`luxon` is a peer dependency used for date/time operations.
 
 ## Parse SQL
 
@@ -25,7 +27,7 @@ console.log(ast.sql()); // "SELECT a, b FROM users WHERE active = TRUE"
 
 ## Transpile between dialects
 
-To translate SQL from one database to another, import the dialect classes and pass them to `transpile`:
+To translate SQL from one database to another, import the dialect classes and pass them to `transpile`. Each dialect is a separate import, so your bundler only ships the ones you use.
 
 ```typescript
 import { transpile } from "@hdnax/sqlingo.js";
@@ -40,11 +42,9 @@ console.log(sql);
 // "SELECT d - INTERVAL '1 DAY' FROM t"
 ```
 
-Each dialect is a separate import, so your bundler only ships the ones you use.
-
 ## Optimize a query
 
-With schema information, the optimizer can qualify columns, simplify conditions, and remove dead code:
+With schema information, the optimizer can qualify columns, simplify conditions, and remove dead code.
 
 ```typescript
 import { optimize, parseOne, MappingSchema } from "@hdnax/sqlingo.js";
@@ -63,4 +63,4 @@ Notice `SELECT *` expanded to named columns, `1 = 1` removed, and everything qua
 
 ## Next steps
 
-These three operations (parse, transpile, optimize) are the foundation. The [Guide](02-guide) explains what happens under the hood: how SQL becomes a tree, how you navigate that tree, and how the tree becomes SQL again.
+These three operations are the foundation. The [Guide](02-guide/01-parsing-and-trees) explains what happens under the hood: how SQL becomes a tree, how you navigate that tree, and how the tree becomes SQL again.
