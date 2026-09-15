@@ -9,7 +9,7 @@
         <span class="td-footer-text">
           sqlingo is
           <a
-            href="https://github.com/huydo862003/sqlingo.js/blob/master/COPYRIGHT_NOTICE"
+            href="https://github.com/huydo862003/sqlingo/blob/master/COPYRIGHT_NOTICE"
             target="_blank"
             rel="noopener noreferrer"
             class="td-footer-link"
@@ -24,7 +24,7 @@
         </span>
         <div class="flex-1" />
         <a
-          href="https://github.com/huydo862003/sqlingo.js/issues"
+          href="https://github.com/huydo862003/sqlingo/issues"
           target="_blank"
           rel="noopener noreferrer"
           class="td-footer-link"

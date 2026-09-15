@@ -175,7 +175,7 @@
           API reference
         </a>
         <a
-          href="https://github.com/huydo862003/sqlingo.js"
+          href="https://github.com/huydo862003/sqlingo"
           target="_blank"
           rel="noopener noreferrer"
           class="td-nav-link hidden sm:block"

@@ -1,7 +1,7 @@
 # sqlingo
 
 [![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo.js/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo/blob/master/LICENSE)
 ![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.0.0-blue)
 <a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
 
@@ -15,9 +15,9 @@ WARNING: This package is still in alpha.
 
 NOTICE: AI is not the decision maker, designer or maintainer for this project. It is indeed sometimes used to port straightforward code with less effort. However, the point is to always keep its usage under control & understand what's going on, so I can maintain this project reliably as sqlglot updates.
 
-- [GitHub](https://github.com/huydo862003/sqlingo.js)
-- [Issues](https://github.com/huydo862003/sqlingo.js/issues)
-- [Changelog](https://github.com/huydo862003/sqlingo.js/blob/master/CHANGELOG.md)
+- [GitHub](https://github.com/huydo862003/sqlingo)
+- [Issues](https://github.com/huydo862003/sqlingo/issues)
+- [Changelog](https://github.com/huydo862003/sqlingo/blob/master/CHANGELOG.md)
 
 ## Features
 
@@ -180,10 +180,10 @@ Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, D
 
 ## SQLGlot Compatibility
 
-This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo.js/blob/master/CONVENTION.md) for details.
+This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/CONVENTION.md) for details.
 
 ## License
 
-MIT. See [LICENSE](https://github.com/huydo862003/sqlingo.js/blob/master/LICENSE).
+MIT. See [LICENSE](https://github.com/huydo862003/sqlingo/blob/master/LICENSE).
 
-Based on [SQLGlot](https://github.com/tobymao/sqlglot) by Toby Mao (MIT). See [COPYRIGHT_NOTICE](https://github.com/huydo862003/sqlingo.js/blob/master/COPYRIGHT_NOTICE).
+Based on [SQLGlot](https://github.com/tobymao/sqlglot) by Toby Mao (MIT). See [COPYRIGHT_NOTICE](https://github.com/huydo862003/sqlingo/blob/master/COPYRIGHT_NOTICE).

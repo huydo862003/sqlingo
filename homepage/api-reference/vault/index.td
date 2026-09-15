@@ -43,8 +43,8 @@ sqlingo tracks [SQLGlot](https://github.com/tobymao/sqlglot) upstream. Planned w
 
 ## Links
 
-- [Changelog](https://github.com/huydo862003/sqlingo.js/blob/master/CHANGELOG.md) for release history
-- [GitHub](https://github.com/huydo862003/sqlingo.js) for source code
-- [Issues](https://github.com/huydo862003/sqlingo.js/issues) for bug reports and feature requests
+- [Changelog](https://github.com/huydo862003/sqlingo/blob/master/CHANGELOG.md) for release history
+- [GitHub](https://github.com/huydo862003/sqlingo) for source code
+- [Issues](https://github.com/huydo862003/sqlingo/issues) for bug reports and feature requests
 - [npm](https://www.npmjs.com/package/sqlingo) for the published package
-- [Playground](https://huydo862003.github.io/sqlingo.js/playground/) to try it in the browser
+- [Playground](https://huydo862003.github.io/sqlingo/playground/) to try it in the browser

@@ -6,7 +6,7 @@
 		"version": "29.0.1",
 		"url": "https://github.com/tobymao/sqlglot"
 	},
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"type": "module",
 	"sideEffects": false,
 	"description": "SQL parser, transpiler, optimizer, and engine for JavaScript/TypeScript - 32 dialects (Postgres, MySQL, BigQuery, Snowflake, DuckDB, etc). Port of Python SQLGlot.",
@@ -240,12 +240,12 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/huydo862003/sqlingo.js.git"
+		"url": "https://github.com/huydo862003/sqlingo.git"
 	},
 	"bugs": {
-		"url": "https://github.com/huydo862003/sqlingo.js/issues"
+		"url": "https://github.com/huydo862003/sqlingo/issues"
 	},
-	"homepage": "https://huydo862003.github.io/sqlingo.js",
+	"homepage": "https://huydo862003.github.io/sqlingo",
 	"files": [
 		"dist",
 		"LICENSE",

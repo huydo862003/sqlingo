@@ -31,7 +31,7 @@ sqlingo is a JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/
 
 ## Can I use it in the browser?
 
-Yes. sqlingo works in both Node.js and browsers. The package ships ESM builds. Try it in the [Playground](https://huydo862003.github.io/sqlingo.js/playground/).
+Yes. sqlingo works in both Node.js and browsers. The package ships ESM builds. Try it in the [Playground](https://huydo862003.github.io/sqlingo/playground/).
 
 ## How large is the bundle?
 
@@ -39,4 +39,4 @@ The core parser is around 200KB minified (before gzip). Each dialect adds 10-40K
 
 ## How do I report a bug or request a feature?
 
-Open an issue on [GitHub](https://github.com/huydo862003/sqlingo.js/issues). Include the input SQL, the expected output, and the dialect pair if applicable.
+Open an issue on [GitHub](https://github.com/huydo862003/sqlingo/issues). Include the input SQL, the expected output, and the dialect pair if applicable.

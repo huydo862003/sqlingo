@@ -1,5 +1,5 @@
 packages:
-  - packages/sqlingo.js
+  - packages/sqlingo
   - homepage
 
 overrides:

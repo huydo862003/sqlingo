@@ -10,7 +10,7 @@ import {
 const __dirname = new URL('.', import.meta.url).pathname;
 
 export default defineConfig({
-  base: '/sqlingo.js/',
+  base: '/sqlingo/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src/'),

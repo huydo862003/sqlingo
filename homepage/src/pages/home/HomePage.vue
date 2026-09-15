@@ -45,7 +45,7 @@
             </button>
           </div>
           <a
-            href="/sqlingo.js/playground/"
+            href="/sqlingo/playground/"
             class="td-cta-btn"
           >
             Try the playground
@@ -138,7 +138,7 @@
           <div class="td-card-action">Browse the docs</div>
         </a>
         <a
-          href="/sqlingo.js/playground/"
+          href="/sqlingo/playground/"
           class="td-card"
         >
           <div class="td-card-eyebrow">Playground</div>
@@ -220,7 +220,7 @@
           "operatingSystem": "All",
           "license": "https://opensource.org/licenses/MIT",
           "softwareVersion": SQLINGO_VERSION,
-          "url": "https://huydo862003.github.io/sqlingo.js/",
+          "url": "https://huydo862003.github.io/sqlingo/",
           "author": {
             "@type": "Person",
             "name": "Huy Do",
