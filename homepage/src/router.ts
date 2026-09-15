@@ -3,6 +3,12 @@ import {
 } from 'vue-router';
 import HomePage from './pages/home/HomePage.vue';
 
+const playgroundImport = () => import('./pages/playground/PlaygroundPage.vue');
+
+export function preloadPlayground () {
+  playgroundImport();
+}
+
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -12,7 +18,7 @@ export const router = createRouter({
     },
     {
       path: '/playground/',
-      component: () => import('./pages/playground/PlaygroundPage.vue'),
+      component: playgroundImport,
     },
     {
       path: '/:pathMatch(.*)*',
