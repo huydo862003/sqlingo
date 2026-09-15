@@ -11,7 +11,7 @@ import {
   SchemaExpr,
   UniqueColumnConstraintExpr,
   type CreateExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import type {
   DbmlColumn,
 } from '../../types';
@@ -36,7 +36,7 @@ import {
   indexFromParameters,
 } from './indexes';
 
-// Build dbml model tables from sqlingo.js AST
+// Build dbml model tables from sqlingo AST
 
 export interface BuiltTable {
   table: DbmlTable;

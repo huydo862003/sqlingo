@@ -3,9 +3,9 @@ import {
   Expression,
   IdentifierExpr,
   TableExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 
-// Extract text and qualified names from sqlingo.js AST nodes
+// Extract text and qualified names from sqlingo AST nodes
 
 export interface QualifiedName {
   schema?: string;

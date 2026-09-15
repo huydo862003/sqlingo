@@ -1,7 +1,7 @@
 import '../dialects';
 import {
   transpile as _transpile, parse, CommandExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 
 export function transpile (
   sql: string,

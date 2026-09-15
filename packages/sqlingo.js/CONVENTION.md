@@ -1,6 +1,6 @@
 # Convention
 
-This document describes the conventions used when porting SQLGlot (Python) to sqlingo.js (TypeScript). It is intended to help contributors understand the mapping decisions and avoid common pitfalls.
+This document describes the conventions used when porting SQLGlot (Python) to sqlingo (TypeScript). It is intended to help contributors understand the mapping decisions and avoid common pitfalls.
 
 
 ## Naming Conventions

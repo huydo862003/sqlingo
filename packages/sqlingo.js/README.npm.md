@@ -1,6 +1,6 @@
-# sqlingo.js
+# sqlingo
 
-[![npm version](https://img.shields.io/npm/v/@hdnax/sqlingo.js)](https://www.npmjs.com/package/@hdnax/sqlingo.js)
+[![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo.js/blob/master/LICENSE)
 ![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.0.0-blue)
 <a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
@@ -29,9 +29,9 @@ NOTICE: AI is not the decision maker, designer or maintainer for this project. I
 ## Installation
 
 ```bash
-npm install @hdnax/sqlingo.js
+npm install sqlingo
 # or
-pnpm add @hdnax/sqlingo.js
+pnpm add sqlingo
 ```
 
 Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is required for date/time operations.
@@ -41,9 +41,9 @@ Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is requ
 This example demonstrates transpiling a query from Spark to Postgres and then optimizing it.
 
 ```ts
-import { transpile, parseOne, optimize, MappingSchema } from "@hdnax/sqlingo.js";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
-import { Spark } from "@hdnax/sqlingo.js/spark";
+import { transpile, parseOne, optimize, MappingSchema } from "sqlingo";
+import { Postgres } from "sqlingo/postgres";
+import { Spark } from "sqlingo/spark";
 
 // Transpile between dialects
 const [pgSql] = transpile("SELECT APPROX_COUNT_DISTINCT(x) FROM table", {
@@ -69,7 +69,7 @@ console.log(optimized.sql());
 Parse SQL strings into expression trees (AST).
 
 ```ts
-import { parse, parseOne } from "@hdnax/sqlingo.js";
+import { parse, parseOne } from "sqlingo";
 
 // Parse multiple statements
 const expressions = parse("SELECT 1; SELECT 2");
@@ -83,9 +83,9 @@ const expr = parseOne("SELECT a, b FROM t WHERE a > 1");
 Convert SQL between different dialects.
 
 ```ts
-import { transpile } from "@hdnax/sqlingo.js";
-import { DuckDB } from "@hdnax/sqlingo.js/duckdb";
-import { Hive } from "@hdnax/sqlingo.js/hive";
+import { transpile } from "sqlingo";
+import { DuckDB } from "sqlingo/duckdb";
+import { Hive } from "sqlingo/hive";
 
 const [result] = transpile("SELECT EPOCH_MS(1618088028295)", {
   read: DuckDB,
@@ -99,8 +99,8 @@ const [result] = transpile("SELECT EPOCH_MS(1618088028295)", {
 Extract tokens from a SQL string for lower-level analysis.
 
 ```ts
-import { tokenize } from "@hdnax/sqlingo.js";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { tokenize } from "sqlingo";
+import { Postgres } from "sqlingo/postgres";
 
 const tokens = tokenize("SELECT 1", {
   dialect: Postgres,
@@ -112,8 +112,8 @@ const tokens = tokenize("SELECT 1", {
 Build queries programmatically using a fluent API.
 
 ```ts
-import { select, condition } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
+import { select, condition } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
 
 const query = select("a", "b").from("t").where(condition("a > 1")).limit(10);
 
@@ -132,7 +132,7 @@ console.log(
 Simplify and normalize queries based on schema information.
 
 ```ts
-import { optimize, MappingSchema } from "@hdnax/sqlingo.js";
+import { optimize, MappingSchema } from "sqlingo";
 
 const schema = new MappingSchema({
   // define your schema
@@ -146,7 +146,7 @@ const optimized = optimize(parseOne("SELECT * FROM t"), { schema });
 Trace the origin of columns through subqueries and joins.
 
 ```ts
-import { lineage } from "@hdnax/sqlingo.js";
+import { lineage } from "sqlingo";
 
 const node = lineage("b", "SELECT a AS b FROM (SELECT x AS a FROM y)");
 console.log(node.source.name);
@@ -158,7 +158,7 @@ console.log(node.source.name);
 You can extend the library by registering custom dialects or overriding existing behavior.
 
 ```ts
-import { Dialect, Generator, transpile } from "@hdnax/sqlingo.js";
+import { Dialect, Generator, transpile } from "sqlingo";
 
 class MyDialect extends Dialect {
   static DIALECT_NAME = "my_dialect";

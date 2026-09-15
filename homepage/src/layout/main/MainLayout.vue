@@ -7,7 +7,7 @@
     <footer class="td-footer">
       <div class="td-footer-inner">
         <span class="td-footer-text">
-          sqlingo.js is
+          sqlingo is
           <a
             href="https://github.com/huydo862003/sqlingo.js/blob/master/COPYRIGHT_NOTICE"
             target="_blank"

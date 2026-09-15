@@ -1,6 +1,6 @@
-# sqlingo.js
+# sqlingo
 
-[![npm version](https://img.shields.io/npm/v/@hdnax/sqlingo.js)](https://www.npmjs.com/package/@hdnax/sqlingo.js)
+[![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.0.0-blue)
 <a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
@@ -24,9 +24,9 @@ NOTICE: AI is not the decision maker, designer or maintainer for this project. I
 ## Installation
 
 ```bash
-npm install @hdnax/sqlingo.js
+npm install sqlingo
 # or
-pnpm add @hdnax/sqlingo.js
+pnpm add sqlingo
 ```
 
 Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is required for date/time operations.
@@ -36,9 +36,9 @@ Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is requ
 This example demonstrates transpiling a query from Spark to Postgres and then optimizing it.
 
 ```ts
-import { transpile, parseOne, optimize, MappingSchema } from "@hdnax/sqlingo.js";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
-import { Spark } from "@hdnax/sqlingo.js/spark";
+import { transpile, parseOne, optimize, MappingSchema } from "sqlingo";
+import { Postgres } from "sqlingo/postgres";
+import { Spark } from "sqlingo/spark";
 
 // Transpile between dialects
 const [pgSql] = transpile("SELECT APPROX_COUNT_DISTINCT(x) FROM table", {
@@ -65,7 +65,7 @@ Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, D
 
 ## Goals (& Non-goals)
 
-The main goal is that sqlingo.js should be a close mirror to SQLGlot. This way, it can quickly catch up with SQLGlot bug fixes and new releases.
+The main goal is that sqlingo should be a close mirror to SQLGlot. This way, it can quickly catch up with SQLGlot bug fixes and new releases.
 
 Another goal is to stay true to Typescript convention (check [CONVENTION.md](./CONVENTION.md)).
 
@@ -123,7 +123,7 @@ I have compiled our convention and lots of pitfalls there. You can use the knowl
 
 ## License
 
-sqlingo.js is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+sqlingo is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## Attribution
 

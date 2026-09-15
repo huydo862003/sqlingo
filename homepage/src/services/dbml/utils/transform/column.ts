@@ -15,7 +15,7 @@ import {
   SchemaExpr,
   UniqueColumnConstraintExpr,
   type ColumnDefExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlCheck,
   DbmlColumn,
@@ -33,7 +33,7 @@ import {
   mapDataType,
 } from './type';
 
-// Build dbml model columns from sqlingo.js AST
+// Build dbml model columns from sqlingo AST
 
 export function buildDbmlColumn (expr: ColumnDefExpr): DbmlColumn {
   const name = extractNodeText(expr.args.this);

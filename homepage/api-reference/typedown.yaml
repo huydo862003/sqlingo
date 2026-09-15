@@ -3,8 +3,8 @@ vault:
   root_dir: "vault"
 repo: "https://github.com/huydo862003/sqlingo.js"
 site:
-  title: "sqlingo.js API Reference"
-  description: "API reference for sqlingo.js - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
+  title: "sqlingo API Reference"
+  description: "API reference for sqlingo - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
   author: "Huy-DNA"
   license: "MIT License"
   base_path: "/sqlingo.js/api-reference"

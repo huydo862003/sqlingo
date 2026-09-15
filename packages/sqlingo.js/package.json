@@ -1,6 +1,6 @@
 {
 	"$schema": "https://json.schemastore.org/package.json",
-	"name": "@hdnax/sqlingo.js",
+	"name": "sqlingo",
 	"sqlglot": {
 		"commit": "21a2a5773717f675963dddbdba3df9343da60abe",
 		"version": "29.0.1",

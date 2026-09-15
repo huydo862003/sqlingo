@@ -1,16 +1,16 @@
 ---
 _icon: icon.book
-description: "API reference for sqlingo.js: a JavaScript/TypeScript SQL parser, transpiler, and optimizer supporting 32 dialects."
+description: "API reference for sqlingo: a JavaScript/TypeScript SQL parser, transpiler, and optimizer supporting 32 dialects."
 ---
 
 A JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot), the popular Python SQL parser. Parse, transpile, optimize, and build SQL across 32 dialects, in the browser or Node.js.
 
-sqlingo.js reads SQL in one dialect, builds an abstract syntax tree (AST), and writes it back in another dialect. This means `DATE_SUB(d, INTERVAL 1 DAY)` in MySQL becomes `d - INTERVAL '1 DAY'` in Postgres, without string manipulation.
+sqlingo reads SQL in one dialect, builds an abstract syntax tree (AST), and writes it back in another dialect. This means `DATE_SUB(d, INTERVAL 1 DAY)` in MySQL becomes `d - INTERVAL '1 DAY'` in Postgres, without string manipulation.
 
 ```typescript
-import { transpile } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 const [sql] = transpile("SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t", {
   read: MySQL,
@@ -34,7 +34,7 @@ Start with the quick start, then work through the guide. The reference pages are
 
 ## Roadmap
 
-sqlingo.js tracks [SQLGlot](https://github.com/tobymao/sqlglot) upstream. Planned work:
+sqlingo tracks [SQLGlot](https://github.com/tobymao/sqlglot) upstream. Planned work:
 
 - Catch up with SQLGlot v26 (PRQL dialect, improved type inference)
 - WASM build for zero-dependency browser usage
@@ -46,5 +46,5 @@ sqlingo.js tracks [SQLGlot](https://github.com/tobymao/sqlglot) upstream. Planne
 - [Changelog](https://github.com/huydo862003/sqlingo.js/blob/master/CHANGELOG.md) for release history
 - [GitHub](https://github.com/huydo862003/sqlingo.js) for source code
 - [Issues](https://github.com/huydo862003/sqlingo.js/issues) for bug reports and feature requests
-- [npm](https://www.npmjs.com/package/@hdnax/sqlingo.js) for the published package
+- [npm](https://www.npmjs.com/package/sqlingo) for the published package
 - [Playground](https://huydo862003.github.io/sqlingo.js/playground/) to try it in the browser

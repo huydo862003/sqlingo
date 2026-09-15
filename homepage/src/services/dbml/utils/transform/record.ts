@@ -1,11 +1,11 @@
 import type {
   InsertExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   Expression,
   SchemaExpr,
   TupleExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlRecord,
 } from '../../types';
@@ -13,7 +13,7 @@ import {
   extractNodeText, extractTableParts,
 } from '../parse/ast';
 
-// Build dbml model records from sqlingo.js AST
+// Build dbml model records from sqlingo AST
 export function buildRecord (stmt: InsertExpr): DbmlRecord | undefined {
   const tableExpr = stmt.args.this;
 

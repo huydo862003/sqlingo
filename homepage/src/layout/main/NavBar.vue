@@ -10,7 +10,7 @@
           viewBox="0 0 32 32"
           fill="none"
           class="size-8 rounded-md"
-          aria-label="sqlingo.js"
+          aria-label="sqlingo"
           role="img"
         >
           <path
@@ -132,7 +132,7 @@
             opacity="0.7"
           />
         </svg>
-        <span class="td-brand-name">sqlingo.js</span>
+        <span class="td-brand-name">sqlingo</span>
       </RouterLink>
 
       <GBreadcrumb v-if="breadcrumb.length">

@@ -49,9 +49,6 @@ importers:
       '@hdnax/genuix':
         specifier: ^0.19.0
         version: 0.19.0(@phosphor-icons/vue@2.2.1(vue@3.5.42(typescript@6.0.3)))(eslint@9.39.5(jiti@2.7.0))(highlight.js@11.12.0)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))
-      '@hdnax/sqlingo.js':
-        specifier: workspace:*
-        version: link:../packages/sqlingo.js
       '@unhead/vue':
         specifier: ^3.4.0
         version: 3.4.0(@oxc-project/types@0.148.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@0.127.0)(rolldown@1.2.7)(rollup@4.63.1)(vite@8.2.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))
@@ -67,6 +64,9 @@ importers:
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
+      sqlingo:
+        specifier: workspace:*
+        version: link:../packages/sqlingo.js
       typerighter:
         specifier: ^0.32.6
         version: 0.32.6(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
