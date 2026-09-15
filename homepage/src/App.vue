@@ -25,6 +25,7 @@ import {
 } from 'vue';
 
 const route = useRoute();
+
 useHead({
   link: [
     {
