@@ -153,7 +153,9 @@
 
       <!-- Why this exists -->
       <div class="mt-8">
-        <div class="td-card-eyebrow">Why this exists</div>
+        <div class="td-card-eyebrow">
+          Why this exists
+        </div>
         <div class="td-prose">
           <p class="m-0">
             I maintain

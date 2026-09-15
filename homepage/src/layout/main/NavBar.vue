@@ -30,14 +30,18 @@
         <RouterLink
           to="/"
           class="td-nav-link"
-          :class="{ 'is-active': $route.path === '/' }"
+          :class="{
+            'is-active': $route.path === '/',
+          }"
         >
           Home
         </RouterLink>
         <RouterLink
           to="/playground/"
           class="td-nav-link"
-          :class="{ 'is-active': $route.path.startsWith('/playground') }"
+          :class="{
+            'is-active': $route.path.startsWith('/playground'),
+          }"
         >
           Playground
         </RouterLink>
