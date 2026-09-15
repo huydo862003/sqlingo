@@ -17,7 +17,7 @@ NOTICE: AI is not the decision maker, designer or maintainer for this project. I
 
 - [GitHub](https://github.com/huydo862003/sqlingo)
 - [Issues](https://github.com/huydo862003/sqlingo/issues)
-- [Changelog](https://github.com/huydo862003/sqlingo/blob/master/CHANGELOG.md)
+- [Changelog](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CHANGELOG.md)
 
 ## Features
 
@@ -180,7 +180,7 @@ Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, D
 
 ## SQLGlot Compatibility
 
-This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/CONVENTION.md) for details.
+This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CONVENTION.md) for details.
 
 ## License
 

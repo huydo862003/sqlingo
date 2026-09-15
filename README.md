@@ -1,1 +1,1 @@
-./packages/sqlingo.js/README.md
+./packages/sqlingo/README.md
