@@ -1,42 +1,42 @@
 import {
   Dialect,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   MySQL,
-} from '@hdnax/sqlingo.js/mysql';
+} from 'sqlingo/mysql';
 import {
   Postgres,
-} from '@hdnax/sqlingo.js/postgres';
+} from 'sqlingo/postgres';
 import {
   SQLite,
-} from '@hdnax/sqlingo.js/sqlite';
+} from 'sqlingo/sqlite';
 import {
   DuckDB,
-} from '@hdnax/sqlingo.js/duckdb';
+} from 'sqlingo/duckdb';
 import {
   BigQuery,
-} from '@hdnax/sqlingo.js/bigquery';
+} from 'sqlingo/bigquery';
 import {
   Snowflake,
-} from '@hdnax/sqlingo.js/snowflake';
+} from 'sqlingo/snowflake';
 import {
   Spark,
-} from '@hdnax/sqlingo.js/spark';
+} from 'sqlingo/spark';
 import {
   Hive,
-} from '@hdnax/sqlingo.js/hive';
+} from 'sqlingo/hive';
 import {
   Trino,
-} from '@hdnax/sqlingo.js/trino';
+} from 'sqlingo/trino';
 import {
   TSQL,
-} from '@hdnax/sqlingo.js/mssql';
+} from 'sqlingo/mssql';
 import {
   Oracle,
-} from '@hdnax/sqlingo.js/oracle';
+} from 'sqlingo/oracle';
 import {
   Redshift,
-} from '@hdnax/sqlingo.js/redshift';
+} from 'sqlingo/redshift';
 
 Dialect.register(
   MySQL,

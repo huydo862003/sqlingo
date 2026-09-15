@@ -4,12 +4,12 @@ import {
   Expression,
   IdentifierExpr,
   type DataTypeExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlColumnType,
 } from '../../types/column';
 
-// Map sqlingo.js data types to dbml model column types
+// Map sqlingo data types to dbml model column types
 
 export function mapDataType (dtype: DataTypeExpr): DbmlColumnType {
   const kind = dtype.args.this;

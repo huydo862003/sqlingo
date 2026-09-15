@@ -56,10 +56,10 @@ import {
 } from '@/stores/playground';
 
 useSeoMeta({
-  title: 'Playground: SQL Transpiler & SQL to DBML | sqlingo.js',
-  ogTitle: 'Playground: SQL Transpiler & SQL to DBML | sqlingo.js',
-  description: 'Try sqlingo.js in your browser. Convert between SQL dialects and DBML.',
-  ogDescription: 'Try sqlingo.js in your browser. Convert between SQL dialects and DBML.',
+  title: 'Playground: SQL Transpiler & SQL to DBML | sqlingo',
+  ogTitle: 'Playground: SQL Transpiler & SQL to DBML | sqlingo',
+  description: 'Try sqlingo in your browser. Convert between SQL dialects and DBML.',
+  ogDescription: 'Try sqlingo in your browser. Convert between SQL dialects and DBML.',
 });
 
 const store = usePlaygroundStore();

@@ -1,12 +1,12 @@
 {
 	"$schema": "https://json.schemastore.org/package.json",
-	"name": "@hdnax/sqlingo.js",
+	"name": "sqlingo",
 	"sqlglot": {
 		"commit": "21a2a5773717f675963dddbdba3df9343da60abe",
 		"version": "29.0.1",
 		"url": "https://github.com/tobymao/sqlglot"
 	},
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"type": "module",
 	"sideEffects": false,
 	"description": "SQL parser, transpiler, optimizer, and engine for JavaScript/TypeScript - 32 dialects (Postgres, MySQL, BigQuery, Snowflake, DuckDB, etc). Port of Python SQLGlot.",
@@ -240,12 +240,12 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/huydo862003/sqlingo.js.git"
+		"url": "https://github.com/huydo862003/sqlingo.git"
 	},
 	"bugs": {
-		"url": "https://github.com/huydo862003/sqlingo.js/issues"
+		"url": "https://github.com/huydo862003/sqlingo/issues"
 	},
-	"homepage": "https://huydo862003.github.io/sqlingo.js",
+	"homepage": "https://huydo862003.github.io/sqlingo",
 	"files": [
 		"dist",
 		"LICENSE",
@@ -259,7 +259,7 @@
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.6",
-		"vitest": "4.1.0"
+		"vitest": "5.0.1"
 	},
 	"peerDependencies": {
 		"luxon": "^3.7.2"

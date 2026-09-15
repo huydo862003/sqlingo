@@ -1,17 +1,17 @@
 ---
 _label: "Quick start"
 _icon: icon.rocket
-description: "Install sqlingo.js, parse your first query, transpile between dialects, and optimize with schema information."
+description: "Install sqlingo, parse your first query, transpile between dialects, and optimize with schema information."
 ---
 
-Get sqlingo.js running in under a minute. This page covers installation and the three core operations: parsing, transpiling, and optimizing.
+Get sqlingo running in under a minute. This page covers installation and the three core operations: parsing, transpiling, and optimizing.
 
 ## Install
 
-sqlingo.js ships as a single npm package. `luxon` is a peer dependency used for date and time operations.
+sqlingo ships as a single npm package. `luxon` is a peer dependency used for date and time operations.
 
 ```bash
-npm install @hdnax/sqlingo.js luxon
+npm install sqlingo luxon
 ```
 
 ## Parse SQL
@@ -19,7 +19,7 @@ npm install @hdnax/sqlingo.js luxon
 Every SQL string becomes an AST (abstract syntax tree). You can inspect it, transform it, or turn it back into SQL.
 
 ```typescript
-import { parseOne } from "@hdnax/sqlingo.js";
+import { parseOne } from "sqlingo";
 
 const ast = parseOne("SELECT a, b FROM users WHERE active = true");
 console.log(ast.sql()); // "SELECT a, b FROM users WHERE active = TRUE"
@@ -30,9 +30,9 @@ console.log(ast.sql()); // "SELECT a, b FROM users WHERE active = TRUE"
 To translate SQL from one database to another, import the dialect classes and pass them to `transpile`. Each dialect is a separate import, so your bundler only ships the ones you use.
 
 ```typescript
-import { transpile } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 const [sql] = transpile(
   "SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t",
@@ -47,7 +47,7 @@ console.log(sql);
 With schema information, the optimizer can qualify columns, simplify conditions, and remove dead code.
 
 ```typescript
-import { optimize, parseOne, MappingSchema } from "@hdnax/sqlingo.js";
+import { optimize, parseOne, MappingSchema } from "sqlingo";
 
 const schema = new MappingSchema({ t: { a: "int", b: "int" } });
 const optimized = optimize(

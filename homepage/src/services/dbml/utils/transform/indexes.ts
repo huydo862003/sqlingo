@@ -5,7 +5,7 @@ import {
   IndexParametersExpr,
   OrderedExpr,
   type IndexExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlIndex, DbmlIndexColumn,
 } from '../../types';
@@ -13,7 +13,7 @@ import {
   extractIdentName, extractNodeText,
 } from '../parse/ast';
 
-// Build dbml model's indexes from sqlingo.js AST
+// Build dbml model's indexes from sqlingo AST
 export function indexFromParameters (index: IndexExpr): DbmlIndex | undefined {
   const parameters = index.args.params;
 

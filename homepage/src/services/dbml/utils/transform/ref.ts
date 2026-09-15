@@ -1,11 +1,11 @@
 import {
   Expression, type ReferenceExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlEndpoint, DbmlReferenceAction,
 } from '../../types';
 
-// Parse foreign key actions and build dbml model reference endpoints from sqlingo.js AST
+// Parse foreign key actions and build dbml model reference endpoints from sqlingo AST
 
 const ACTION_BY_TOKEN: Record<string, DbmlReferenceAction> = {
   CASCADE: DbmlReferenceAction.CASCADE,

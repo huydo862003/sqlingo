@@ -1182,8 +1182,8 @@ export class Dialect {
    *
    * @example
    * ```ts
-   * import { MySQL } from "@hdnax/sqlingo.js/mysql";
-   * import { Postgres } from "@hdnax/sqlingo.js/postgres";
+   * import { MySQL } from "sqlingo/mysql";
+   * import { Postgres } from "sqlingo/postgres";
    * Dialect.register(MySQL, Postgres);
    * ```
    */

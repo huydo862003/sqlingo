@@ -7,7 +7,7 @@ import {
   Expression,
   IndexExpr,
   InsertExpr,
-} from '@hdnax/sqlingo.js';
+} from 'sqlingo';
 import {
   DbmlSchema, DbmlTable,
   type DbmlRecord,

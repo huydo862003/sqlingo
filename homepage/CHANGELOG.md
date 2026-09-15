@@ -1,46 +1,46 @@
-# @hdnax/sqlingo.js-homepage
+# sqlingo-homepage
 
 ## 0.1.16
 
 ### Patch Changes
 
 - Updated dependencies [98bee52]
-  - @hdnax/sqlingo.js@0.8.0
+  - sqlingo@0.8.0
 
 ## 0.1.15
 
 ### Patch Changes
 
 - Updated dependencies [b453c63]
-  - @hdnax/sqlingo.js@0.7.1
+  - sqlingo@0.7.1
 
 ## 0.1.14
 
 ### Patch Changes
 
 - Updated dependencies [a87134d]
-  - @hdnax/sqlingo.js@0.7.0
+  - sqlingo@0.7.0
 
 ## 0.1.13
 
 ### Patch Changes
 
 - Updated dependencies [e6fdbfa]
-  - @hdnax/sqlingo.js@0.6.1
+  - sqlingo@0.6.1
 
 ## 0.1.12
 
 ### Patch Changes
 
 - Updated dependencies [625fb15]
-  - @hdnax/sqlingo.js@0.6.0
+  - sqlingo@0.6.0
 
 ## 0.1.11
 
 ### Patch Changes
 
 - Updated dependencies [920aef4]
-  - @hdnax/sqlingo.js@0.5.0
+  - sqlingo@0.5.0
 
 ## 0.1.10
 
@@ -50,7 +50,7 @@
 - 88cef5c: Bump `@hdnax/genuix` ^0.15.1 to ^0.15.2, `@hdnax/nuclint` ^0.17.3 to ^0.17.4
 - f0d9075: Override read-yaml-file to fix changeset js-yaml compatibility
 - Updated dependencies [cd3a34c]
-  - @hdnax/sqlingo.js@0.4.2
+  - sqlingo@0.4.2
 
 ## 0.1.9
 
@@ -64,7 +64,7 @@
 ### Patch Changes
 
 - Updated dependencies [13e61b1]
-  - @hdnax/sqlingo.js@0.4.1
+  - sqlingo@0.4.1
 
 ## 0.1.7
 
@@ -74,21 +74,21 @@
 - Updated dependencies [7ad6584]
 - Updated dependencies [7ad6584]
 - Updated dependencies [7ad6584]
-  - @hdnax/sqlingo.js@0.4.0
+  - sqlingo@0.4.0
 
 ## 0.1.6
 
 ### Patch Changes
 
 - Updated dependencies [92777d6]
-  - @hdnax/sqlingo.js@0.3.2
+  - sqlingo@0.3.2
 
 ## 0.1.5
 
 ### Patch Changes
 
 - Updated dependencies
-  - @hdnax/sqlingo.js@0.3.1
+  - sqlingo@0.3.1
 
 ## 0.1.4
 
@@ -96,32 +96,32 @@
 
 - Updated dependencies [cdd20a2]
 - Updated dependencies [067de4d]
-  - @hdnax/sqlingo.js@0.3.0
+  - sqlingo@0.3.0
 
 ## 0.1.3
 
 ### Patch Changes
 
 - Updated dependencies [e9855e1]
-  - @hdnax/sqlingo.js@0.2.3
+  - sqlingo@0.2.3
 
 ## 0.1.2
 
 ### Patch Changes
 
 - Updated dependencies [98abe58]
-  - @hdnax/sqlingo.js@0.2.2
+  - sqlingo@0.2.2
 
 ## 0.1.1
 
 ### Patch Changes
 
 - 7c03a7e:
-  - Update `dompurify` from 3.2.7 to 3.4.2 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
-  - Update `picomatch` from 2.3.1 to 4.0.4 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
-  - Update `postcss` from 8.5.8 to 8.5.14 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
+  - Update `dompurify` from 3.2.7 to 3.4.2 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
+  - Update `picomatch` from 2.3.1 to 4.0.4 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
+  - Update `postcss` from 8.5.8 to 8.5.14 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
 - Updated dependencies [7c03a7e]
-  - @hdnax/sqlingo.js@0.2.1
+  - sqlingo@0.2.1
 
 ## 0.1.0
 
@@ -132,7 +132,7 @@
 ### Patch Changes
 
 - Updated dependencies [62626fd]
-  - @hdnax/sqlingo.js@0.2.0
+  - sqlingo@0.2.0
 
 ## 0.0.7
 
@@ -142,21 +142,21 @@
 - b4924ce: Bump flatted to 3.4.2 to fix vulnerability issue
 - Updated dependencies [29256e1]
 - Updated dependencies [b4924ce]
-  - @hdnax/sqlingo.js@0.1.7
+  - sqlingo@0.1.7
 
 ## 0.0.6
 
 ### Patch Changes
 
 - Updated dependencies [8967932]
-  - @hdnax/sqlingo.js@0.1.6
+  - sqlingo@0.1.6
 
 ## 0.0.5
 
 ### Patch Changes
 
 - Updated dependencies
-  - @hdnax/sqlingo.js@0.1.5
+  - sqlingo@0.1.5
 
 ## 0.0.4
 
@@ -164,7 +164,7 @@
 
 - 1ad4d3e: (fck-AI-slop) Migrating from AI slops
 - Updated dependencies [1ad4d3e]
-  - @hdnax/sqlingo.js@0.1.4
+  - sqlingo@0.1.4
 
 ## 0.0.3
 
@@ -172,7 +172,7 @@
 
 - 6aeadaa: Add disclaimer about AI usage
 - Updated dependencies [6aeadaa]
-  - @hdnax/sqlingo.js@0.1.3
+  - sqlingo@0.1.3
 
 ## 0.0.2
 
@@ -180,7 +180,7 @@
 
 - a0cbe60: Add warnings to npm doc page
 - Updated dependencies [a0cbe60]
-  - @hdnax/sqlingo.js@0.1.2
+  - sqlingo@0.1.2
 
 ## 0.0.1
 
@@ -188,4 +188,4 @@
 
 - c90ac1e: Update API doc for npm package
 - Updated dependencies [c90ac1e]
-  - @hdnax/sqlingo.js@0.1.1
+  - sqlingo@0.1.1

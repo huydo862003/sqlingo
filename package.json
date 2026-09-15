@@ -2,14 +2,14 @@
 	"private": true,
 	"packageManager": "pnpm@10.26.1",
 	"scripts": {
-		"test": "pnpm --filter @hdnax/sqlingo.js run test",
-		"build": "pnpm --filter @hdnax/sqlingo.js run build",
+		"test": "pnpm --filter sqlingo run test",
+		"build": "pnpm --filter sqlingo run build",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
 		"changeset": "changeset",
 		"version": "changeset version",
-		"release": "pnpm --filter @hdnax/sqlingo.js run build && changeset publish && git push --follow-tags",
-		"doc": "pnpm --filter @hdnax/sqlingo.js-homepage run build"
+		"release": "pnpm --filter sqlingo run build && changeset publish && git push --follow-tags",
+		"doc": "pnpm --filter sqlingo-homepage run build"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.31.1",

@@ -35,7 +35,7 @@ These return new AST nodes. They are useful in builder chains or when constructi
 Each SQL concept has its own Expression subclass. Import them from the main package.
 
 ```typescript
-import { SelectExpr, ColumnExpr, TableExpr, FuncExpr } from "@hdnax/sqlingo.js";
+import { SelectExpr, ColumnExpr, TableExpr, FuncExpr } from "sqlingo";
 ```
 
 | Class | Represents |
@@ -54,7 +54,7 @@ import { SelectExpr, ColumnExpr, TableExpr, FuncExpr } from "@hdnax/sqlingo.js";
 Use `.findAll()` to pull specific node types out of a parsed query.
 
 ```typescript
-import { parseOne, ColumnExpr } from "@hdnax/sqlingo.js";
+import { parseOne, ColumnExpr } from "sqlingo";
 
 const ast = parseOne("SELECT a, b FROM t WHERE x > 1");
 
@@ -69,7 +69,7 @@ for (const col of ast.findAll(ColumnExpr)) {
 Pass a dialect to `.sql()` to get output that matches a specific database.
 
 ```typescript
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { Postgres } from "sqlingo/postgres";
 
 ast.sql({ dialect: Postgres });
 ```

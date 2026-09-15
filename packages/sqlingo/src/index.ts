@@ -1,5 +1,5 @@
 /**
- * @hdnax/slot.js
+ * sqlingo
  * A JavaScript port of SQLGlot - SQL parser, transpiler, optimizer, and engine
  *
  * Based on SQLGlot by Toby Mao (https://github.com/tobymao/sqlglot)

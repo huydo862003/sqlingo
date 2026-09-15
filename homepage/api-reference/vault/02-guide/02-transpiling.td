@@ -8,14 +8,14 @@ Transpilation is the main use case: read SQL in one dialect, write it in another
 
 ## What gets translated
 
-Dialects differ in function names, date handling, quoting, types, and syntax. sqlingo.js maps between them automatically when you specify source and target dialects.
+Dialects differ in function names, date handling, quoting, types, and syntax. sqlingo maps between them automatically when you specify source and target dialects.
 
 ```typescript
-import { transpile } from "@hdnax/sqlingo.js";
-import { DuckDB } from "@hdnax/sqlingo.js/duckdb";
-import { Hive } from "@hdnax/sqlingo.js/hive";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { transpile } from "sqlingo";
+import { DuckDB } from "sqlingo/duckdb";
+import { Hive } from "sqlingo/hive";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 // Function names
 transpile("SELECT EPOCH_MS(1618088028295)", { read: DuckDB, write: Hive })[0];
@@ -49,9 +49,9 @@ When `read` is omitted, the input is parsed with the base dialect (a superset th
 If you need to inspect or modify the AST between parsing and generating, use `parseOne` and `.sql()` separately. This gives you full control over the tree before output.
 
 ```typescript
-import { parseOne } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { parseOne } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 const ast = parseOne("SELECT 1", { read: MySQL });
 // inspect or transform the AST here

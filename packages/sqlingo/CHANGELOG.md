@@ -1,4 +1,4 @@
-# @hdnax/sqlingo.js
+# sqlingo
 
 ## 0.8.0
 
@@ -43,16 +43,16 @@
 
   ```ts
   // Before (v0.5.0)
-  import "@hdnax/sqlingo.js/mysql";
+  import "sqlingo/mysql";
   parse("SELECT 1", { read: "mysql" });
 
   // After (v0.6.0) - preferred: pass class directly
-  import { MySQL } from "@hdnax/sqlingo.js/mysql";
+  import { MySQL } from "sqlingo/mysql";
   parse("SELECT 1", { read: MySQL });
 
   // After (v0.6.0) - opt-in string lookup
-  import { Dialect } from "@hdnax/sqlingo.js";
-  import { MySQL } from "@hdnax/sqlingo.js/mysql";
+  import { Dialect } from "sqlingo";
+  import { MySQL } from "sqlingo/mysql";
   Dialect.register(MySQL);
   parse("SELECT 1", { read: "mysql" });
   ```
@@ -131,7 +131,7 @@
 ### Minor Changes
 
 - cdd20a2: Bump vitest to 4.1.0 & pin vite to 7.3.5 (to support esm decorators)
-- 067de4d: Reorganize the packages to split the lockfile of playground from the sqlingo.js package
+- 067de4d: Reorganize the packages to split the lockfile of playground from the sqlingo package
 
 ## 0.2.3 (retracted)
 
@@ -144,16 +144,16 @@
 
 ### Patch Changes
 
-- 98abe58: Guard against prototype-polluting assignment in `Expression.setArgKey` [#2](https://github.com/huydo862003/sqlingo.js/pull/2)
+- 98abe58: Guard against prototype-polluting assignment in `Expression.setArgKey` [#2](https://github.com/huydo862003/sqlingo/pull/2)
 
 ## 0.2.1 (retracted)
 
 ### Patch Changes
 
 - 7c03a7e:
-  - Update `dompurify` from 3.2.7 to 3.4.2 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
-  - Update `picomatch` from 2.3.1 to 4.0.4 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
-  - Update `postcss` from 8.5.8 to 8.5.14 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo.js/pull/1)
+  - Update `dompurify` from 3.2.7 to 3.4.2 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
+  - Update `picomatch` from 2.3.1 to 4.0.4 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
+  - Update `postcss` from 8.5.8 to 8.5.14 to resolve vulnerability issues [#1](https://github.com/huydo862003/sqlingo/pull/1)
 
 ## 0.2.0 (retracted)
 
@@ -208,7 +208,7 @@
 
 ### Minor Changes
 
-- Add lazy dialect entrypoints (`@hdnax/sqlingo.js/postgres`, `/mysql`, `/tsql`, `/mssql`, etc.). Import core without loading any dialect; register only what you need.
+- Add lazy dialect entrypoints (`sqlingo/postgres`, `/mysql`, `/tsql`, `/mssql`, etc.). Import core without loading any dialect; register only what you need.
 
 ## 0.0.5 (retracted)
 

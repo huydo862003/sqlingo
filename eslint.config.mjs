@@ -20,7 +20,7 @@ export default [
     ],
   },
   {
-    files: ['packages/sqlingo.js/tests/**/*.ts'],
+    files: ['packages/sqlingo/tests/**/*.ts'],
     rules: {
       'id-length': 'off',
       'no-restricted-imports': 'off',
@@ -30,7 +30,7 @@ export default [
     },
   },
   {
-    files: ['packages/sqlingo.js/src/**/*.ts'],
+    files: ['packages/sqlingo/src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-extraneous-class': 'off',
       '@typescript-eslint/no-useless-constructor': 'off',

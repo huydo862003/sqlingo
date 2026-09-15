@@ -1,15 +1,15 @@
 version: "1.0.0"
 vault:
   root_dir: "vault"
-repo: "https://github.com/huydo862003/sqlingo.js"
+repo: "https://github.com/huydo862003/sqlingo"
 site:
-  title: "sqlingo.js API Reference"
-  description: "API reference for sqlingo.js - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
+  title: "sqlingo API Reference"
+  description: "API reference for sqlingo - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
   author: "Huy-DNA"
   license: "MIT License"
-  base_path: "/sqlingo.js/api-reference"
+  base_path: "/sqlingo/api-reference"
   nav:
     - title: "Home"
-      link: "/sqlingo.js/"
+      link: "/sqlingo/"
     - title: "Playground"
-      link: "/sqlingo.js/playground/"
+      link: "/sqlingo/playground/"

@@ -10,7 +10,7 @@
               :value="`v${SQLINGO_VERSION}`"
               :color="GPillColor.Blue"
               :size="GBadgeSize.Lg"
-              href="https://www.npmjs.com/package/@hdnax/sqlingo.js"
+              href="https://www.npmjs.com/package/sqlingo"
             />
             <GBadge
               label="tracks sqlglot"
@@ -33,7 +33,7 @@
           <div class="td-install-box">
             <span class="td-install-text">
               <span class="td-install-prompt">$</span> npm install
-              @hdnax/sqlingo.js
+              sqlingo
             </span>
             <div class="flex-1" />
             <button
@@ -45,7 +45,7 @@
             </button>
           </div>
           <a
-            href="/sqlingo.js/playground/"
+            href="/sqlingo/playground/"
             class="td-cta-btn"
           >
             Try the playground
@@ -138,7 +138,7 @@
           <div class="td-card-action">Browse the docs</div>
         </a>
         <a
-          href="/sqlingo.js/playground/"
+          href="/sqlingo/playground/"
           class="td-card"
         >
           <div class="td-card-eyebrow">Playground</div>
@@ -199,7 +199,7 @@
             sync with upstream.
           </p>
           <p class="mt-4 leading-loose">
-            sqlingo.js is a close mirror of SQLGlot, file for file. That's the
+            sqlingo is a close mirror of SQLGlot, file for file. That's the
             whole trick: catching up with upstream is a diff, not a rewrite.
           </p>
         </div>
@@ -214,13 +214,13 @@
         {{ JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          "name": "sqlingo.js",
-          "description": "sqlingo.js is a JavaScript/TypeScript port of SQLGlot, a SQL parser, transpiler, and optimizer supporting 32 dialects.",
+          "name": "sqlingo",
+          "description": "sqlingo is a JavaScript/TypeScript port of SQLGlot, a SQL parser, transpiler, and optimizer supporting 32 dialects.",
           "applicationCategory": "DeveloperApplication",
           "operatingSystem": "All",
           "license": "https://opensource.org/licenses/MIT",
           "softwareVersion": SQLINGO_VERSION,
-          "url": "https://huydo862003.github.io/sqlingo.js/",
+          "url": "https://huydo862003.github.io/sqlingo/",
           "author": {
             "@type": "Person",
             "name": "Huy Do",
@@ -257,18 +257,18 @@ import {
 const scriptTag = 'script';
 
 useSeoMeta({
-  title: 'Home | sqlingo.js',
-  ogTitle: 'Home | sqlingo.js',
+  title: 'Home | sqlingo',
+  ogTitle: 'Home | sqlingo',
   description:
-    'sqlingo.js is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
   ogDescription:
-    'sqlingo.js is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
 });
 
 const installCopied = ref(false);
 
 function copyInstall () {
-  navigator.clipboard?.writeText('npm install @hdnax/sqlingo.js');
+  navigator.clipboard?.writeText('npm install sqlingo');
   installCopied.value = true;
   setTimeout(() => {
     installCopied.value = false;
@@ -284,8 +284,8 @@ const demos: Record<
   }
 > = {
   parse: {
-    code: `import { parse } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
+    code: `import { parse } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
 
 const [ast] = parse(
   "SELECT a, b FROM t WHERE a > 1",
@@ -299,9 +299,9 @@ const [ast] = parse(
     note: 'A full expression tree, mirroring SQLGlot\'s node classes one for one.',
   },
   transpile: {
-    code: `import { transpile } from "@hdnax/sqlingo.js";
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+    code: `import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 const [sql] = transpile(
   "SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t",
@@ -311,7 +311,7 @@ const [sql] = transpile(
     note: 'Dialect quirks (quoting, date math, casts) are rewritten for the target.',
   },
   optimize: {
-    code: `import { optimize } from "@hdnax/sqlingo.js";
+    code: `import { optimize } from "sqlingo";
 
 const sql = optimize(
   "SELECT * FROM t WHERE 1 = 1 AND x > 2",

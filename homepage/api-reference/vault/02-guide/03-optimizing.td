@@ -11,7 +11,7 @@ The previous pages showed how to parse and transpile SQL. This page adds the thi
 Pass a parsed AST and a schema to `optimize`. The schema tells the optimizer which tables exist and what columns they have.
 
 ```typescript
-import { optimize, parseOne, MappingSchema } from "@hdnax/sqlingo.js";
+import { optimize, parseOne, MappingSchema } from "sqlingo";
 
 const schema = new MappingSchema({ t: { x: "INT", y: "INT" } });
 const optimized = optimize(
@@ -57,8 +57,8 @@ Here is the full list of transformations the optimizer applies when schema infor
 Optimization and transpilation compose naturally. Parse in one dialect, optimize, then generate in another.
 
 ```typescript
-import { MySQL } from "@hdnax/sqlingo.js/mysql";
-import { Postgres } from "@hdnax/sqlingo.js/postgres";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
 
 const ast = parseOne("SELECT * FROM t WHERE 1 = 1 AND x > 2", { read: MySQL });
 const optimized = optimize(ast, { schema: { t: { x: "INT" } } });

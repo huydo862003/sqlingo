@@ -1,0 +1,189 @@
+# sqlingo
+
+[![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo/blob/master/LICENSE)
+![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.0.0-blue)
+<a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
+
+A JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot) which is compatible with browser and Node runtimes.
+
+This package allows you to parse, transpile, optimize, and execute SQL across **32 dialects** in JavaScript.
+
+WARNING: This package is still in alpha.
+  - Although the SQLGlot tests have all passed, but finding contrived failures may require me to use this package extensively myself.
+  - You can also help me report bugs in the Github issue.
+
+NOTICE: AI is not the decision maker, designer or maintainer for this project. It is indeed sometimes used to port straightforward code with less effort. However, the point is to always keep its usage under control & understand what's going on, so I can maintain this project reliably as sqlglot updates.
+
+- [GitHub](https://github.com/huydo862003/sqlingo)
+- [Issues](https://github.com/huydo862003/sqlingo/issues)
+- [Changelog](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CHANGELOG.md)
+
+## Features
+
+- 32 SQL dialects: Postgres, MySQL, BigQuery, Snowflake, DuckDB, ClickHouse, Redshift, Athena, Spark, and many more
+- Some SQLGlot feature set: parsing, transpilation, optimization, column lineage, SQL diffing, and execution
+- Pure JavaScript: no need for WASM or native dependencies
+- TypeScript-first: full type definitions included
+
+## Installation
+
+```bash
+npm install sqlingo
+# or
+pnpm add sqlingo
+```
+
+Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is required for date/time operations.
+
+## Quick Start
+
+This example demonstrates transpiling a query from Spark to Postgres and then optimizing it.
+
+```ts
+import { transpile, parseOne, optimize, MappingSchema } from "sqlingo";
+import { Postgres } from "sqlingo/postgres";
+import { Spark } from "sqlingo/spark";
+
+// Transpile between dialects
+const [pgSql] = transpile("SELECT APPROX_COUNT_DISTINCT(x) FROM table", {
+  read: Spark,
+  write: Postgres,
+});
+console.log(pgSql);
+// Output: SELECT COUNT(DISTINCT x) FROM "table"
+
+// Optimize an expression
+const sql = "SELECT a, b FROM t WHERE a + 1 = 2";
+const schema = new MappingSchema({ t: { a: "int", b: "int" } });
+
+const optimized = optimize(parseOne(sql), { schema });
+console.log(optimized.sql());
+// Output: SELECT t.a AS a, t.b AS b FROM t AS t WHERE t.a = 1
+```
+
+## Core Usage
+
+### Parsing
+
+Parse SQL strings into expression trees (AST).
+
+```ts
+import { parse, parseOne } from "sqlingo";
+
+// Parse multiple statements
+const expressions = parse("SELECT 1; SELECT 2");
+
+// Parse a single statement
+const expr = parseOne("SELECT a, b FROM t WHERE a > 1");
+```
+
+### Transpiling
+
+Convert SQL between different dialects.
+
+```ts
+import { transpile } from "sqlingo";
+import { DuckDB } from "sqlingo/duckdb";
+import { Hive } from "sqlingo/hive";
+
+const [result] = transpile("SELECT EPOCH_MS(1618088028295)", {
+  read: DuckDB,
+  write: Hive,
+});
+// Output: "SELECT FROM_UNIXTIME(1618088028295 / POW(10, 3))"
+```
+
+### Tokenizing
+
+Extract tokens from a SQL string for lower-level analysis.
+
+```ts
+import { tokenize } from "sqlingo";
+import { Postgres } from "sqlingo/postgres";
+
+const tokens = tokenize("SELECT 1", {
+  dialect: Postgres,
+});
+```
+
+## SQL Builder
+
+Build queries programmatically using a fluent API.
+
+```ts
+import { select, condition } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+
+const query = select("a", "b").from("t").where(condition("a > 1")).limit(10);
+
+console.log(
+  query.sql({
+    dialect: MySQL,
+  }),
+);
+// Output: SELECT a, b FROM t WHERE a > 1 LIMIT 10
+```
+
+## Optimization & Analysis
+
+### Optimization
+
+Simplify and normalize queries based on schema information.
+
+```ts
+import { optimize, MappingSchema } from "sqlingo";
+
+const schema = new MappingSchema({
+  // define your schema
+});
+
+const optimized = optimize(parseOne("SELECT * FROM t"), { schema });
+```
+
+### Column Lineage
+
+Trace the origin of columns through subqueries and joins.
+
+```ts
+import { lineage } from "sqlingo";
+
+const node = lineage("b", "SELECT a AS b FROM (SELECT x AS a FROM y)");
+console.log(node.source.name);
+// Output: "y"
+```
+
+## Registering a Custom Dialect
+
+You can extend the library by registering custom dialects or overriding existing behavior.
+
+```ts
+import { Dialect, Generator, transpile } from "sqlingo";
+
+class MyDialect extends Dialect {
+  static DIALECT_NAME = "my_dialect";
+
+  static Generator = class extends Generator {
+    // Override how specific expressions are generated
+  };
+}
+
+// Register for string-based lookup
+Dialect.register(MyDialect);
+
+const [result] = transpile("SELECT 1", { write: MyDialect });
+```
+
+## Supported Dialects
+
+Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, Dune, Exasol, Fabric, Hive, Materialize, MySQL, Oracle, Postgres, Presto, PRQL, Redshift, RisingWave, SingleStore, Snowflake, Solr, Spark, Spark2, SQLite, StarRocks, Tableau, Teradata, Trino, TSQL
+
+## SQLGlot Compatibility
+
+This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CONVENTION.md) for details.
+
+## License
+
+MIT. See [LICENSE](https://github.com/huydo862003/sqlingo/blob/master/LICENSE).
+
+Based on [SQLGlot](https://github.com/tobymao/sqlglot) by Toby Mao (MIT). See [COPYRIGHT_NOTICE](https://github.com/huydo862003/sqlingo/blob/master/COPYRIGHT_NOTICE).

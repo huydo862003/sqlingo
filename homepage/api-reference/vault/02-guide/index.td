@@ -4,7 +4,7 @@ _icon: icon.compass
 description: "Learn the core workflow: parsing SQL to AST, navigating the tree, transpiling between dialects, optimizing queries, and building SQL from code."
 ---
 
-This guide teaches the concepts behind sqlingo.js step by step. Each page builds on the previous one, so reading in order is recommended.
+This guide teaches the concepts behind sqlingo step by step. Each page builds on the previous one, so reading in order is recommended.
 
 The central idea is simple: SQL goes in as a string, becomes a tree of objects, and comes back out as a string. Transpiling, optimizing, and building are all variations of this cycle.
 
