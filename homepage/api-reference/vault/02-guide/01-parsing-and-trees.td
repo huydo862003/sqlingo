@@ -1,6 +1,6 @@
 ---
 _label: "Parsing and trees"
-_icon: icon.tree_pine
+_icon: icon.tree
 description: "The core workflow: parsing SQL to an AST, searching and transforming nodes, generating SQL back, error handling, and column lineage."
 ---
 

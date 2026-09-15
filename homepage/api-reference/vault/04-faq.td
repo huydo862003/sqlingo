@@ -1,6 +1,6 @@
 ---
 _label: "FAQ"
-_icon: icon.help_circle
+_icon: icon.help
 description: "Common questions about output differences, dialect selection, tree-shaking, browser support, and SQLGlot compatibility."
 ---
 

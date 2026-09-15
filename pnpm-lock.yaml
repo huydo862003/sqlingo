@@ -68,8 +68,8 @@ importers:
         specifier: ^3.0.4
         version: 3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       typerighter:
-        specifier: ^0.30.8
-        version: 0.30.8(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+        specifier: ^0.31.0
+        version: 0.31.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
@@ -208,12 +208,12 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@clack/core@1.4.3':
-    resolution: {integrity: sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ==}
+  '@clack/core@1.5.1':
+    resolution: {integrity: sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ==}
     engines: {node: '>= 20.12.0'}
 
-  '@clack/prompts@1.7.0':
-    resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
+  '@clack/prompts@1.8.1':
+    resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
 
   '@dbml/parse@7.1.2':
@@ -528,8 +528,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lucide/vue@1.39.0':
-    resolution: {integrity: sha512-dKqoDT4lAY200w+hrzavxw9qqzw1SVuO5ZHBA+F75UgBJD4yNfDk6VuvFr8N09EeSJqVLU+IQ3mCxbV/Zfex/A==}
+  '@lucide/vue@1.46.0':
+    resolution: {integrity: sha512-xp4mUamXKM/jYCve8TOcEcuikidFh3Jn9gs0THCeEKn/fAdeU0mKhPqk0fmIwn42fI4CwGLRWrLneLA69h8Nqw==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -1057,11 +1057,11 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
-  '@typerighter/rpc-client@0.30.8':
-    resolution: {integrity: sha512-1QJNu5xt2g5iw3PhcHze+7xS+7MdFB1f9/CVn61M5J5BO7TtNwdjf3MlDn+1nXJHMwcdI7Ucd+MMAX+3oj9CcQ==}
+  '@typerighter/rpc-client@0.31.0':
+    resolution: {integrity: sha512-KUiuvSf6G2kNEMh+ev4aD/W9tWMullirZ+hf+dU/z4Ih5/71+7/XE7hL+rkakGfk8Zf4xe2kdTjvYyQOnolvcQ==}
 
-  '@typerighter/rpc-server@0.30.8':
-    resolution: {integrity: sha512-DRApgIJGTML6KAHDHcuNr4pLhxxbPXL5nB0IyF5IZlygayImPQghm3mh33RXHwQ/0W8PRHJrfoVu5DjH6MjR1Q==}
+  '@typerighter/rpc-server@0.31.0':
+    resolution: {integrity: sha512-ebIANUxon9i0Vm+A+XwqIsslm+2R57hI/S2sGTNkNe9M4VN9PIOCOEUyH8Ahn/mgRjJ16B2Jg7ngSjlghp4m7w==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -2954,8 +2954,8 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typerighter@0.30.8:
-    resolution: {integrity: sha512-2Z40YjJL/s3V9q9h/qI5J97p4js9v+4z8nWMoFM9OVKgHRI+kBlxlqJFXwPrLLikruNgRvnWX7257r3qQNjWPQ==}
+  typerighter@0.31.0:
+    resolution: {integrity: sha512-9HuHFIDSGeoKy/XYPcLz4LHSb3IOv3n2qfQr4jjCrP0/M4mwI9T6jBfKGEgXt3VrM3qKYbzSVX0JPpTfx1ipFw==}
     hasBin: true
 
   typescript-eslint@8.59.2:
@@ -3470,14 +3470,14 @@ snapshots:
       human-id: 4.2.1
       prettier: 2.8.8
 
-  '@clack/core@1.4.3':
+  '@clack/core@1.5.1':
     dependencies:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@clack/prompts@1.7.0':
+  '@clack/prompts@1.8.1':
     dependencies:
-      '@clack/core': 1.4.3
+      '@clack/core': 1.5.1
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
@@ -3742,7 +3742,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@lucide/vue@1.39.0(vue@3.5.42(typescript@6.0.3))':
+  '@lucide/vue@1.46.0(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       vue: 3.5.42(typescript@6.0.3)
 
@@ -4120,9 +4120,9 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typerighter/rpc-client@0.30.8': {}
+  '@typerighter/rpc-client@0.31.0': {}
 
-  '@typerighter/rpc-server@0.30.8':
+  '@typerighter/rpc-server@0.31.0':
     dependencies:
       dotenv: 16.6.1
 
@@ -6009,17 +6009,17 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typerighter@0.30.8(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0):
+  typerighter@0.31.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0):
     dependencies:
-      '@clack/prompts': 1.7.0
+      '@clack/prompts': 1.8.1
       '@floating-ui/vue': 2.0.1(vue@3.5.42(typescript@6.0.3))
       '@fontsource-variable/archivo': 5.3.0
       '@fontsource-variable/jetbrains-mono': 5.3.0
-      '@lucide/vue': 1.39.0(vue@3.5.42(typescript@6.0.3))
+      '@lucide/vue': 1.46.0(vue@3.5.42(typescript@6.0.3))
       '@shikijs/transformers': 4.4.3
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
-      '@typerighter/rpc-client': 0.30.8
-      '@typerighter/rpc-server': 0.30.8
+      '@typerighter/rpc-client': 0.31.0
+      '@typerighter/rpc-server': 0.31.0
       '@vitejs/plugin-vue': 6.0.8(vite@8.2.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))
       cac: 7.0.0
       picocolors: 1.1.1

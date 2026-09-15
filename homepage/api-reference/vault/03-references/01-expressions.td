@@ -1,6 +1,6 @@
 ---
 _label: "Expressions"
-_icon: icon.braces
+_icon: icon.code
 description: "The full Expression API: core methods, operator helpers, AST node types, searching, walking, and transforming."
 ---
 
