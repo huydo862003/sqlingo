@@ -15,8 +15,24 @@
 
 <script setup lang="ts">
 import {
-  RouterView,
+  RouterView, useRoute,
 } from 'vue-router';
+import {
+  useHead,
+} from '@unhead/vue';
+import {
+  computed,
+} from 'vue';
+
+const route = useRoute();
+useHead({
+  link: [
+    {
+      rel: 'canonical',
+      href: computed(() => `https://huydo862003.github.io/sqlingo${route.path}`),
+    },
+  ],
+});
 </script>
 
 <style scoped>
