@@ -10,6 +10,6 @@ site:
   base_path: "/sqlingo/api-reference"
   nav:
     - title: "Home"
-      link: "/sqlingo/"
+      link: "https://huydo862003.github.io/sqlingo/"
     - title: "Playground"
-      link: "/sqlingo/playground/"
+      link: "https://huydo862003.github.io/sqlingo/playground"
