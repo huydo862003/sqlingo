@@ -4,22 +4,22 @@
     <div class="flex-1">
       <slot />
     </div>
-    <footer class="gui-primary-border-subtle gui-primary-bg-hover shrink-0 border-t">
-      <div class="flex flex-wrap items-center gap-3 px-7 py-6">
-        <span class="gui-neutral-fg-muted text-sm">
+    <footer class="td-footer">
+      <div class="td-footer-inner">
+        <span class="td-footer-text">
           sqlingo.js is
           <a
             href="https://github.com/huydo862003/sqlingo.js/blob/master/COPYRIGHT_NOTICE"
             target="_blank"
             rel="noopener noreferrer"
-            class="gui-primary-fg"
+            class="td-footer-link"
           >MIT licensed</a>.
           Based on
           <a
             href="https://github.com/tobymao/sqlglot"
             target="_blank"
             rel="noopener noreferrer"
-            class="gui-primary-fg"
+            class="td-footer-link"
           >SQLGlot</a> by Toby Mao, also MIT.
         </span>
         <div class="flex-1" />
@@ -27,7 +27,7 @@
           href="https://github.com/huydo862003/sqlingo.js/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="gui-primary-fg text-sm"
+          class="td-footer-link"
         >Report an issue</a>
       </div>
     </footer>
@@ -49,3 +49,35 @@ const {
   breadcrumb?: Crumb[];
 }>();
 </script>
+
+<style scoped>
+.td-footer {
+  border-top: 1px solid var(--gui-neutral-border-subtle);
+  background: var(--gui-neutral-bg-subtle);
+  flex-shrink: 0;
+}
+
+.td-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 28px;
+}
+
+.td-footer-text {
+  font-size: var(--text-sm);
+  color: var(--gui-neutral-border-strong);
+}
+
+.td-footer-link {
+  color: var(--gui-primary-solid);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+.td-footer-link:hover {
+  color: var(--gui-primary-solid-hover);
+  text-decoration: underline;
+}
+</style>

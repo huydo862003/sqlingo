@@ -20,29 +20,25 @@
               href="https://github.com/tobymao/sqlglot"
             />
           </div>
-          <h1 class="mt-6 text-5xl/tight font-bold tracking-tight text-balance">
-            A TypeScript port of <span class="gui-primary-fg">SQLGlot</span>.
+          <h1 class="td-hero-title">
+            A TypeScript port of <span class="td-hero-accent">SQLGlot</span>.
           </h1>
-          <p
-            class="gui-neutral-fg-muted mt-4 max-w-[33em] leading-relaxed text-pretty"
-          >
+          <p class="td-hero-desc">
             Parse, transpile, and optimize SQL across 32 dialects, in the
             browser or in Node.js.
           </p>
         </div>
 
         <div class="mt-4 flex max-w-[33em] flex-wrap items-center gap-3">
-          <div
-            class="gui-primary-border-subtle flex w-full items-center gap-3 rounded-[10px] border bg-white px-5 py-3 shadow-xs"
-          >
-            <span class="min-w-0 truncate overflow-hidden font-mono text-sm">
-              <span class="gui-primary-fg-muted">$</span> npm install
+          <div class="td-install-box">
+            <span class="td-install-text">
+              <span class="td-install-prompt">$</span> npm install
               @hdnax/sqlingo.js
             </span>
             <div class="flex-1" />
             <button
               type="button"
-              class="gui-primary-border-subtle gui-primary-bg-subtle gui-primary-fg text-2xs shrink-0 cursor-pointer rounded-md border px-3 py-1 font-mono font-medium"
+              class="td-install-copy"
               @click="copyInstall"
             >
               {{ installCopied ? "copied" : "copy" }}
@@ -50,7 +46,7 @@
           </div>
           <a
             href="/sqlingo.js/playground/"
-            class="gui-primary-solid gui-primary-fg flex min-h-12 items-center justify-center rounded-[10px] px-5 py-3.5 text-sm font-semibold no-underline"
+            class="td-cta-btn"
           >
             Try the playground
           </a>
@@ -106,24 +102,22 @@
 
       <!-- Dialects -->
       <div class="mt-8 flex flex-wrap items-baseline gap-4">
-        <h2 class="text-xl font-semibold tracking-tight">
+        <h2 class="td-section-title">
           Supported dialects
         </h2>
-        <span class="gui-primary-fg-muted font-mono text-xs">{{ filteredDialects.length }} of 32</span>
+        <span class="td-dialect-count">{{ filteredDialects.length }} of 32</span>
         <div class="flex-1" />
         <input
           v-model="dialectQuery"
           placeholder="Filter dialects..."
-          class="gui-primary-border-subtle gui-neutral-fg w-56 rounded-[9px] border bg-white px-3.5 py-2.5 font-mono text-xs outline-none"
+          class="td-filter-input"
         >
       </div>
-      <div
-        class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2"
-      >
+      <div class="td-dialect-grid">
         <div
           v-for="d in filteredDialects"
           :key="d"
-          class="gui-primary-border-subtle gui-neutral-fg cursor-default rounded-lg border bg-white px-3 py-2.5 font-mono text-xs"
+          class="td-dialect-chip"
         >
           {{ d }}
         </div>
@@ -133,65 +127,41 @@
       <div class="mt-8 grid gap-4 lg:grid-cols-2">
         <a
           href="./api-reference/"
-          class="gui-primary-border-subtle gui-neutral-fg block rounded-[14px] border bg-white p-7 no-underline"
+          class="td-card"
         >
-          <div
-            class="gui-primary-fg text-2xs font-mono tracking-widest uppercase"
-          >
-            API reference
-          </div>
-          <div class="mt-3 text-lg font-semibold tracking-tight">
-            Every class and function, typed
-          </div>
-          <div class="gui-neutral-fg-muted mt-2 text-sm/relaxed">
+          <div class="td-card-eyebrow">API reference</div>
+          <div class="td-card-title">Every class and function, typed</div>
+          <div class="td-card-desc">
             Full TypeScript types generated from source, with examples for each
             expression node.
           </div>
-          <div class="gui-primary-fg mt-4 text-sm font-semibold">
-            Browse the docs
-          </div>
+          <div class="td-card-action">Browse the docs</div>
         </a>
         <a
           href="/sqlingo.js/playground/"
-          class="gui-primary-border-subtle gui-neutral-fg block rounded-[14px] border bg-white p-7 no-underline"
+          class="td-card"
         >
-          <div
-            class="gui-primary-fg text-2xs font-mono tracking-widest uppercase"
-          >
-            Playground
-          </div>
-          <div class="mt-3 text-lg font-semibold tracking-tight">
-            Transpile SQL in the browser
-          </div>
-          <div class="gui-neutral-fg-muted mt-2 text-sm/relaxed">
+          <div class="td-card-eyebrow">Playground</div>
+          <div class="td-card-title">Transpile SQL in the browser</div>
+          <div class="td-card-desc">
             Paste a query, pick two dialects, and watch it convert. Also does
             SQL to DBML.
           </div>
-          <div class="gui-primary-fg mt-4 text-sm font-semibold">
-            Open the playground
-          </div>
+          <div class="td-card-action">Open the playground</div>
         </a>
       </div>
 
       <!-- Why this exists -->
-      <div
-        class="gui-primary-border-subtle mt-8"
-      >
-        <div>
-          <div
-            class="gui-primary-fg-muted text-2xs font-mono tracking-widest uppercase"
-          >
-            Why this exists
-          </div>
-        </div>
-        <div class="gui-neutral-fg mt-6 max-w-[34em]">
-          <p class="m-0 leading-loose">
+      <div class="mt-8">
+        <div class="td-card-eyebrow">Why this exists</div>
+        <div class="td-prose">
+          <p class="m-0">
             I maintain
             <a
               href="https://github.com/holistics/dbml"
               target="_blank"
               rel="noopener noreferrer"
-              class="gui-primary-fg"
+              class="td-link"
             >@dbml/core</a>
             at work, a library that converts between DBML and SQL. Under the
             hood it uses ANTLR, and honestly it has been a mess:
@@ -209,7 +179,7 @@
               href="https://github.com/tobymao/sqlglot"
               target="_blank"
               rel="noopener noreferrer"
-              class="gui-primary-fg"
+              class="td-link"
             >SQLGlot</a>. It was amazing that a library like this existed. Too bad it was
             in Python. I tried Pyodide as a hack, but the runtime is too heavy
             to ship anywhere that matters.
@@ -220,7 +190,7 @@
               href="https://github.com/tobilg/polyglot"
               target="_blank"
               rel="noopener noreferrer"
-              class="gui-primary-fg"
+              class="td-link"
             >polyglot</a>
             was announced (LoL, if only it were sooner). I kept going anyway: I
             wanted full control over the implementation and a way to stay in
@@ -395,3 +365,230 @@ const filteredDialects = computed(() => {
     dialect.toLowerCase().includes(query));
 });
 </script>
+
+<style scoped>
+@reference "tailwindcss";
+
+/* Hero */
+.td-hero-title {
+  margin-top: 24px;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.028em;
+  font-variation-settings: "opsz" 28;
+  color: var(--gui-neutral-fg);
+  text-wrap: balance;
+}
+
+.td-hero-accent {
+  color: var(--gui-primary-solid);
+}
+
+.td-hero-desc {
+  margin-top: 16px;
+  max-width: 33em;
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--gui-neutral-solid);
+  text-wrap: pretty;
+}
+
+/* Install box */
+.td-install-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--gui-neutral-bg);
+}
+
+.td-install-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--gui-neutral-fg);
+}
+
+.td-install-prompt {
+  color: var(--gui-neutral-border-strong);
+}
+
+.td-install-copy {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--gui-neutral-bg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--gui-primary-solid);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default);
+}
+
+.td-install-copy:hover {
+  background: var(--gui-neutral-bg-hover);
+  border-color: var(--gui-neutral-border-strong);
+}
+
+.td-install-copy:active {
+  transform: scale(0.985);
+}
+
+/* CTA button */
+.td-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--gui-primary-solid);
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default);
+}
+
+.td-cta-btn:hover {
+  background: var(--gui-primary-solid-hover);
+}
+
+.td-cta-btn:active {
+  transform: scale(0.985);
+}
+
+/* Section title */
+.td-section-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: var(--leading-heading);
+  letter-spacing: -0.024em;
+  font-variation-settings: "opsz" 28;
+  color: var(--gui-neutral-fg);
+}
+
+/* Dialect grid */
+.td-dialect-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gui-neutral-border-strong);
+}
+
+.td-filter-input {
+  width: 224px;
+  padding: 10px 14px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--gui-neutral-bg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gui-neutral-fg);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-default);
+}
+
+.td-filter-input:focus {
+  border-color: var(--gui-primary-solid);
+}
+
+.td-dialect-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.td-dialect-chip {
+  padding: 10px 12px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--gui-neutral-bg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gui-neutral-fg);
+}
+
+/* Cards */
+.td-card {
+  display: block;
+  padding: 28px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--gui-neutral-bg);
+  text-decoration: none;
+  color: var(--gui-neutral-fg);
+  transition:
+    border-color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+}
+
+.td-card:hover {
+  border-color: var(--gui-primary-solid);
+  background: var(--gui-primary-bg-active);
+  transform: translateY(-1px);
+}
+
+.td-card-eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gui-primary-solid);
+}
+
+.td-card-title {
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+  color: var(--gui-neutral-fg);
+}
+
+.td-card-desc {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--gui-neutral-solid);
+}
+
+.td-card-action {
+  margin-top: 16px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gui-primary-solid);
+}
+
+/* Prose */
+.td-prose {
+  margin-top: 24px;
+  max-width: 34em;
+  color: var(--gui-neutral-solid-hover);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+}
+
+.td-link {
+  color: var(--gui-info-fg-muted);
+  text-decoration: none;
+}
+
+.td-link:hover {
+  color: var(--gui-info-fg);
+  text-decoration: underline;
+}
+</style>

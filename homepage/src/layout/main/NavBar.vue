@@ -1,16 +1,16 @@
 <template>
-  <nav class="gui-primary-border-subtle gui-primary-bg-hover sticky top-0 z-20 border-b">
-    <div class="flex h-14 items-center gap-7 px-7">
+  <nav class="td-navbar">
+    <div class="td-navbar-inner">
       <RouterLink
         to="/"
-        class="gui-neutral-fg flex items-center gap-2.5 no-underline"
+        class="td-brand"
       >
         <img
           :src="`${base}icon.svg`"
           alt="sqlingo.js"
           class="size-8 rounded-md"
         >
-        <span class="gui-primary-fg text-sm font-semibold tracking-tight">sqlingo.js</span>
+        <span class="td-brand-name">sqlingo.js</span>
       </RouterLink>
 
       <GBreadcrumb v-if="breadcrumb.length">
@@ -26,24 +26,24 @@
 
       <div class="flex-1" />
 
-      <div class="flex items-center gap-1">
+      <div class="td-nav-links">
         <RouterLink
           to="/"
-          class="rounded-[7px] px-3 py-1.5 text-sm no-underline"
-          :class="$route.path === '/' ? 'gui-neutral-fg font-bold' : 'gui-neutral-fg-muted font-medium'"
+          class="td-nav-link"
+          :class="{ 'is-active': $route.path === '/' }"
         >
           Home
         </RouterLink>
         <RouterLink
           to="/playground/"
-          class="rounded-[7px] px-3 py-1.5 text-sm no-underline"
-          :class="$route.path.startsWith('/playground') ? 'gui-neutral-fg font-bold' : 'gui-neutral-fg-muted font-medium'"
+          class="td-nav-link"
+          :class="{ 'is-active': $route.path.startsWith('/playground') }"
         >
           Playground
         </RouterLink>
         <a
           :href="`${base}api-reference/`"
-          class="gui-neutral-fg-muted rounded-[7px] px-3 py-1.5 text-sm font-medium no-underline"
+          class="td-nav-link"
         >
           API reference
         </a>
@@ -51,7 +51,7 @@
           href="https://github.com/huydo862003/sqlingo.js"
           target="_blank"
           rel="noopener noreferrer"
-          class="gui-neutral-fg-muted hidden rounded-[7px] px-3 py-1.5 text-sm font-medium no-underline sm:block"
+          class="td-nav-link hidden sm:block"
         >
           GitHub
         </a>
@@ -82,3 +82,68 @@ interface Crumb {
   href?: string;
 }
 </script>
+
+<style scoped>
+.td-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--gui-neutral-border-subtle);
+  background: var(--gui-neutral-bg-subtle);
+}
+
+.td-navbar-inner {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 28px;
+  padding: 0 28px;
+}
+
+.td-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gui-primary-solid);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+.td-brand:hover {
+  color: var(--gui-primary-solid-hover);
+}
+
+.td-brand-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: -0.024em;
+}
+
+.td-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.td-nav-link {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--gui-neutral-border-strong);
+  text-decoration: none;
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+
+.td-nav-link:hover {
+  color: var(--gui-neutral-fg);
+  background-color: var(--gui-neutral-bg-hover);
+}
+
+.td-nav-link.is-active {
+  color: var(--gui-neutral-fg);
+  font-weight: 600;
+}
+</style>
