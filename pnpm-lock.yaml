@@ -68,8 +68,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/sqlingo
       typerighter:
-        specifier: ^0.32.7
-        version: 0.32.7(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+        specifier: ^0.33.2
+        version: 0.33.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
@@ -1054,11 +1054,11 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
-  '@typerighter/rpc-client@0.32.7':
-    resolution: {integrity: sha512-Q/6XK6X64sELsZJ29TD8HLfyJpa9BBeI9k7+4bjIUaY9phHw/BFg7sHLJxcOt+asQZtPmtBWiHs6Jchw7wRKNQ==}
+  '@typerighter/rpc-client@0.33.2':
+    resolution: {integrity: sha512-lXen+ZYe8FWXpKiVSWfBc65VF+68wnvl4s6KrYdLhayFaZj76N+o9uFH7zStmCOjvVuuRz6/E2Xe4brdIUVLJw==}
 
-  '@typerighter/rpc-server@0.32.7':
-    resolution: {integrity: sha512-YlRBfL5FJpRZQvtRQbLqTmyGEiToT/U4Db6fHbfstu+DNBiOFDedck34CDscii+BRQ5IdYnRtGDW2ft0dkiANg==}
+  '@typerighter/rpc-server@0.33.2':
+    resolution: {integrity: sha512-xmxzPrxWa5AnxMBi0Otv0l6TosdHaXq5wAlmmzidH2vr981zh+UbbI0K/ZfMe5I4REJWJu/hn8CyAEVWe/6FTQ==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -1687,8 +1687,8 @@ packages:
   dompurify@3.4.15:
     resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
 
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
   electron-to-chromium@1.5.420:
@@ -2901,8 +2901,8 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typerighter@0.32.7:
-    resolution: {integrity: sha512-WCMDlLwLpIjvhijjSH+e+upJ2dkxjnm5d4l08S/dIkFZrjIK2oInKUA1rsi2AfmsHYAI/0unONqAX2HtdyCnTg==}
+  typerighter@0.33.2:
+    resolution: {integrity: sha512-j4dQEJDmc0a4ZrC1yldJ5t/99ffGsqIPqliPviMFI60LAvBDrP07b5o80DNqDDYmOz9kcqTlTQgwW/yY71ekOw==}
     hasBin: true
 
   typescript-eslint@8.59.2:
@@ -4030,11 +4030,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typerighter/rpc-client@0.32.7': {}
+  '@typerighter/rpc-client@0.33.2': {}
 
-  '@typerighter/rpc-server@0.32.7':
+  '@typerighter/rpc-server@0.33.2':
     dependencies:
-      dotenv: 16.6.1
+      dotenv: 17.4.2
 
   '@types/chai@5.2.3':
     dependencies:
@@ -4663,7 +4663,7 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dotenv@16.6.1: {}
+  dotenv@17.4.2: {}
 
   electron-to-chromium@1.5.420: {}
 
@@ -5853,7 +5853,7 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typerighter@0.32.7(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0):
+  typerighter@0.33.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0):
     dependencies:
       '@clack/prompts': 1.8.1
       '@floating-ui/vue': 2.0.1(vue@3.5.42(typescript@6.0.3))
@@ -5862,8 +5862,8 @@ snapshots:
       '@lucide/vue': 1.46.0(vue@3.5.42(typescript@6.0.3))
       '@shikijs/transformers': 4.4.3
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
-      '@typerighter/rpc-client': 0.32.7
-      '@typerighter/rpc-server': 0.32.7
+      '@typerighter/rpc-client': 0.33.2
+      '@typerighter/rpc-server': 0.33.2
       '@vitejs/plugin-vue': 6.0.8(vite@8.2.2(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))
       cac: 7.0.0
       picocolors: 1.1.1
