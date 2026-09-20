@@ -1385,6 +1385,12 @@ class SnowflakeParser extends Parser {
         dialect: Dialect;
       }) => Expression> = {
         ...Parser.FUNCTIONS,
+        CHARINDEX: (args: Expression[]) => new StrPositionExpr({
+          this: seqGet(args, 1),
+          substr: seqGet(args, 0),
+          position: seqGet(args, 2),
+          clampPosition: true,
+        }),
         ADD_MONTHS: (args: Expression[]) =>
           new AddMonthsExpr({
             this: seqGet(args, 0),

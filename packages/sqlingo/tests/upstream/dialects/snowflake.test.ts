@@ -7685,6 +7685,21 @@ FROM SEMANTIC_VIEW(
 
   }
 
+  testCharindex () {
+    this.validateAll("SELECT CHARINDEX('sub', 'testsubstring', -1)", {
+      write: {
+        snowflake: "SELECT CHARINDEX('sub', 'testsubstring', -1)",
+        duckdb: "SELECT CASE WHEN STRPOS(SUBSTRING('testsubstring', CASE WHEN -1 <= 0 THEN 1 ELSE -1 END), 'sub') = 0 THEN 0 ELSE STRPOS(SUBSTRING('testsubstring', CASE WHEN -1 <= 0 THEN 1 ELSE -1 END), 'sub') + CASE WHEN -1 <= 0 THEN 1 ELSE -1 END - 1 END",
+      },
+    });
+    this.validateAll("SELECT CHARINDEX('sub', 'testsubstring', p)", {
+      write: {
+        snowflake: "SELECT CHARINDEX('sub', 'testsubstring', p)",
+        duckdb: "SELECT CASE WHEN STRPOS(SUBSTRING('testsubstring', CASE WHEN p <= 0 THEN 1 ELSE p END), 'sub') = 0 THEN 0 ELSE STRPOS(SUBSTRING('testsubstring', CASE WHEN p <= 0 THEN 1 ELSE p END), 'sub') + CASE WHEN p <= 0 THEN 1 ELSE p END - 1 END",
+      },
+    });
+  }
+
   testDirectedJoins () {
     this.validateIdentity('SELECT * FROM a CROSS DIRECTED JOIN b USING (id)');
     this.validateIdentity('SELECT * FROM a INNER DIRECTED JOIN b USING (id)');
@@ -8078,5 +8093,9 @@ describe('TestSnowflake', () => {
 
   test('test directed joins', () => {
     validator.testDirectedJoins();
+  });
+
+  test('test charindex', () => {
+    validator.testCharindex();
   });
 });

@@ -1931,7 +1931,7 @@ export function strPositionSql (
     const funcWithOffset = new SubExpr({
       this: new AddExpr({
         this: func,
-        expression: position,
+        expression: (position as Expression).copy(),
       }),
       expression: one,
     });

@@ -28750,6 +28750,7 @@ export type StrPositionExprArgs = Merge<[
     substr?: Expression;
     position?: Expression;
     occurrence?: Expression;
+    clampPosition?: boolean;
   },
 ]>;
 
@@ -28766,6 +28767,7 @@ export class StrPositionExpr extends FuncExpr {
     'substr',
     'position',
     'occurrence',
+    'clampPosition',
   ]);
 
   static argOrder = [

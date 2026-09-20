@@ -231,6 +231,7 @@ import {
   ArrayToStringExpr,
   StrtokExpr,
   LtExpr,
+  LteExpr,
   RegexpCountExpr,
   RegexpExtractAllExpr,
   RegexpInstrExpr,
@@ -3660,10 +3661,6 @@ class DuckDBGenerator extends Generator {
         function (this: Generator, e) {
           return (e.args.this instanceof SchemaExpr ? 'TABLE' : '');
         },
-      ],
-      [
-        StrPositionExpr,
-        strPositionSql,
       ],
       [
         StrToUnixExpr,
@@ -7187,6 +7184,24 @@ class DuckDBGenerator extends Generator {
       decimals,
       truncate,
     ]);
+  }
+
+  strPositionSql (expression: StrPositionExpr): string {
+    const position = expression.args.position;
+
+    if (expression.args.clampPosition && position) {
+      expression = expression.copy() as StrPositionExpr;
+      expression.setArgKey('position', new IfExpr({
+        this: new LteExpr({
+          this: position as Expression,
+          expression: LiteralExpr.number(0),
+        }),
+        true: LiteralExpr.number(1),
+        false: (position as Expression).copy(),
+      }));
+    }
+
+    return strPositionSql.call(this, expression);
   }
 
   strtokSql (expression: StrtokExpr): string {
