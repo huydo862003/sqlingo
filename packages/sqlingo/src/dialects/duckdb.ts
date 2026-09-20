@@ -49,7 +49,6 @@ import type {
   SpaceExpr,
   MapCatExpr,
   ObjectInsertExpr,
-  ArrayToStringExpr,
   RespectNullsExpr,
   ExpressionValue,
 
@@ -229,6 +228,7 @@ import {
   PercentileContExpr,
   PercentileDiscExpr,
   CoalesceExpr,
+  ArrayToStringExpr,
   LtExpr,
   RegexpCountExpr,
   RegexpExtractAllExpr,
@@ -6665,15 +6665,58 @@ class DuckDBGenerator extends Generator {
   }
 
   arrayToStringSql (expression: ArrayToStringExpr): string {
-    let thisSql = this.sql(expression, 'this');
-    const nullText = this.sql(expression, 'null');
+    const nullArg = expression.args.null;
 
-    if (nullText) {
-      thisSql = `LIST_TRANSFORM(${thisSql}, x -> COALESCE(x, ${nullText}))`;
+    if (expression.args.nullIsEmpty) {
+      const x = toIdentifier('x');
+      const listTransform = new TransformExpr({
+        this: (expression.args.this as Expression).copy(),
+        expression: new LambdaExpr({
+          this: new CoalesceExpr({
+            this: cast(x, 'TEXT'),
+            expressions: [LiteralExpr.string('')],
+          }),
+          expressions: [x],
+        }),
+      });
+      const arrayToString = new ArrayToStringExpr({
+        this: listTransform,
+        expression: expression.args.expression,
+      });
+
+      if (expression.args.nullDelimIsNull) {
+        return this.sql(
+          case_()
+            .when((expression.args.expression as Expression).copy().is(null_()), null_())
+            .else(arrayToString),
+        );
+      }
+
+      return this.sql(arrayToString);
+    }
+
+    if (nullArg) {
+      const x = toIdentifier('x');
+
+      return this.sql(
+        new ArrayToStringExpr({
+          this: new TransformExpr({
+            this: expression.args.this,
+            expression: new LambdaExpr({
+              this: new CoalesceExpr({
+                this: x,
+                expressions: [nullArg as Expression],
+              }),
+              expressions: [x],
+            }),
+          }),
+          expression: expression.args.expression,
+        }),
+      );
     }
 
     return this.func('ARRAY_TO_STRING', [
-      thisSql,
+      expression.args.this,
       expression.args.expression,
     ]);
   }

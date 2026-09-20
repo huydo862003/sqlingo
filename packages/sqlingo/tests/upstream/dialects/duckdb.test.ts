@@ -122,7 +122,6 @@ class TestDuckDB extends Validator {
         bigquery: 'ARRAY_TO_STRING(arr, delim)',
         postgres: 'ARRAY_TO_STRING(arr, delim)',
         presto: 'ARRAY_JOIN(arr, delim)',
-        snowflake: 'ARRAY_TO_STRING(arr, delim)',
         spark: 'ARRAY_JOIN(arr, delim)',
       },
       write: {
@@ -135,6 +134,14 @@ class TestDuckDB extends Validator {
         tsql: 'STRING_AGG(arr, delim)',
       },
     });
+    this.validateAll(
+      "SELECT CASE WHEN delim IS NULL THEN NULL ELSE ARRAY_TO_STRING(LIST_TRANSFORM(arr, x -> COALESCE(CAST(x AS TEXT), '')), delim) END",
+      {
+        read: {
+          snowflake: 'SELECT ARRAY_TO_STRING(arr, delim)',
+        },
+      },
+    );
     this.validateAll('SELECT SUM(X) OVER (ORDER BY x)', {
       write: {
         bigquery: 'SELECT SUM(X) OVER (ORDER BY x)',

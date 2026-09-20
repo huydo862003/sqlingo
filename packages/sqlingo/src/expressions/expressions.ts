@@ -19048,6 +19048,8 @@ export class ArrayToStringExpr extends FuncExpr {
     'this',
     'expression',
     'null',
+    'nullIsEmpty',
+    'nullDelimIsNull',
   ]);
 
   static argOrder = [

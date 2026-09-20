@@ -56,6 +56,7 @@ import {
   TimeFromPartsExpr,
   ArrayAggExpr,
   ArrayExpr,
+  ArrayToStringExpr,
   Expression, FromExpr, GenerateDateArrayExpr, JsonExtractExpr, JsonValueArrayExpr, LambdaExpr, LateralExpr, ParseJsonExpr, RegexpExtractExpr,
   select,
   StarExpr,
@@ -1467,6 +1468,12 @@ class SnowflakeParser extends Parser {
           nullsafe: true,
         }),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
+        ARRAY_TO_STRING: (args: Expression[]) => new ArrayToStringExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullIsEmpty: true,
+          nullDelimIsNull: true,
+        }),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BIT_AND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BITNOT: (args: Expression[]) => new BitwiseNotExpr({
@@ -4112,6 +4119,10 @@ class SnowflakeGenerator extends Generator {
     }
 
     return exprSql;
+  }
+
+  arrayToStringSql (expression: ArrayToStringExpr): string {
+    return this.func('ARRAY_TO_STRING', [expression.args.this, expression.args.expression]);
   }
 
   arraySql (expression: ArrayExpr): string {
