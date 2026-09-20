@@ -1312,6 +1312,7 @@ class SnowflakeParser extends Parser {
   }
 
   static IDENTIFY_PIVOT_STRINGS = true;
+  static override TYPED_LAMBDA_ARGS = true;
   static DEFAULT_SAMPLING_METHOD = 'BERNOULLI' as const;
   static COLON_IS_VARIANT_EXTRACT = true;
   static JSON_EXTRACT_REQUIRES_JSON_EXPRESSION = true;

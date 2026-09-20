@@ -2018,6 +2018,13 @@ export class Parser {
     };
   }
 
+  static TYPED_LAMBDA_ARGS = false;
+
+  static LAMBDA_ARG_TERMINATORS: ReadonlySet<TokenType> = new Set([
+    TokenType.COMMA,
+    TokenType.R_PAREN,
+  ]);
+
   @cache
   static get COLUMN_OPERATORS (): Partial<Record<TokenType, undefined | ((this: Parser, this_?: Expression, to?: Expression) => Expression)>> {
     return {
@@ -10058,44 +10065,11 @@ export class Parser {
       fallbackToIdentifier = false,
     } = options;
 
-    const currTokenType = this.curr?.tokenType;
+    if (!fallbackToIdentifier) {
+      const atom = this.parseAtom();
 
-    // Fast path for simple column references
-    if (!fallbackToIdentifier && currTokenType !== undefined && this._constructor.FAST_COLUMN_TOKENS.has(currTokenType)) {
-      return this.parseColumn();
-    }
-
-    const nextTokenType = this.next?.tokenType;
-
-    // Fast path for literals when no column operator follows
-    if (nextTokenType !== undefined && !(nextTokenType in this._constructor.COLUMN_OPERATORS)) {
-      if (currTokenType === TokenType.STRING && nextTokenType !== TokenType.STRING) {
-        const curr = this.curr!;
-
-        this.advance();
-        const lit = new LiteralExpr({
-          this: curr.text,
-          isString: true,
-        });
-
-        lit.updatePositions(curr);
-        this.addComments(lit);
-
-        return lit;
-      }
-      if (currTokenType === TokenType.NUMBER) {
-        const curr = this.curr!;
-
-        this.advance();
-        const lit = new LiteralExpr({
-          this: curr.text,
-          isString: false,
-        });
-
-        lit.updatePositions(curr);
-        this.addComments(lit);
-
-        return lit;
+      if (atom !== undefined) {
+        return atom;
       }
     }
 
@@ -10736,6 +10710,47 @@ export class Parser {
         zone: this.parseUnary(),
       }),
     );
+  }
+
+  parseAtom (): Expression | undefined {
+    if (!this.curr) {
+      return undefined;
+    }
+
+    if (
+      this.curr.tokenType in this._constructor.FAST_COLUMN_TOKENS
+    ) {
+      const column = this.parseColumn();
+
+      if (column !== undefined) {
+        return column;
+      }
+    }
+
+    const token = this.curr;
+    const tokenType = token!.tokenType;
+    const primaryParser = this._constructor.PRIMARY_PARSERS[tokenType];
+
+    if (!primaryParser) {
+      return undefined;
+    }
+
+    const nextType = this.next?.tokenType;
+
+    if (
+      nextType !== undefined
+      && (
+        nextType in this._constructor.COLUMN_OPERATORS
+        || this._constructor.COLUMN_POSTFIX_TOKENS.has(nextType)
+        || (tokenType === TokenType.STRING && nextType === TokenType.STRING)
+      )
+    ) {
+      return undefined;
+    }
+
+    this.advance();
+
+    return primaryParser.call(this, token);
   }
 
   parseColumn (): Expression | undefined {
@@ -12943,21 +12958,23 @@ export class Parser {
   }
 
   parseRespectOrIgnoreNulls (thisExpr: Expression | undefined): Expression | undefined {
-    if (this.matchTextSeq([
-      'IGNORE',
-      'NULLS',
-    ])) {
-      return this.expression(IgnoreNullsExpr, {
-        this: thisExpr,
-      });
-    }
-    if (this.matchTextSeq([
-      'RESPECT',
-      'NULLS',
-    ])) {
-      return this.expression(RespectNullsExpr, {
-        this: thisExpr,
-      });
+    if (this.curr?.tokenType === TokenType.VAR) {
+      if (this.matchTextSeq([
+        'IGNORE',
+        'NULLS',
+      ])) {
+        return this.expression(IgnoreNullsExpr, {
+          this: thisExpr,
+        });
+      }
+      if (this.matchTextSeq([
+        'RESPECT',
+        'NULLS',
+      ])) {
+        return this.expression(RespectNullsExpr, {
+          this: thisExpr,
+        });
+      }
     }
 
     return thisExpr;
@@ -14892,6 +14909,21 @@ export class Parser {
     const {
       alias = false,
     } = options;
+
+    const nextTokenType = this.next?.tokenType;
+
+    // Fast path: simple atom (column, literal, null, bool) followed by , or )
+    if (
+      nextTokenType !== undefined
+      && this._constructor.LAMBDA_ARG_TERMINATORS.has(nextTokenType)
+    ) {
+      const atom = this.parseAtom();
+
+      if (atom !== undefined) {
+        return atom;
+      }
+    }
+
     const index = this.index;
 
     let expressions: (Expression | undefined)[];
@@ -14901,18 +14933,24 @@ export class Parser {
 
       if (!this.match(TokenType.R_PAREN)) {
         this.retreat(index);
+      } else if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
+        const lambdaTokenType = this.prev?.tokenType;
+
+        return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
+      } else {
+        this.retreat(index);
       }
-    } else {
+    } else if (this._constructor.TYPED_LAMBDA_ARGS || (nextTokenType !== undefined && nextTokenType in this._constructor.LAMBDAS)) {
       expressions = [this.parseLambdaArg()];
+
+      if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
+        const lambdaTokenType = this.prev?.tokenType;
+
+        return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
+      }
+
+      this.retreat(index);
     }
-
-    if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
-      const lambdaTokenType = this.prev?.tokenType;
-
-      return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
-    }
-
-    this.retreat(index);
 
     let thisExpr: Expression | undefined;
 
