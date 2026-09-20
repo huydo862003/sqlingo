@@ -90,7 +90,7 @@
               <button
                 type="button"
                 class="td-demo-copy"
-                @click="copyCode(demo.code)"
+                @click="() => copyCode(demo.code)"
               >
                 {{ codeCopied ? 'copied' : 'copy' }}
               </button>
