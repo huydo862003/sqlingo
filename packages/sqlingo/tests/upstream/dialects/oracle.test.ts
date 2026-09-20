@@ -18,7 +18,7 @@ class TestOracle extends Validator {
   override dialect = 'oracle' as const;
 
   testOracle () {
-    this.validateIdentity('1 /* /* */');
+    this.validateIdentity('1 /* /* */', '1 /* / * */');
     this.validateAll(
       'SELECT CONNECT_BY_ROOT x y',
       {

@@ -3408,7 +3408,7 @@ OPTIONS (
             -- bar, /* the thing */
         from facts
         `;
-    const expected = 'SELECT\n  id,\n  foo\n/* bar, /* the thing * / */\nFROM facts';
+    const expected = 'SELECT\n  id,\n  foo\n/* bar, / * the thing * / */\nFROM facts';
     expect(this.parseOne(sql).sql({ dialect: 'bigquery', pretty: true })).toBe(expected);
   }
 

@@ -96,12 +96,23 @@ class TestTranspile {
   }
 
   testComments () {
-    expect(transpile('select /* asfd /* asdf */ asdf */ 1')[0]).toBe('/* asfd /* asdf */ asdf */ SELECT 1');
+    expect(transpile('select /* asfd /* asdf */ asdf */ 1')[0]).toBe('/* asfd / * asdf * / asdf */ SELECT 1');
     expect(transpile('SELECT c /* foo */ AS alias')[0]).toBe('SELECT c AS alias /* foo */');
     expect(transpile('SELECT * FROM t1\n/*x*/\nUNION ALL SELECT * FROM t2')[0]).toBe(
       'SELECT * FROM t1 /* x */ UNION ALL SELECT * FROM t2',
     );
     expect(transpile('SELECT 1 FROM foo -- comment')[0]).toBe('SELECT 1 FROM foo /* comment */');
+  }
+
+  testCommentSingleLineWithBlockClose () {
+    expect(transpile('-- aa */ SELECT * FROM secret_table --\nSELECT 1')[0])
+      .toBe('/* aa * / SELECT * FROM secret_table -- */ SELECT 1');
+    expect(transpile('-- comment */ DROP TABLE users --\nSELECT 1')[0])
+      .toBe('/* comment * / DROP TABLE users -- */ SELECT 1');
+    expect(transpile('SELECT c /* c1 /* c2 */ c3 */')[0])
+      .toBe('SELECT c /* c1 / * c2 * / c3 */');
+    expect(transpile('SELECT c /* c1 /* c2 /* c3 */ */ */')[0])
+      .toBe('SELECT c /* c1 / * c2 / * c3 * / * / */');
   }
 
   testTypes () {
@@ -269,6 +280,7 @@ describe('TestTranspile', () => {
   test('testLeadingComma', () => t.testLeadingComma());
   test('space', () => t.testSpace());
   test('comments', () => t.testComments());
+  test('commentSingleLineWithBlockClose', () => t.testCommentSingleLineWithBlockClose());
   test('types', () => t.testTypes());
   test('testNotRange', () => t.testNotRange());
   test('extract', () => t.testExtract());

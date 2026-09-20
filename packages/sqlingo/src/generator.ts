@@ -2553,10 +2553,10 @@ export class Generator {
       result = result + ' ';
     }
 
-    // If dialect doesn't support nested comments, replace */ with * /
-    if (!this.dialect._constructor.tokenizerClass.NESTED_COMMENTS) {
-      result = result.replace(/\*\//g, '* /');
-    }
+    // Escape block comment markers to prevent premature closure or unintended nesting.
+    // Single-line comments (--) are converted to block comments (/* */) on output,
+    // and any */ in the original text would close the comment early.
+    result = result.replace(/\*\//g, '* /').replace(/\/\*/g, '/ *');
 
     return result;
   }

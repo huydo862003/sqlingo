@@ -717,7 +717,7 @@ class TestSnowflake extends Validator {
     this.validateIdentity('ALTER TABLE a SWAP WITH b');
     this.validateIdentity('SELECT MATCH_CONDITION');
     this.validateIdentity('SELECT OBJECT_AGG(key, value) FROM tbl');
-    this.validateIdentity('1 /* /* */');
+    this.validateIdentity('1 /* /* */', '1 /* / * */');
     this.validateIdentity('TO_TIMESTAMP(col, fmt)');
     this.validateIdentity('SELECT TO_CHAR(CAST(\'12:05:05\' AS TIME))');
     this.validateIdentity('SELECT TRIM(COALESCE(TO_CHAR(CAST(c AS TIME)), \'\')) FROM t');
