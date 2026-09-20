@@ -1542,6 +1542,15 @@ export class Parser {
   }
 
   @cache
+  static get SUBQUERY_TOKENS (): Set<TokenType> {
+    return new Set([
+      TokenType.SELECT,
+      TokenType.WITH,
+      TokenType.FROM,
+    ]);
+  }
+
+  @cache
   static get RESERVED_TOKENS (): Set<TokenType> {
     return new Set(
       [
@@ -6704,6 +6713,7 @@ export class Parser {
       thisExpr = select('*').from(from.args.this, {
         copy: false,
       });
+      thisExpr = this.parseQueryModifiers(thisExpr);
     } else if (this.match(TokenType.SUMMARIZE)) {
       const table = this.match(TokenType.TABLE) || undefined;
 
@@ -14666,10 +14676,7 @@ export class Parser {
       if (subqueryPredicate) {
         let expr: Expression | undefined;
 
-        if (
-          this.curr.tokenType === TokenType.SELECT
-          || this.curr.tokenType === TokenType.WITH
-        ) {
+        if (this._constructor.SUBQUERY_TOKENS.has(this.curr.tokenType)) {
           expr = this.parseSelect();
           this.matchRParen();
         } else if (

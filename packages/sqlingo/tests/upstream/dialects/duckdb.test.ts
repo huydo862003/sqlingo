@@ -35,6 +35,10 @@ class TestDuckDB extends Validator {
       'PIVOT duckdb_functions() ON schema_name USING AVG(LENGTH(function_name))::INTEGER GROUP BY schema_name',
       'PIVOT DUCKDB_FUNCTIONS() ON schema_name USING CAST(AVG(LENGTH(function_name)) AS INT) GROUP BY schema_name',
     );
+    this.validateIdentity(
+      'SELECT * FROM t1 WHERE NOT EXISTS(FROM t2 WHERE t2.id = t1.id)',
+      'SELECT * FROM t1 WHERE NOT EXISTS(SELECT * FROM t2 WHERE t2.id = t1.id)',
+    );
     this.validateIdentity('SELECT str[0:1]');
     this.validateIdentity('SELECT COSH(1.5)');
     this.validateIdentity('SELECT MODE(category)');
