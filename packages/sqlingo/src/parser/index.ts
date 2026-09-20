@@ -9518,19 +9518,79 @@ export class Parser {
   }
 
   parseDisjunction (): Expression | undefined {
-    return this.parseTokens(() => this.parseConjunction(), this._constructor.DISJUNCTION);
+    let thisExpr = this.parseConjunction();
+
+    while (this.matchSet(Object.keys(this._constructor.DISJUNCTION) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.DISJUNCTION[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseConjunction(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseConjunction (): Expression | undefined {
-    return this.parseTokens(() => this.parseEquality(), this._constructor.CONJUNCTION);
+    let thisExpr = this.parseEquality();
+
+    while (this.matchSet(Object.keys(this._constructor.CONJUNCTION) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.CONJUNCTION[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseEquality(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseEquality (): Expression | undefined {
-    return this.parseTokens(() => this.parseComparison(), this._constructor.EQUALITY);
+    let thisExpr = this.parseComparison();
+
+    while (this.matchSet(Object.keys(this._constructor.EQUALITY) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.EQUALITY[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseComparison(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseComparison (): Expression | undefined {
-    return this.parseTokens(() => this.parseRange(), this._constructor.COMPARISON);
+    let thisExpr = this.parseRange();
+
+    while (this.matchSet(Object.keys(this._constructor.COMPARISON) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.COMPARISON[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseRange(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseRange (thisExpr?: Expression): Expression | undefined {
@@ -10043,7 +10103,22 @@ export class Parser {
   }
 
   parseExponent (): Expression | undefined {
-    return this.parseTokens(() => this.parseUnary(), this._constructor.EXPONENT);
+    let thisExpr = this.parseUnary();
+
+    while (this.matchSet(Object.keys(this._constructor.EXPONENT) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.EXPONENT[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseUnary(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseUnary (): Expression | undefined {
