@@ -168,8 +168,21 @@ class PRQLParser extends Parser {
     };
   }
 
-  parseEquality (): Expression | undefined {
-    const eq = this.parseTokens(() => this.parseComparison(), (this._constructor as typeof PRQLParser).EQUALITY);
+  override parseEquality (): Expression | undefined {
+    let eq: Expression | undefined = this.parseComparison();
+
+    while (this.matchSet(Object.keys(this._constructor.EQUALITY) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.EQUALITY[this.prev!.tokenType];
+
+      if (exprType) {
+        eq = this.expression(exprType, {
+          this: eq,
+          expression: this.parseComparison(),
+          comments,
+        });
+      }
+    }
 
     if (!(eq instanceof EqExpr || eq instanceof NeqExpr)) {
       return eq;

@@ -1501,22 +1501,28 @@ export class BigQueryParser extends Parser {
     return thisNode;
   }
 
-  parseTableParts (
+  override parseTableParts (
     options: {
       schema?: boolean;
       isDbReference?: boolean;
       wildcard?: boolean;
+      fast?: boolean;
     } = {},
-  ): TableExpr {
+  ): TableExpr | undefined {
     const {
-      schema = false, isDbReference = false, wildcard: _wildcard = false,
+      schema = false, isDbReference = false, wildcard: _wildcard = false, fast = false,
     } = options;
 
     let table = super.parseTableParts({
       schema,
       isDbReference,
       wildcard: true,
+      fast,
     });
+
+    if (!(table instanceof TableExpr)) {
+      return table;
+    }
 
     // proj-1.db.tbl -- `1.` is tokenized as a float so we need to unravel it here
     if (!table.catalog) {
@@ -1585,7 +1591,7 @@ export class BigQueryParser extends Parser {
         db,
         thisNode,
       ].forEach((part) => {
-        if (part) part.updatePositions(narrowInstanceOf(table.args.this, Token, Expression));
+        if (part) part.updatePositions(narrowInstanceOf(table!.args.this, Token, Expression));
       });
 
       let finalThis: Expression | undefined = thisNode;

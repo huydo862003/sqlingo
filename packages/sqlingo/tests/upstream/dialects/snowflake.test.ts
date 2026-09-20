@@ -630,6 +630,20 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT CURRENT_CLIENT()');
     this.validateIdentity('SELECT CURRENT_IP_ADDRESS()');
     this.validateIdentity('SELECT CURRENT_DATABASE()');
+
+    this.validateAll("SELECT 1 WHERE 'abc' ILIKE ANY('%a%')", {
+      write: {
+        snowflake: "SELECT 1 WHERE 'abc' ILIKE ANY('%a%')",
+        duckdb: "SELECT 1 WHERE 'abc' ILIKE '%a%'",
+      },
+    });
+    this.validateAll("SELECT 1 WHERE 'abc' LIKE ALL ('%a%')", {
+      write: {
+        snowflake: "SELECT 1 WHERE 'abc' LIKE ALL ('%a%')",
+        duckdb: "SELECT 1 WHERE 'abc' LIKE '%a%'",
+      },
+    });
+
     this.validateIdentity('SELECT CURRENT_SCHEMAS()');
     this.validateIdentity('SELECT CURRENT_SECONDARY_ROLES()');
     this.validateIdentity('SELECT CURRENT_SESSION()');
@@ -717,7 +731,7 @@ class TestSnowflake extends Validator {
     this.validateIdentity('ALTER TABLE a SWAP WITH b');
     this.validateIdentity('SELECT MATCH_CONDITION');
     this.validateIdentity('SELECT OBJECT_AGG(key, value) FROM tbl');
-    this.validateIdentity('1 /* /* */');
+    this.validateIdentity('1 /* /* */', '1 /* / * */');
     this.validateIdentity('TO_TIMESTAMP(col, fmt)');
     this.validateIdentity('SELECT TO_CHAR(CAST(\'12:05:05\' AS TIME))');
     this.validateIdentity('SELECT TRIM(COALESCE(TO_CHAR(CAST(c AS TIME)), \'\')) FROM t');
@@ -752,9 +766,24 @@ class TestSnowflake extends Validator {
     (this.validateIdentity(
       'SELECT DATEADD(DAY, -7, DATEADD(t.m, 1, CAST(\'2023-01-03\' AS DATE))) FROM (SELECT \'month\' AS m) AS t',
     ) as any).selects[0].args.this.args.unit.assertIs(ColumnExpr);
-    this.validateIdentity('SELECT STRTOK(\'hello world\')', 'SELECT SPLIT_PART(\'hello world\', \' \', 1)');
-    this.validateIdentity('SELECT STRTOK(\'hello world\', \' \')', 'SELECT SPLIT_PART(\'hello world\', \' \', 1)');
-    this.validateIdentity('SELECT STRTOK(\'hello world\', \' \', 2)', 'SELECT SPLIT_PART(\'hello world\', \' \', 2)');
+    this.validateAll("SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)", {
+      write: {
+        snowflake: "SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)",
+        duckdb: String.raw`SELECT CASE WHEN SUBSTRING('.$^', 1, 2) = '' AND 'a$b$c' = '' THEN NULL WHEN SUBSTRING('.$^', 1, 2) = '' AND 2 = 1 THEN 'a$b$c' WHEN SUBSTRING('.$^', 1, 2) = '' THEN NULL WHEN 2 < 0 THEN NULL WHEN 'a$b$c' IS NULL OR SUBSTRING('.$^', 1, 2) IS NULL OR 2 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('a$b$c', CASE WHEN SUBSTRING('.$^', 1, 2) = '' THEN '' ELSE '[' || REGEXP_REPLACE(SUBSTRING('.$^', 1, 2), '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[2] END`,
+      },
+    });
+    this.validateAll("SELECT STRTOK('a$b/cg', '$/.')", {
+      write: {
+        snowflake: "SELECT STRTOK('a$b/cg', '$/.', 1)",
+        duckdb: String.raw`SELECT CASE WHEN '$/.' = '' AND 'a$b/cg' = '' THEN NULL WHEN '$/.' = '' AND 1 = 1 THEN 'a$b/cg' WHEN '$/.' = '' THEN NULL WHEN 1 < 0 THEN NULL WHEN 'a$b/cg' IS NULL OR '$/.' IS NULL OR 1 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('a$b/cg', CASE WHEN '$/.' = '' THEN '' ELSE '[' || REGEXP_REPLACE('$/.', '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[1] END`,
+      },
+    });
+    this.validateAll("SELECT STRTOK('ab')", {
+      write: {
+        snowflake: "SELECT STRTOK('ab', ' ', 1)",
+        duckdb: String.raw`SELECT CASE WHEN ' ' = '' AND 'ab' = '' THEN NULL WHEN ' ' = '' AND 1 = 1 THEN 'ab' WHEN ' ' = '' THEN NULL WHEN 1 < 0 THEN NULL WHEN 'ab' IS NULL OR ' ' IS NULL OR 1 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('ab', CASE WHEN ' ' = '' THEN '' ELSE '[' || REGEXP_REPLACE(' ', '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[1] END`,
+      },
+    });
     (this.validateIdentity('SELECT FILE_URL FROM DIRECTORY(@mystage) WHERE SIZE > 100000') as any).args.from?.args.this.args.this.assertIs(DirectoryStageExpr).args.this.assertIs(VarExpr);
     this.validateIdentity(
       'SELECT AI_CLASSIFY(\'text\', [\'travel\', \'cooking\'], OBJECT_CONSTRUCT(\'output_mode\', \'multi\'))',
@@ -1151,9 +1180,13 @@ class TestSnowflake extends Validator {
     this.validateAll(
       'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
       {
+        read: {
+          duckdb: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+        },
         write: {
-          'snowflake': 'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
-          'starrocks': 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+          snowflake: 'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
+          starrocks: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+          duckdb: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
         },
       },
     );
@@ -2019,15 +2052,30 @@ class TestSnowflake extends Validator {
             },
           );
           this.validateAll(
-            'ARRAY_TO_STRING(x, \'\')',
+            'SELECT ARRAY_TO_STRING(x, \'\')',
             {
-              read: {
-                'duckdb': 'ARRAY_TO_STRING(x, \'\')',
-              },
               write: {
-                'spark': 'ARRAY_JOIN(x, \'\')',
-                'snowflake': 'ARRAY_TO_STRING(x, \'\')',
-                'duckdb': 'ARRAY_TO_STRING(x, \'\')',
+                spark: 'SELECT ARRAY_JOIN(x, \'\')',
+                snowflake: 'SELECT ARRAY_TO_STRING(x, \'\')',
+                duckdb: "SELECT CASE WHEN '' IS NULL THEN NULL ELSE ARRAY_TO_STRING(LIST_TRANSFORM(x, x -> COALESCE(CAST(x AS TEXT), '')), '') END",
+              },
+            },
+          );
+          this.validateAll(
+            'SELECT ARRAY_TO_STRING(x, NULL)',
+            {
+              write: {
+                snowflake: 'SELECT ARRAY_TO_STRING(x, NULL)',
+                duckdb: "SELECT CASE WHEN NULL IS NULL THEN NULL ELSE ARRAY_TO_STRING(LIST_TRANSFORM(x, x -> COALESCE(CAST(x AS TEXT), '')), NULL) END",
+              },
+            },
+          );
+          this.validateAll(
+            "SELECT ARRAY_TO_STRING([], ',')",
+            {
+              write: {
+                snowflake: "SELECT ARRAY_TO_STRING([], ',')",
+                duckdb: "SELECT CASE WHEN ',' IS NULL THEN NULL ELSE ARRAY_TO_STRING(LIST_TRANSFORM([], x -> COALESCE(CAST(x AS TEXT), '')), ',') END",
               },
             },
           );
@@ -7641,6 +7689,21 @@ FROM SEMANTIC_VIEW(
 
   }
 
+  testCharindex () {
+    this.validateAll("SELECT CHARINDEX('sub', 'testsubstring', -1)", {
+      write: {
+        snowflake: "SELECT CHARINDEX('sub', 'testsubstring', -1)",
+        duckdb: "SELECT CASE WHEN STRPOS(SUBSTRING('testsubstring', CASE WHEN -1 <= 0 THEN 1 ELSE -1 END), 'sub') = 0 THEN 0 ELSE STRPOS(SUBSTRING('testsubstring', CASE WHEN -1 <= 0 THEN 1 ELSE -1 END), 'sub') + CASE WHEN -1 <= 0 THEN 1 ELSE -1 END - 1 END",
+      },
+    });
+    this.validateAll("SELECT CHARINDEX('sub', 'testsubstring', p)", {
+      write: {
+        snowflake: "SELECT CHARINDEX('sub', 'testsubstring', p)",
+        duckdb: "SELECT CASE WHEN STRPOS(SUBSTRING('testsubstring', CASE WHEN p <= 0 THEN 1 ELSE p END), 'sub') = 0 THEN 0 ELSE STRPOS(SUBSTRING('testsubstring', CASE WHEN p <= 0 THEN 1 ELSE p END), 'sub') + CASE WHEN p <= 0 THEN 1 ELSE p END - 1 END",
+      },
+    });
+  }
+
   testDirectedJoins () {
     this.validateIdentity('SELECT * FROM a CROSS DIRECTED JOIN b USING (id)');
     this.validateIdentity('SELECT * FROM a INNER DIRECTED JOIN b USING (id)');
@@ -8034,5 +8097,9 @@ describe('TestSnowflake', () => {
 
   test('test directed joins', () => {
     validator.testDirectedJoins();
+  });
+
+  test('test charindex', () => {
+    validator.testCharindex();
   });
 });

@@ -56,6 +56,7 @@ import {
   TimeFromPartsExpr,
   ArrayAggExpr,
   ArrayExpr,
+  ArrayToStringExpr,
   Expression, FromExpr, GenerateDateArrayExpr, JsonExtractExpr, JsonValueArrayExpr, LambdaExpr, LateralExpr, ParseJsonExpr, RegexpExtractExpr,
   select,
   StarExpr,
@@ -86,6 +87,7 @@ import {
   SplitPartExpr,
   StarMapExpr,
   StrToTimeExpr,
+  StrtokExpr,
   StructExpr, TryCastExpr, TsOrDsToDateExpr, TsOrDsToTimeExpr, UnixToTimeExpr,
   wrap,
   UnnestExpr,
@@ -335,18 +337,12 @@ const TIMESTAMP_TYPES: Partial<Record<DataTypeExprKind, string>> = {
   [DataTypeExprKind.TIMESTAMPTZ]: 'TO_TIMESTAMP_TZ',
 };
 
-function buildStrtok (args: Expression[]): SplitPartExpr {
-  // Add default delimiter (space) if missing - per Snowflake docs
-  if (args.length === 1) {
-    args.push(LiteralExpr.string(' '));
-  }
-
-  // Add default part_index (1) if missing
-  if (args.length === 2) {
-    args.push(LiteralExpr.number(1));
-  }
-
-  return SplitPartExpr.fromArgList(args);
+function buildStrtok (args: Expression[]): StrtokExpr {
+  return new StrtokExpr({
+    this: seqGet(args, 0),
+    delimiter: seqGet(args, 1) || LiteralExpr.string(' '),
+    partIndex: seqGet(args, 2) || LiteralExpr.number('1'),
+  });
 }
 
 /**
@@ -1311,6 +1307,7 @@ class SnowflakeParser extends Parser {
   }
 
   static IDENTIFY_PIVOT_STRINGS = true;
+  static override TYPED_LAMBDA_ARGS = true;
   static DEFAULT_SAMPLING_METHOD = 'BERNOULLI' as const;
   static COLON_IS_VARIANT_EXTRACT = true;
   static JSON_EXTRACT_REQUIRES_JSON_EXPRESSION = true;
@@ -1388,6 +1385,12 @@ class SnowflakeParser extends Parser {
         dialect: Dialect;
       }) => Expression> = {
         ...Parser.FUNCTIONS,
+        CHARINDEX: (args: Expression[]) => new StrPositionExpr({
+          this: seqGet(args, 1),
+          substr: seqGet(args, 0),
+          position: seqGet(args, 2),
+          clampPosition: true,
+        }),
         ADD_MONTHS: (args: Expression[]) =>
           new AddMonthsExpr({
             this: seqGet(args, 0),
@@ -1467,6 +1470,12 @@ class SnowflakeParser extends Parser {
           nullsafe: true,
         }),
         ARRAY_FLATTEN: (args: unknown[]) => FlattenExpr.fromArgList(args),
+        ARRAY_TO_STRING: (args: Expression[]) => new ArrayToStringExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          nullIsEmpty: true,
+          nullDelimIsNull: true,
+        }),
         BITAND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BIT_AND: buildBitwise(BitwiseAndExpr, 'BITAND'),
         BITNOT: (args: Expression[]) => new BitwiseNotExpr({
@@ -2343,13 +2352,14 @@ class SnowflakeParser extends Parser {
     return lateral;
   }
 
-  parseTableParts (options: {
+  override parseTableParts (options: {
     schema?: boolean;
     isDbReference?: boolean;
     wildcard?: boolean;
-  } = {}): TableExpr {
+    fast?: boolean;
+  } = {}): TableExpr | undefined {
     const {
-      schema = false, isDbReference = false,
+      schema = false, isDbReference = false, fast = false,
     } = options;
 
     let table: Expression | undefined;
@@ -2400,6 +2410,7 @@ class SnowflakeParser extends Parser {
     return super.parseTableParts({
       schema,
       isDbReference,
+      fast,
     });
   }
 
@@ -4112,6 +4123,13 @@ class SnowflakeGenerator extends Generator {
     }
 
     return exprSql;
+  }
+
+  arrayToStringSql (expression: ArrayToStringExpr): string {
+    return this.func('ARRAY_TO_STRING', [
+      expression.args.this,
+      expression.args.expression,
+    ]);
   }
 
   arraySql (expression: ArrayExpr): string {

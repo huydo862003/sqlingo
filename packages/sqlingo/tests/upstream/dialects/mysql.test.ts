@@ -31,6 +31,7 @@ class TestMySQL extends Validator {
     this.validateIdentity('CREATE TABLE bar (abacate DOUBLE(10, 2) UNSIGNED)');
     this.validateIdentity('CREATE TABLE t (id DECIMAL(20, 4) UNSIGNED)');
     this.validateIdentity('CREATE TABLE foo (a BIGINT, UNIQUE (b) USING BTREE)');
+    this.validateIdentity("CREATE TABLE foo (a VARCHAR(32) NOT NULL UNIQUE COMMENT 'test')");
     this.validateIdentity('CREATE TABLE foo (id BIGINT)');
     this.validateIdentity('CREATE TABLE 00f (1d BIGINT)');
     this.validateIdentity('CREATE TABLE temp (id SERIAL PRIMARY KEY)');

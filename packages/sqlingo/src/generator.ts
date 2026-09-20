@@ -2553,10 +2553,10 @@ export class Generator {
       result = result + ' ';
     }
 
-    // If dialect doesn't support nested comments, replace */ with * /
-    if (!this.dialect._constructor.tokenizerClass.NESTED_COMMENTS) {
-      result = result.replace(/\*\//g, '* /');
-    }
+    // Escape block comment markers to prevent premature closure or unintended nesting
+    // Single-line comments (--) are converted to block comments (/* */) on output,
+    // and any */ in the original text would close the comment early
+    result = result.replace(/\*\//g, '* /').replace(/\/\*/g, '/ *');
 
     return result;
   }
@@ -6343,10 +6343,6 @@ export class Generator {
   }
 
   ifSql (expression: IfExpr): string {
-    if (expression.parent instanceof CaseExpr) {
-      return `WHEN ${this.sql(expression, 'this')} THEN ${this.sql(expression, 'true')}`;
-    }
-
     return this.caseSql(new CaseExpr({
       ifs: [expression],
       default: expression.args.false,

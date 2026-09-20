@@ -31,6 +31,8 @@ import {
 } from './postgres';
 
 class MaterializeParser extends Postgres.Parser {
+  static override TYPED_LAMBDA_ARGS = true;
+
   @cache
   static get ID_VAR_TOKENS (): Set<TokenType> {
     return new Set([

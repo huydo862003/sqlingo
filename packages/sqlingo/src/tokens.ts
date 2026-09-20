@@ -105,6 +105,7 @@ export enum TokenType {
   TABLE = 'table',
   WAREHOUSE = 'warehouse',
   STAGE = 'stage',
+  STREAM = 'stream',
   STREAMLIT = 'streamlit',
   VAR = 'var',
   BIT_STRING = 'bitString',

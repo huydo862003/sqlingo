@@ -96,12 +96,39 @@ class TestTranspile {
   }
 
   testComments () {
-    expect(transpile('select /* asfd /* asdf */ asdf */ 1')[0]).toBe('/* asfd /* asdf */ asdf */ SELECT 1');
+    expect(transpile('select /* asfd /* asdf */ asdf */ 1')[0]).toBe('/* asfd / * asdf * / asdf */ SELECT 1');
     expect(transpile('SELECT c /* foo */ AS alias')[0]).toBe('SELECT c AS alias /* foo */');
     expect(transpile('SELECT * FROM t1\n/*x*/\nUNION ALL SELECT * FROM t2')[0]).toBe(
       'SELECT * FROM t1 /* x */ UNION ALL SELECT * FROM t2',
     );
     expect(transpile('SELECT 1 FROM foo -- comment')[0]).toBe('SELECT 1 FROM foo /* comment */');
+  }
+
+  testCommentSingleLineWithBlockClose () {
+    expect(transpile('-- aa */ SELECT * FROM secret_table --\nSELECT 1')[0])
+      .toBe('/* aa * / SELECT * FROM secret_table -- */ SELECT 1');
+    expect(transpile('-- comment */ DROP TABLE users --\nSELECT 1')[0])
+      .toBe('/* comment * / DROP TABLE users -- */ SELECT 1');
+    expect(transpile('SELECT c /* c1 /* c2 */ c3 */')[0])
+      .toBe('SELECT c /* c1 / * c2 * / c3 */');
+    expect(transpile('SELECT c /* c1 /* c2 /* c3 */ */ */')[0])
+      .toBe('SELECT c /* c1 / * c2 / * c3 * / * / */');
+  }
+
+  testIfSqlNested () {
+    // Regression: IfExpr used in two places (e.g. strPositionSql) must generate
+    // CASE WHEN...END each time, not lose the CASE keyword due to parent-linking.
+    const sql = transpile("SELECT CHARINDEX('sub', 'testsubstring', -1)", {
+      read: 'snowflake',
+      write: 'duckdb',
+    })[0];
+
+    // The clamp position IfExpr appears twice (in SUBSTRING and in offset calc),
+    // plus the outer zero-check wrapping. All must have matching CASE/END pairs.
+    const caseCount = (sql.match(/CASE WHEN/g) || []).length;
+    const endCount = (sql.match(/\bEND\b/g) || []).length;
+    expect(caseCount).toBe(endCount);
+    expect(sql).not.toContain('+ WHEN'); // must not generate bare WHEN without CASE
   }
 
   testTypes () {
@@ -269,6 +296,8 @@ describe('TestTranspile', () => {
   test('testLeadingComma', () => t.testLeadingComma());
   test('space', () => t.testSpace());
   test('comments', () => t.testComments());
+  test('commentSingleLineWithBlockClose', () => t.testCommentSingleLineWithBlockClose());
+  test('ifSqlNested', () => t.testIfSqlNested());
   test('types', () => t.testTypes());
   test('testNotRange', () => t.testNotRange());
   test('extract', () => t.testExtract());

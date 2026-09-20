@@ -843,6 +843,7 @@ export enum ExpressionKey {
   STAR = 'star',
   STARTS_WITH = 'startsWith',
   STAR_MAP = 'starMap',
+  STRTOK = 'strtok',
   STDDEV = 'stddev',
   STDDEV_POP = 'stddevPop',
   STDDEV_SAMP = 'stddevSamp',

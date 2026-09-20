@@ -41,6 +41,7 @@ import {
   StrPositionExpr,
   AbsExpr,
   ApproxDistinctExpr,
+  PlaceholderExpr,
   ArrayExpr,
   ArrayAggExpr,
   ArrayContainsExpr,
@@ -1132,6 +1133,18 @@ class TestExpressions {
     }).sql()).toBe('foo AS "bar"');
   }
 
+  testAliasWithPlaceholder () {
+    const expr = parseOne('SELECT PARSE_JSON(col) AS :userInfo FROM t', {
+      read: 'snowflake',
+    });
+    const sel = (expr as SelectExpr).selects[0];
+
+    expect(sel.args.alias).toBeInstanceOf(PlaceholderExpr);
+    expect(sel.alias).toBe('userInfo');
+    expect(sel.aliasOrName).toBe('userInfo');
+    expect(sel.outputName).toBe('userInfo');
+  }
+
   testUnit () {
     const unit = parseOne('timestamp_trunc(current_timestamp, week(thursday))');
 
@@ -1696,6 +1709,7 @@ describe('TestExpressions', () => {
   test('column', () => t.testColumn());
   test('text', () => t.testText());
   test('alias', () => t.testAlias());
+  test('aliasWithPlaceholder', () => t.testAliasWithPlaceholder());
   test('unit', () => t.testUnit());
   test('identifier', () => t.testIdentifier());
   test('function_normalizer', () => t.testFunctionNormalizer());

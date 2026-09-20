@@ -615,6 +615,10 @@ class TestLineage {
     expect(() => lineage('"a"', 'WITH x AS (SELECT 1 a) SELECT a FROM x', {
       dialect: 'snowflake',
     })).toThrow(SqlglotError);
+
+    expect(() => lineage('b', 'SELECT a,b FROM table1 UNION ALL BY NAME SELECT a FROM table2', {
+      dialect: 'duckdb',
+    })).toThrow(SqlglotError);
   }
 
   testDdlLineage () {

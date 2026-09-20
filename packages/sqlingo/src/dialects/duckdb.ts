@@ -49,10 +49,8 @@ import type {
   SpaceExpr,
   MapCatExpr,
   ObjectInsertExpr,
-  ArrayToStringExpr,
   RespectNullsExpr,
   ExpressionValue,
-
   MapDeleteExpr,
   MapInsertExpr,
   MapPickExpr,
@@ -61,6 +59,8 @@ import type {
   ArraySliceExpr,
   DateTruncExpr,
   SplitPartExpr,
+  StrPositionExpr,
+  StrtokExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -174,7 +174,6 @@ import {
   Sha1DigestExpr,
   Sha2DigestExpr,
   ShaExpr,
-  StrPositionExpr,
   StrToUnixExpr,
   TimeAddExpr,
   TimeDiffExpr,
@@ -229,7 +228,9 @@ import {
   PercentileContExpr,
   PercentileDiscExpr,
   CoalesceExpr,
+  ArrayToStringExpr,
   LtExpr,
+  LteExpr,
   RegexpCountExpr,
   RegexpExtractAllExpr,
   RegexpInstrExpr,
@@ -2914,6 +2915,20 @@ class DuckDBParser extends Parser {
 }
 
 class DuckDBGenerator extends Generator {
+  @cache
+  static get STRTOK_TEMPLATE (): Expression {
+    return maybeParse(`
+      CASE
+        WHEN :delimiter = '' AND :string = '' THEN NULL
+        WHEN :delimiter = '' AND :partIndex = 1 THEN :string
+        WHEN :delimiter = '' THEN NULL
+        WHEN :partIndex < 0 THEN NULL
+        WHEN :string IS NULL OR :delimiter IS NULL OR :partIndex IS NULL THEN NULL
+        ELSE :baseFunc
+      END
+    `);
+  }
+
   // port from _Dialect metaclass logic
   @cache
   static get AFTER_HAVING_MODIFIER_TRANSFORMS () {
@@ -3659,10 +3674,6 @@ class DuckDBGenerator extends Generator {
         function (this: Generator, e) {
           return (e.args.this instanceof SchemaExpr ? 'TABLE' : '');
         },
-      ],
-      [
-        StrPositionExpr,
-        strPositionSql,
       ],
       [
         StrToUnixExpr,
@@ -6665,15 +6676,58 @@ class DuckDBGenerator extends Generator {
   }
 
   arrayToStringSql (expression: ArrayToStringExpr): string {
-    let thisSql = this.sql(expression, 'this');
-    const nullText = this.sql(expression, 'null');
+    const nullArg = expression.args.null;
 
-    if (nullText) {
-      thisSql = `LIST_TRANSFORM(${thisSql}, x -> COALESCE(x, ${nullText}))`;
+    if (expression.args.nullIsEmpty) {
+      const x = toIdentifier('x');
+      const listTransform = new TransformExpr({
+        this: (expression.args.this as Expression).copy(),
+        expression: new LambdaExpr({
+          this: new CoalesceExpr({
+            this: cast(x, 'TEXT'),
+            expressions: [LiteralExpr.string('')],
+          }),
+          expressions: [x],
+        }),
+      });
+      const arrayToString = new ArrayToStringExpr({
+        this: listTransform,
+        expression: expression.args.expression,
+      });
+
+      if (expression.args.nullDelimIsNull) {
+        return this.sql(
+          case_()
+            .when((expression.args.expression as Expression).copy().is(null_()), null_())
+            .else(arrayToString),
+        );
+      }
+
+      return this.sql(arrayToString);
+    }
+
+    if (nullArg) {
+      const x = toIdentifier('x');
+
+      return this.sql(
+        new ArrayToStringExpr({
+          this: new TransformExpr({
+            this: expression.args.this,
+            expression: new LambdaExpr({
+              this: new CoalesceExpr({
+                this: x,
+                expressions: [nullArg as Expression],
+              }),
+              expressions: [x],
+            }),
+          }),
+          expression: expression.args.expression,
+        }),
+      );
     }
 
     return this.func('ARRAY_TO_STRING', [
-      thisSql,
+      expression.args.this,
       expression.args.expression,
     ]);
   }
@@ -7143,6 +7197,83 @@ class DuckDBGenerator extends Generator {
       decimals,
       truncate,
     ]);
+  }
+
+  strPositionSql (expression: StrPositionExpr): string {
+    const position = expression.args.position;
+
+    if (expression.args.clampPosition && position) {
+      expression = expression.copy() as StrPositionExpr;
+      expression.setArgKey('position', new IfExpr({
+        this: new LteExpr({
+          this: position as Expression,
+          expression: LiteralExpr.number(0),
+        }),
+        true: LiteralExpr.number(1),
+        false: (position as Expression).copy(),
+      }));
+    }
+
+    return strPositionSql.call(this, expression);
+  }
+
+  strtokSql (expression: StrtokExpr): string {
+    const stringArg = expression.args.this as Expression;
+    const delimiterArg = expression.args.delimiter as Expression | undefined;
+    const partIndexArg = expression.args.partIndex as Expression | undefined;
+
+    if (delimiterArg && partIndexArg) {
+      const escapedDelimiter = new AnonymousExpr({
+        this: 'REGEXP_REPLACE',
+        expressions: [
+          delimiterArg,
+          LiteralExpr.string(String.raw`([\[\]^.\-*+?(){}|$\\])`),
+          LiteralExpr.string(String.raw`\\\1`),
+          LiteralExpr.string('g'),
+        ],
+      });
+
+      const regexPattern = case_()
+        .when(delimiterArg.eq(LiteralExpr.string('')), LiteralExpr.string(''))
+        .else(
+          func('CONCAT', LiteralExpr.string('['), escapedDelimiter, LiteralExpr.string(']')),
+        );
+
+      const splitArray = func('REGEXP_SPLIT_TO_ARRAY', stringArg, regexPattern);
+      const x = toIdentifier('x');
+      const isEmpty = x.eq(LiteralExpr.string(''));
+      const filteredArray = func(
+        'LIST_FILTER',
+        splitArray,
+        new LambdaExpr({
+          this: new NotExpr({
+            this: isEmpty.copy(),
+          }),
+          expressions: [x.copy()],
+        }),
+      );
+
+      const baseFunc = new BracketExpr({
+        this: filteredArray,
+        expressions: [partIndexArg],
+        offset: 1,
+      });
+
+      const result = replacePlaceholders(
+        (this._constructor as typeof DuckDBGenerator).STRTOK_TEMPLATE.copy(),
+        [],
+        {
+          string: stringArg,
+          delimiter: delimiterArg,
+          partIndex: partIndexArg,
+          baseFunc,
+        },
+      );
+
+      return this.sql(result);
+    }
+
+    return this.functionFallbackSql(expression);
   }
 
   approxQuantileSql (expression: ApproxQuantileExpr): string {

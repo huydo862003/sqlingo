@@ -41,6 +41,7 @@ import {
   ArrayConcatExpr,
   ArrayContainsAllExpr,
   ArrayExpr,
+  ArrayIntersectExpr,
   ArrayPrependExpr,
   ArrayRemoveExpr,
   AtIndexExpr,
@@ -1115,6 +1116,12 @@ export class Parser {
       ARRAY_APPEND: buildArrayAppend,
       ARRAY_CAT: buildArrayConcat,
       ARRAY_CONCAT: buildArrayConcat,
+      ARRAY_INTERSECT: (args: Expression[]) => new ArrayIntersectExpr({
+        expressions: args,
+      }),
+      ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({
+        expressions: args,
+      }),
       ARRAY_PREPEND: buildArrayPrepend,
       ARRAY_REMOVE: buildArrayRemove,
 
@@ -1542,6 +1549,15 @@ export class Parser {
   }
 
   @cache
+  static get SUBQUERY_TOKENS (): Set<TokenType> {
+    return new Set([
+      TokenType.SELECT,
+      TokenType.WITH,
+      TokenType.FROM,
+    ]);
+  }
+
+  @cache
   static get RESERVED_TOKENS (): Set<TokenType> {
     return new Set(
       [
@@ -1691,6 +1707,8 @@ export class Parser {
         TokenType.SET,
         TokenType.SETTINGS,
         TokenType.SHOW,
+        TokenType.STREAM,
+        TokenType.STREAMLIT,
         TokenType.TEMPORARY,
         TokenType.TOP,
         TokenType.TRUE,
@@ -1788,6 +1806,35 @@ export class Parser {
       TrimPosition.LEADING.toUpperCase(),
       TrimPosition.TRAILING.toUpperCase(),
       TrimPosition.BOTH.toUpperCase(),
+    ]);
+  }
+
+  static TABLE_POSTFIX_TOKENS: ReadonlySet<TokenType> = new Set([
+    TokenType.L_PAREN,
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+    TokenType.PIVOT,
+    TokenType.UNPIVOT,
+    TokenType.TABLE_SAMPLE,
+  ]);
+
+  @cache
+  static get TABLE_FAST_TERMINATORS (): Set<TokenType> {
+    return new Set([
+      TokenType.COMMA,
+      TokenType.GROUP_BY,
+      TokenType.HAVING,
+      TokenType.JOIN,
+      TokenType.LIMIT,
+      TokenType.ON,
+      TokenType.ORDER_BY,
+      TokenType.R_PAREN,
+      TokenType.SEMICOLON,
+      TokenType.WHERE,
+      ...Parser.SET_OPERATIONS,
+      ...Parser.JOIN_KINDS,
+      ...Parser.JOIN_METHODS,
+      ...Parser.JOIN_SIDES,
     ]);
   }
 
@@ -2005,6 +2052,13 @@ export class Parser {
       },
     };
   }
+
+  static TYPED_LAMBDA_ARGS = false;
+
+  static LAMBDA_ARG_TERMINATORS: ReadonlySet<TokenType> = new Set([
+    TokenType.COMMA,
+    TokenType.R_PAREN,
+  ]);
 
   @cache
   static get COLUMN_OPERATORS (): Partial<Record<TokenType, undefined | ((this: Parser, this_?: Expression, to?: Expression) => Expression)>> {
@@ -6704,6 +6758,7 @@ export class Parser {
       thisExpr = select('*').from(from.args.this, {
         copy: false,
       });
+      thisExpr = this.parseQueryModifiers(thisExpr);
     } else if (this.match(TokenType.SUMMARIZE)) {
       const table = this.match(TokenType.TABLE) || undefined;
 
@@ -7444,7 +7499,7 @@ export class Parser {
   parseStream (): StreamExpr | undefined {
     const index = this.index;
 
-    if (this.matchTextSeq('STREAM')) {
+    if (this.match(TokenType.STREAM)) {
       const thisExpr = this.tryParse(this.parseTable.bind(this));
 
       if (thisExpr) {
@@ -7452,9 +7507,9 @@ export class Parser {
           this: thisExpr,
         });
       }
-    }
 
-    this.retreat(index);
+      this.retreat(index);
+    }
 
     return undefined;
   }
@@ -7805,16 +7860,103 @@ export class Parser {
     );
   }
 
+  parseTablePartsFast (): TableExpr | undefined {
+    const index = this.index;
+    let parts: IdentifierExpr[] | undefined;
+    let allComments: string[] | undefined;
+
+    while (this.matchSet(this._constructor.FAST_COLUMN_TOKENS)) {
+      const token = this.prev!;
+      const comments = this.prevComments;
+      const hasDot = this.match(TokenType.DOT);
+      const currTt = this.curr?.tokenType;
+
+      if (!hasDot) {
+        if (currTt !== undefined && this._constructor.TABLE_POSTFIX_TOKENS.has(currTt)) {
+          this.retreat(index);
+
+          return undefined;
+        }
+      } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
+        this.retreat(index);
+
+        return undefined;
+      }
+
+      if (!parts) parts = [];
+
+      if (comments?.length) {
+        if (!allComments) allComments = [];
+        allComments.push(...comments);
+        this.prevComments = undefined;
+      }
+
+      parts.push(
+        this.expression(IdentifierExpr, {
+          this: token.text,
+          quoted: token.tokenType === TokenType.IDENTIFIER,
+          token,
+        }),
+      );
+
+      if (!hasDot) break;
+    }
+
+    if (!parts) return undefined;
+
+    const n = parts.length;
+    let table: TableExpr;
+
+    if (n === 1) {
+      table = new TableExpr({
+        this: parts[0],
+      });
+    } else if (n === 2) {
+      table = new TableExpr({
+        this: parts[1],
+        db: parts[0],
+      });
+    } else {
+      let thisExpr: Expression = parts[2];
+
+      for (let i = 3; i < n; i++) {
+        thisExpr = new DotExpr({
+          this: thisExpr,
+          expression: parts[i],
+        });
+      }
+
+      table = new TableExpr({
+        this: thisExpr,
+        db: parts[1],
+        catalog: parts[0],
+      });
+    }
+
+    if (allComments) {
+      table.addComments(allComments);
+    }
+
+    return table;
+  }
+
   parseTableParts (options: {
     schema?: boolean;
     isDbReference?: boolean;
     wildcard?: boolean;
-  } = {}): TableExpr {
+    fast?: boolean;
+  } = {}): TableExpr | undefined {
     const {
       schema = false,
       isDbReference = false,
       wildcard = false,
+      fast = false,
     } = options;
+
+    if (fast) {
+      return this.parseTablePartsFast();
+    }
+
     let catalog: Expression | string | undefined;
     let db: Expression | string | undefined;
     let table: Expression | string | undefined = this.parseTablePart({
@@ -7923,6 +8065,45 @@ export class Parser {
       parsePartition = false,
       consumePipe = false,
     } = options;
+
+    if (!schema && !isDbReference && !consumePipe && !joins) {
+      const index = this.index;
+      const table = this.parseTableParts({
+        fast: true,
+      });
+
+      if (table) {
+        const currTt = this.curr?.tokenType;
+        const nextTt = this.next?.tokenType;
+        const fastTerminators = this._constructor.TABLE_FAST_TERMINATORS;
+
+        if (currTt !== undefined && fastTerminators.has(currTt) && nextTt !== TokenType.MATCH_CONDITION) {
+          return table;
+        }
+
+        const postfixTokens = this._constructor.TABLE_POSTFIX_TOKENS;
+
+        if (
+          (currTt === undefined || !postfixTokens.has(currTt))
+          && (nextTt === undefined || !postfixTokens.has(nextTt))
+        ) {
+          const alias = this.parseTableAlias({
+            aliasTokens: aliasTokens || this._constructor.TABLE_ALIAS_TOKENS,
+          });
+
+          if (alias) {
+            table.setArgKey('alias', alias);
+          }
+
+          if (this.curr?.tokenType !== undefined && fastTerminators.has(this.curr.tokenType)) {
+            return table;
+          }
+        }
+
+        this.retreat(index);
+      }
+    }
+
     const stream = this.parseStream();
 
     if (stream) {
@@ -7997,7 +8178,7 @@ export class Parser {
     }
 
     // Postgres supports a wildcard (table) suffix operator, which is a no-op in this context
-    this.matchTextSeq('*');
+    this.match(TokenType.STAR);
 
     const shouldParsePartition = parsePartition || this._constructor.SUPPORTS_PARTITION_SELECTION;
 
@@ -9498,19 +9679,79 @@ export class Parser {
   }
 
   parseDisjunction (): Expression | undefined {
-    return this.parseTokens(() => this.parseConjunction(), this._constructor.DISJUNCTION);
+    let thisExpr = this.parseConjunction();
+
+    while (this.matchSet(Object.keys(this._constructor.DISJUNCTION) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.DISJUNCTION[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseConjunction(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseConjunction (): Expression | undefined {
-    return this.parseTokens(() => this.parseEquality(), this._constructor.CONJUNCTION);
+    let thisExpr = this.parseEquality();
+
+    while (this.matchSet(Object.keys(this._constructor.CONJUNCTION) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.CONJUNCTION[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseEquality(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseEquality (): Expression | undefined {
-    return this.parseTokens(() => this.parseComparison(), this._constructor.EQUALITY);
+    let thisExpr = this.parseComparison();
+
+    while (this.matchSet(Object.keys(this._constructor.EQUALITY) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.EQUALITY[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseComparison(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseComparison (): Expression | undefined {
-    return this.parseTokens(() => this.parseRange(), this._constructor.COMPARISON);
+    let thisExpr = this.parseRange();
+
+    while (this.matchSet(Object.keys(this._constructor.COMPARISON) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.COMPARISON[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseRange(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseRange (thisExpr?: Expression): Expression | undefined {
@@ -10023,7 +10264,22 @@ export class Parser {
   }
 
   parseExponent (): Expression | undefined {
-    return this.parseTokens(() => this.parseUnary(), this._constructor.EXPONENT);
+    let thisExpr = this.parseUnary();
+
+    while (this.matchSet(Object.keys(this._constructor.EXPONENT) as TokenType[])) {
+      const comments = this.prevComments;
+      const exprType = this._constructor.EXPONENT[this.prev!.tokenType];
+
+      if (exprType) {
+        thisExpr = this.expression(exprType, {
+          this: thisExpr,
+          expression: this.parseUnary(),
+          comments,
+        });
+      }
+    }
+
+    return thisExpr;
   }
 
   parseUnary (): Expression | undefined {
@@ -10045,44 +10301,11 @@ export class Parser {
       fallbackToIdentifier = false,
     } = options;
 
-    const currTokenType = this.curr?.tokenType;
+    if (!fallbackToIdentifier) {
+      const atom = this.parseAtom();
 
-    // Fast path for simple column references
-    if (!fallbackToIdentifier && currTokenType !== undefined && this._constructor.FAST_COLUMN_TOKENS.has(currTokenType)) {
-      return this.parseColumn();
-    }
-
-    const nextTokenType = this.next?.tokenType;
-
-    // Fast path for literals when no column operator follows
-    if (nextTokenType !== undefined && !(nextTokenType in this._constructor.COLUMN_OPERATORS)) {
-      if (currTokenType === TokenType.STRING && nextTokenType !== TokenType.STRING) {
-        const curr = this.curr!;
-
-        this.advance();
-        const lit = new LiteralExpr({
-          this: curr.text,
-          isString: true,
-        });
-
-        lit.updatePositions(curr);
-        this.addComments(lit);
-
-        return lit;
-      }
-      if (currTokenType === TokenType.NUMBER) {
-        const curr = this.curr!;
-
-        this.advance();
-        const lit = new LiteralExpr({
-          this: curr.text,
-          isString: false,
-        });
-
-        lit.updatePositions(curr);
-        this.addComments(lit);
-
-        return lit;
+      if (atom !== undefined) {
+        return atom;
       }
     }
 
@@ -10723,6 +10946,47 @@ export class Parser {
         zone: this.parseUnary(),
       }),
     );
+  }
+
+  parseAtom (): Expression | undefined {
+    if (!this.curr) {
+      return undefined;
+    }
+
+    if (
+      this.curr.tokenType in this._constructor.FAST_COLUMN_TOKENS
+    ) {
+      const column = this.parseColumn();
+
+      if (column !== undefined) {
+        return column;
+      }
+    }
+
+    const token = this.curr;
+    const tokenType = token!.tokenType;
+    const primaryParser = this._constructor.PRIMARY_PARSERS[tokenType];
+
+    if (!primaryParser) {
+      return undefined;
+    }
+
+    const nextType = this.next?.tokenType;
+
+    if (
+      nextType !== undefined
+      && (
+        nextType in this._constructor.COLUMN_OPERATORS
+        || this._constructor.COLUMN_POSTFIX_TOKENS.has(nextType)
+        || (tokenType === TokenType.STRING && nextType === TokenType.STRING)
+      )
+    ) {
+      return undefined;
+    }
+
+    this.advance();
+
+    return primaryParser.call(this, token);
   }
 
   parseColumn (): Expression | undefined {
@@ -12176,28 +12440,6 @@ export class Parser {
     });
   }
 
-  parseTokens (parseMethod: () => Expression | undefined, expressions: Partial<Record<TokenType, typeof Expression>>): Expression | undefined {
-    let thisExpr = parseMethod();
-
-    const expressionTokens = new Set(Object.keys(expressions)) as Set<TokenType>;
-
-    while (this.matchSet(expressionTokens)) {
-      const exprType = expressions[this.prev?.tokenType ?? TokenType.UNKNOWN];
-
-      if (!exprType) break;
-      thisExpr = this.expression(
-        exprType,
-        {
-          this: thisExpr,
-          comments: this.prevComments,
-          expression: parseMethod(),
-        },
-      );
-    }
-
-    return thisExpr;
-  }
-
   parseWrappedIdVars (options: {
     optional?: boolean;
   } = {}): Expression[] {
@@ -12930,21 +13172,23 @@ export class Parser {
   }
 
   parseRespectOrIgnoreNulls (thisExpr: Expression | undefined): Expression | undefined {
-    if (this.matchTextSeq([
-      'IGNORE',
-      'NULLS',
-    ])) {
-      return this.expression(IgnoreNullsExpr, {
-        this: thisExpr,
-      });
-    }
-    if (this.matchTextSeq([
-      'RESPECT',
-      'NULLS',
-    ])) {
-      return this.expression(RespectNullsExpr, {
-        this: thisExpr,
-      });
+    if (this.curr?.tokenType === TokenType.VAR) {
+      if (this.matchTextSeq([
+        'IGNORE',
+        'NULLS',
+      ])) {
+        return this.expression(IgnoreNullsExpr, {
+          this: thisExpr,
+        });
+      }
+      if (this.matchTextSeq([
+        'RESPECT',
+        'NULLS',
+      ])) {
+        return this.expression(RespectNullsExpr, {
+          this: thisExpr,
+        });
+      }
     }
 
     return thisExpr;
@@ -13911,6 +14155,10 @@ export class Parser {
   }
 
   parseUniqueKey (): Expression | undefined {
+    if (this.curr && this.curr.text.toUpperCase() in this._constructor.CONSTRAINT_PARSERS) {
+      return undefined;
+    }
+
     return this.parseIdVar({
       anyToken: false,
     });
@@ -14666,10 +14914,7 @@ export class Parser {
       if (subqueryPredicate) {
         let expr: Expression | undefined;
 
-        if (
-          this.curr.tokenType === TokenType.SELECT
-          || this.curr.tokenType === TokenType.WITH
-        ) {
+        if (this._constructor.SUBQUERY_TOKENS.has(this.curr.tokenType)) {
           expr = this.parseSelect();
           this.matchRParen();
         } else if (
@@ -14878,6 +15123,21 @@ export class Parser {
     const {
       alias = false,
     } = options;
+
+    const nextTokenType = this.next?.tokenType;
+
+    // Fast path: simple atom (column, literal, null, bool) followed by , or )
+    if (
+      nextTokenType !== undefined
+      && this._constructor.LAMBDA_ARG_TERMINATORS.has(nextTokenType)
+    ) {
+      const atom = this.parseAtom();
+
+      if (atom !== undefined) {
+        return atom;
+      }
+    }
+
     const index = this.index;
 
     let expressions: (Expression | undefined)[];
@@ -14887,18 +15147,24 @@ export class Parser {
 
       if (!this.match(TokenType.R_PAREN)) {
         this.retreat(index);
+      } else if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
+        const lambdaTokenType = this.prev?.tokenType;
+
+        return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
+      } else {
+        this.retreat(index);
       }
-    } else {
+    } else if (this._constructor.TYPED_LAMBDA_ARGS || (nextTokenType !== undefined && nextTokenType in this._constructor.LAMBDAS)) {
       expressions = [this.parseLambdaArg()];
+
+      if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
+        const lambdaTokenType = this.prev?.tokenType;
+
+        return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
+      }
+
+      this.retreat(index);
     }
-
-    if (this.matchSet(Object.keys(this._constructor.LAMBDAS) as TokenType[])) {
-      const lambdaTokenType = this.prev?.tokenType;
-
-      return lambdaTokenType && this._constructor.LAMBDAS[lambdaTokenType]?.call(this, expressions.filter((e): e is Expression => Boolean(e)));
-    }
-
-    this.retreat(index);
 
     let thisExpr: Expression | undefined;
 

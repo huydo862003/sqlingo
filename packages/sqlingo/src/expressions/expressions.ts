@@ -345,7 +345,7 @@ export class Expression implements
    * @returns The alias name, or empty string if no alias
    */
   get alias (): string {
-    if (this.args.alias instanceof TableAliasExpr) {
+    if (this.args.alias instanceof Expression) {
       return this.args.alias.name;
     }
 
@@ -19028,6 +19028,8 @@ export type ArrayToStringExprArgs = Merge<[
     this?: Expression;
     expression?: ExpressionOrString;
     null?: Expression;
+    nullIsEmpty?: boolean;
+    nullDelimIsNull?: boolean;
   },
 ]>;
 
@@ -19048,6 +19050,8 @@ export class ArrayToStringExpr extends FuncExpr {
     'this',
     'expression',
     'null',
+    'nullIsEmpty',
+    'nullDelimIsNull',
   ]);
 
   static argOrder = [
@@ -28518,6 +28522,33 @@ export class SplitPartExpr extends FuncExpr {
   }
 }
 
+export type StrtokExprArgs = Merge<[
+  FuncExprArgs,
+  {
+    this?: Expression;
+    delimiter?: Expression;
+    partIndex?: Expression;
+  },
+]>;
+
+export class StrtokExpr extends FuncExpr {
+  static key = ExpressionKey.STRTOK;
+
+  static requiredArgs = new Set(['this']);
+
+  static availableArgs = new Set([
+    'this',
+    'delimiter',
+    'partIndex',
+  ]);
+
+  declare args: StrtokExprArgs;
+
+  constructor (args: StrtokExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type SubstringExprArgs = Merge<[
   FuncExprArgs,
   {
@@ -28719,6 +28750,7 @@ export type StrPositionExprArgs = Merge<[
     substr?: Expression;
     position?: Expression;
     occurrence?: Expression;
+    clampPosition?: boolean;
   },
 ]>;
 
@@ -28735,6 +28767,7 @@ export class StrPositionExpr extends FuncExpr {
     'substr',
     'position',
     'occurrence',
+    'clampPosition',
   ]);
 
   static argOrder = [

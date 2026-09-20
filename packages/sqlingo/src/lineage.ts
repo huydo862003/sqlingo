@@ -252,6 +252,14 @@ export function toNode (
   let select: Expression;
 
   if (typeof column === 'number') {
+    if (scope.expression.selects.length <= column) {
+      throw new SqlglotError(
+        `Cannot find column's source with index ${column} in query: ${scope.expression.sql({
+          dialect,
+        })}`,
+      );
+    }
+
     select = scope.expression.selects[column];
   } else {
     const foundSelect = scope.expression.selects.find(
