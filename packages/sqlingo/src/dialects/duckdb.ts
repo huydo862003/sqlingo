@@ -229,6 +229,7 @@ import {
   PercentileDiscExpr,
   CoalesceExpr,
   ArrayToStringExpr,
+  StrtokExpr,
   LtExpr,
   RegexpCountExpr,
   RegexpExtractAllExpr,
@@ -7186,6 +7187,71 @@ class DuckDBGenerator extends Generator {
       decimals,
       truncate,
     ]);
+  }
+
+  strtokSql (expression: StrtokExpr): string {
+    const stringArg = expression.args.this as Expression;
+    const delimiterArg = expression.args.delimiter as Expression | undefined;
+    const partIndexArg = expression.args.partIndex as Expression | undefined;
+
+    if (delimiterArg && partIndexArg) {
+      const escapedDelimiter = new AnonymousExpr({
+        this: 'REGEXP_REPLACE',
+        expressions: [
+          delimiterArg,
+          LiteralExpr.string(String.raw`([\[\]^.\-*+?(){}|$\\])`),
+          LiteralExpr.string(String.raw`\\\1`),
+          LiteralExpr.string('g'),
+        ],
+      });
+
+      const regexPattern = case_()
+        .when(delimiterArg.eq(LiteralExpr.string('')), LiteralExpr.string(''))
+        .else(
+          func('CONCAT', LiteralExpr.string('['), escapedDelimiter, LiteralExpr.string(']')),
+        );
+
+      const splitArray = func('REGEXP_SPLIT_TO_ARRAY', stringArg, regexPattern);
+      const x = toIdentifier('x');
+      const isEmpty = x.eq(LiteralExpr.string(''));
+      const filteredArray = func(
+        'LIST_FILTER',
+        splitArray,
+        new LambdaExpr({ this: new NotExpr({ this: isEmpty.copy() }), expressions: [x.copy()] }),
+      );
+
+      const baseFunc = new BracketExpr({
+        this: filteredArray,
+        expressions: [partIndexArg],
+        offset: 1,
+      });
+
+      const template = maybeParse(`
+        CASE
+          WHEN :delimiter = '' AND :string = '' THEN NULL
+          WHEN :delimiter = '' AND :partIndex = 1 THEN :string
+          WHEN :delimiter = '' THEN NULL
+          WHEN :partIndex < 0 THEN NULL
+          WHEN :string IS NULL OR :delimiter IS NULL OR :partIndex IS NULL THEN NULL
+          ELSE :baseFunc
+        END
+      `);
+
+      const result = replacePlaceholders(
+        template.copy(),
+        [],
+        {
+          string: stringArg,
+          delimiter: delimiterArg,
+          partIndex: partIndexArg,
+          baseFunc,
+        },
+      );
+
+      return this.sql(result);
+    }
+
+    return this.functionFallbackSql(expression);
   }
 
   approxQuantileSql (expression: ApproxQuantileExpr): string {

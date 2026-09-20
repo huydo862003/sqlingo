@@ -28520,6 +28520,35 @@ export class SplitPartExpr extends FuncExpr {
   }
 }
 
+export type StrtokExprArgs = Merge<[
+  FuncExprArgs,
+  {
+    this?: Expression;
+    delimiter?: Expression;
+    partIndex?: Expression;
+  },
+]>;
+
+export class StrtokExpr extends FuncExpr {
+  static key = ExpressionKey.STRTOK;
+
+  static requiredArgs = new Set([
+    'this',
+  ]);
+
+  static availableArgs = new Set([
+    'this',
+    'delimiter',
+    'partIndex',
+  ]);
+
+  declare args: StrtokExprArgs;
+
+  constructor (args: StrtokExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type SubstringExprArgs = Merge<[
   FuncExprArgs,
   {

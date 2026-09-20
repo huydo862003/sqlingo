@@ -766,9 +766,24 @@ class TestSnowflake extends Validator {
     (this.validateIdentity(
       'SELECT DATEADD(DAY, -7, DATEADD(t.m, 1, CAST(\'2023-01-03\' AS DATE))) FROM (SELECT \'month\' AS m) AS t',
     ) as any).selects[0].args.this.args.unit.assertIs(ColumnExpr);
-    this.validateIdentity('SELECT STRTOK(\'hello world\')', 'SELECT SPLIT_PART(\'hello world\', \' \', 1)');
-    this.validateIdentity('SELECT STRTOK(\'hello world\', \' \')', 'SELECT SPLIT_PART(\'hello world\', \' \', 1)');
-    this.validateIdentity('SELECT STRTOK(\'hello world\', \' \', 2)', 'SELECT SPLIT_PART(\'hello world\', \' \', 2)');
+    this.validateAll("SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)", {
+      write: {
+        snowflake: "SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)",
+        duckdb: String.raw`SELECT CASE WHEN SUBSTRING('.$^', 1, 2) = '' AND 'a$b$c' = '' THEN NULL WHEN SUBSTRING('.$^', 1, 2) = '' AND 2 = 1 THEN 'a$b$c' WHEN SUBSTRING('.$^', 1, 2) = '' THEN NULL WHEN 2 < 0 THEN NULL WHEN 'a$b$c' IS NULL OR SUBSTRING('.$^', 1, 2) IS NULL OR 2 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('a$b$c', CASE WHEN SUBSTRING('.$^', 1, 2) = '' THEN '' ELSE '[' || REGEXP_REPLACE(SUBSTRING('.$^', 1, 2), '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[2] END`,
+      },
+    });
+    this.validateAll("SELECT STRTOK('a$b/cg', '$/.')", {
+      write: {
+        snowflake: "SELECT STRTOK('a$b/cg', '$/.', 1)",
+        duckdb: String.raw`SELECT CASE WHEN '$/.' = '' AND 'a$b/cg' = '' THEN NULL WHEN '$/.' = '' AND 1 = 1 THEN 'a$b/cg' WHEN '$/.' = '' THEN NULL WHEN 1 < 0 THEN NULL WHEN 'a$b/cg' IS NULL OR '$/.' IS NULL OR 1 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('a$b/cg', CASE WHEN '$/.' = '' THEN '' ELSE '[' || REGEXP_REPLACE('$/.', '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[1] END`,
+      },
+    });
+    this.validateAll("SELECT STRTOK('ab')", {
+      write: {
+        snowflake: "SELECT STRTOK('ab', ' ', 1)",
+        duckdb: String.raw`SELECT CASE WHEN ' ' = '' AND 'ab' = '' THEN NULL WHEN ' ' = '' AND 1 = 1 THEN 'ab' WHEN ' ' = '' THEN NULL WHEN 1 < 0 THEN NULL WHEN 'ab' IS NULL OR ' ' IS NULL OR 1 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('ab', CASE WHEN ' ' = '' THEN '' ELSE '[' || REGEXP_REPLACE(' ', '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[1] END`,
+      },
+    });
     (this.validateIdentity('SELECT FILE_URL FROM DIRECTORY(@mystage) WHERE SIZE > 100000') as any).args.from?.args.this.args.this.assertIs(DirectoryStageExpr).args.this.assertIs(VarExpr);
     this.validateIdentity(
       'SELECT AI_CLASSIFY(\'text\', [\'travel\', \'cooking\'], OBJECT_CONSTRUCT(\'output_mode\', \'multi\'))',

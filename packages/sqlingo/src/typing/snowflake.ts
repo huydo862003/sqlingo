@@ -51,7 +51,7 @@ import {
   CurrentOrganizationUserExpr, CurrentRegionExpr, CurrentRoleExpr, CurrentRoleTypeExpr,
   CurrentOrganizationNameExpr, DecompressStringExpr, HexDecodeStringExpr, HexEncodeExpr,
   RandstrExpr, RegexpExtractExpr, RegexpReplaceExpr, RepeatExpr,
-  ReplaceExpr, SoundexExpr, SoundexP123Expr, SplitPartExpr, TryBase64DecodeStringExpr,
+  ReplaceExpr, SoundexExpr, SoundexP123Expr, SplitPartExpr, StrtokExpr, TryBase64DecodeStringExpr,
   TryHexDecodeStringExpr, UuidExpr, MinhashExpr, MinhashCombineExpr, VarianceExpr,
   VariancePopExpr, ConcatWsExpr, ConvertTimezoneExpr, DateAddExpr, HashAggExpr, TimeAddExpr,
 } from '../expressions/expressions';
@@ -560,6 +560,7 @@ export class SnowflakeTyping {
       SoundexExpr,
       SoundexP123Expr,
       SplitPartExpr,
+      StrtokExpr,
       TryBase64DecodeStringExpr,
       TryHexDecodeStringExpr,
       UuidExpr,

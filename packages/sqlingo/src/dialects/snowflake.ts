@@ -87,6 +87,7 @@ import {
   SplitPartExpr,
   StarMapExpr,
   StrToTimeExpr,
+  StrtokExpr,
   StructExpr, TryCastExpr, TsOrDsToDateExpr, TsOrDsToTimeExpr, UnixToTimeExpr,
   wrap,
   UnnestExpr,
@@ -336,18 +337,12 @@ const TIMESTAMP_TYPES: Partial<Record<DataTypeExprKind, string>> = {
   [DataTypeExprKind.TIMESTAMPTZ]: 'TO_TIMESTAMP_TZ',
 };
 
-function buildStrtok (args: Expression[]): SplitPartExpr {
-  // Add default delimiter (space) if missing - per Snowflake docs
-  if (args.length === 1) {
-    args.push(LiteralExpr.string(' '));
-  }
-
-  // Add default part_index (1) if missing
-  if (args.length === 2) {
-    args.push(LiteralExpr.number(1));
-  }
-
-  return SplitPartExpr.fromArgList(args);
+function buildStrtok (args: Expression[]): StrtokExpr {
+  return new StrtokExpr({
+    this: seqGet(args, 0),
+    delimiter: seqGet(args, 1) || LiteralExpr.string(' '),
+    partIndex: seqGet(args, 2) || LiteralExpr.number('1'),
+  });
 }
 
 /**
