@@ -6343,10 +6343,6 @@ export class Generator {
   }
 
   ifSql (expression: IfExpr): string {
-    if (expression.parent instanceof CaseExpr) {
-      return `WHEN ${this.sql(expression, 'this')} THEN ${this.sql(expression, 'true')}`;
-    }
-
     return this.caseSql(new CaseExpr({
       ifs: [expression],
       default: expression.args.false,

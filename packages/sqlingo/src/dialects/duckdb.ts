@@ -2916,6 +2916,20 @@ class DuckDBParser extends Parser {
 }
 
 class DuckDBGenerator extends Generator {
+  @cache
+  static get STRTOK_TEMPLATE (): Expression {
+    return maybeParse(`
+      CASE
+        WHEN :delimiter = '' AND :string = '' THEN NULL
+        WHEN :delimiter = '' AND :partIndex = 1 THEN :string
+        WHEN :delimiter = '' THEN NULL
+        WHEN :partIndex < 0 THEN NULL
+        WHEN :string IS NULL OR :delimiter IS NULL OR :partIndex IS NULL THEN NULL
+        ELSE :baseFunc
+      END
+    `);
+  }
+
   // port from _Dialect metaclass logic
   @cache
   static get AFTER_HAVING_MODIFIER_TRANSFORMS () {
@@ -7241,19 +7255,8 @@ class DuckDBGenerator extends Generator {
         offset: 1,
       });
 
-      const template = maybeParse(`
-        CASE
-          WHEN :delimiter = '' AND :string = '' THEN NULL
-          WHEN :delimiter = '' AND :partIndex = 1 THEN :string
-          WHEN :delimiter = '' THEN NULL
-          WHEN :partIndex < 0 THEN NULL
-          WHEN :string IS NULL OR :delimiter IS NULL OR :partIndex IS NULL THEN NULL
-          ELSE :baseFunc
-        END
-      `);
-
       const result = replacePlaceholders(
-        template.copy(),
+        (this._constructor as typeof DuckDBGenerator).STRTOK_TEMPLATE.copy(),
         [],
         {
           string: stringArg,

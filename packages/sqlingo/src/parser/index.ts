@@ -12421,28 +12421,6 @@ export class Parser {
     });
   }
 
-  parseTokens (parseMethod: () => Expression | undefined, expressions: Partial<Record<TokenType, typeof Expression>>): Expression | undefined {
-    let thisExpr = parseMethod();
-
-    const expressionTokens = new Set(Object.keys(expressions)) as Set<TokenType>;
-
-    while (this.matchSet(expressionTokens)) {
-      const exprType = expressions[this.prev?.tokenType ?? TokenType.UNKNOWN];
-
-      if (!exprType) break;
-      thisExpr = this.expression(
-        exprType,
-        {
-          this: thisExpr,
-          comments: this.prevComments,
-          expression: parseMethod(),
-        },
-      );
-    }
-
-    return thisExpr;
-  }
-
   parseWrappedIdVars (options: {
     optional?: boolean;
   } = {}): Expression[] {
