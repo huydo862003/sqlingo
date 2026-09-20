@@ -1826,7 +1826,6 @@ export class Parser {
       TokenType.ORDER_BY,
       TokenType.R_PAREN,
       TokenType.SEMICOLON,
-      TokenType.SENTINEL,
       TokenType.WHERE,
       ...Parser.SET_OPERATIONS,
       ...Parser.JOIN_KINDS,

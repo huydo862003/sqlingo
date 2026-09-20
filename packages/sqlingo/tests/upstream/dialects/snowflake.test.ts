@@ -1180,9 +1180,13 @@ class TestSnowflake extends Validator {
     this.validateAll(
       'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
       {
+        read: {
+          duckdb: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+        },
         write: {
-          'snowflake': 'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
-          'starrocks': 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+          snowflake: 'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
+          starrocks: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
+          duckdb: 'SELECT ARRAY_INTERSECT([1, 2], [2, 3])',
         },
       },
     );

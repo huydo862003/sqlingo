@@ -19028,6 +19028,8 @@ export type ArrayToStringExprArgs = Merge<[
     this?: Expression;
     expression?: ExpressionOrString;
     null?: Expression;
+    nullIsEmpty?: boolean;
+    nullDelimIsNull?: boolean;
   },
 ]>;
 

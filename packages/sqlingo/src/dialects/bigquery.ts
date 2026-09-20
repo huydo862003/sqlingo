@@ -1591,7 +1591,7 @@ export class BigQueryParser extends Parser {
         db,
         thisNode,
       ].forEach((part) => {
-        if (part) part.updatePositions(narrowInstanceOf(table.args.this, Token, Expression));
+        if (part) part.updatePositions(narrowInstanceOf(table!.args.this, Token, Expression));
       });
 
       let finalThis: Expression | undefined = thisNode;

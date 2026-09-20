@@ -115,6 +115,22 @@ class TestTranspile {
       .toBe('SELECT c /* c1 / * c2 / * c3 * / * / */');
   }
 
+  testIfSqlNested () {
+    // Regression: IfExpr used in two places (e.g. strPositionSql) must generate
+    // CASE WHEN...END each time, not lose the CASE keyword due to parent-linking.
+    const sql = transpile("SELECT CHARINDEX('sub', 'testsubstring', -1)", {
+      read: 'snowflake',
+      write: 'duckdb',
+    })[0];
+
+    // The clamp position IfExpr appears twice (in SUBSTRING and in offset calc),
+    // plus the outer zero-check wrapping. All must have matching CASE/END pairs.
+    const caseCount = (sql.match(/CASE WHEN/g) || []).length;
+    const endCount = (sql.match(/\bEND\b/g) || []).length;
+    expect(caseCount).toBe(endCount);
+    expect(sql).not.toContain('+ WHEN'); // must not generate bare WHEN without CASE
+  }
+
   testTypes () {
     expect(transpile('INT 1')[0]).toBe('CAST(1 AS INT)');
     expect(transpile('VARCHAR \'x\' y')[0]).toBe('CAST(\'x\' AS VARCHAR) AS y');
@@ -281,6 +297,7 @@ describe('TestTranspile', () => {
   test('space', () => t.testSpace());
   test('comments', () => t.testComments());
   test('commentSingleLineWithBlockClose', () => t.testCommentSingleLineWithBlockClose());
+  test('ifSqlNested', () => t.testIfSqlNested());
   test('types', () => t.testTypes());
   test('testNotRange', () => t.testNotRange());
   test('extract', () => t.testExtract());
