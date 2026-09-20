@@ -2352,13 +2352,14 @@ class SnowflakeParser extends Parser {
     return lateral;
   }
 
-  parseTableParts (options: {
+  override parseTableParts (options: {
     schema?: boolean;
     isDbReference?: boolean;
     wildcard?: boolean;
-  } = {}): TableExpr {
+    fast?: boolean;
+  } = {}): TableExpr | undefined {
     const {
-      schema = false, isDbReference = false,
+      schema = false, isDbReference = false, fast = false,
     } = options;
 
     let table: Expression | undefined;
@@ -2409,6 +2410,7 @@ class SnowflakeParser extends Parser {
     return super.parseTableParts({
       schema,
       isDbReference,
+      fast,
     });
   }
 

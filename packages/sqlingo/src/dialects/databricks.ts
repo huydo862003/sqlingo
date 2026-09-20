@@ -92,6 +92,7 @@ class DatabricksTokenizer extends Spark.Tokenizer {
   static get ORIGINAL_KEYWORDS (): Record<string, TokenType> {
     return {
       ...Spark.Tokenizer.KEYWORDS,
+      STREAM: TokenType.STREAM,
       VOID: TokenType.VOID,
     };
   }

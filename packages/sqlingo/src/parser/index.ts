@@ -1703,6 +1703,8 @@ export class Parser {
         TokenType.SET,
         TokenType.SETTINGS,
         TokenType.SHOW,
+        TokenType.STREAM,
+        TokenType.STREAMLIT,
         TokenType.TEMPORARY,
         TokenType.TOP,
         TokenType.TRUE,
@@ -1800,6 +1802,36 @@ export class Parser {
       TrimPosition.LEADING.toUpperCase(),
       TrimPosition.TRAILING.toUpperCase(),
       TrimPosition.BOTH.toUpperCase(),
+    ]);
+  }
+
+  static TABLE_POSTFIX_TOKENS: ReadonlySet<TokenType> = new Set([
+    TokenType.L_PAREN,
+    TokenType.L_BRACKET,
+    TokenType.L_BRACE,
+    TokenType.PIVOT,
+    TokenType.UNPIVOT,
+    TokenType.TABLE_SAMPLE,
+  ]);
+
+  @cache
+  static get TABLE_FAST_TERMINATORS (): Set<TokenType> {
+    return new Set([
+      TokenType.COMMA,
+      TokenType.GROUP_BY,
+      TokenType.HAVING,
+      TokenType.JOIN,
+      TokenType.LIMIT,
+      TokenType.ON,
+      TokenType.ORDER_BY,
+      TokenType.R_PAREN,
+      TokenType.SEMICOLON,
+      TokenType.SENTINEL,
+      TokenType.WHERE,
+      ...Parser.SET_OPERATIONS,
+      ...Parser.JOIN_KINDS,
+      ...Parser.JOIN_METHODS,
+      ...Parser.JOIN_SIDES,
     ]);
   }
 
@@ -7464,7 +7496,7 @@ export class Parser {
   parseStream (): StreamExpr | undefined {
     const index = this.index;
 
-    if (this.matchTextSeq('STREAM')) {
+    if (this.match(TokenType.STREAM)) {
       const thisExpr = this.tryParse(this.parseTable.bind(this));
 
       if (thisExpr) {
@@ -7472,9 +7504,9 @@ export class Parser {
           this: thisExpr,
         });
       }
-    }
 
-    this.retreat(index);
+      this.retreat(index);
+    }
 
     return undefined;
   }
@@ -7825,16 +7857,89 @@ export class Parser {
     );
   }
 
+  parseTablePartsFast (): TableExpr | undefined {
+    const index = this.index;
+    let parts: IdentifierExpr[] | undefined;
+    let allComments: string[] | undefined;
+
+    while (this.matchSet(this._constructor.FAST_COLUMN_TOKENS)) {
+      const token = this.prev!;
+      const comments = this.prevComments;
+      const hasDot = this.match(TokenType.DOT);
+      const currTt = this.curr?.tokenType;
+
+      if (!hasDot) {
+        if (currTt !== undefined && this._constructor.TABLE_POSTFIX_TOKENS.has(currTt)) {
+          this.retreat(index);
+          return undefined;
+        }
+      } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
+        this.retreat(index);
+        return undefined;
+      }
+
+      if (!parts) parts = [];
+
+      if (comments?.length) {
+        if (!allComments) allComments = [];
+        allComments.push(...comments);
+        this.prevComments = undefined;
+      }
+
+      parts.push(
+        this.expression(IdentifierExpr, {
+          this: token.text,
+          quoted: token.tokenType === TokenType.IDENTIFIER,
+          token,
+        }),
+      );
+
+      if (!hasDot) break;
+    }
+
+    if (!parts) return undefined;
+
+    const n = parts.length;
+    let table: TableExpr;
+
+    if (n === 1) {
+      table = new TableExpr({ this: parts[0] });
+    } else if (n === 2) {
+      table = new TableExpr({ this: parts[1], db: parts[0] });
+    } else {
+      let thisExpr: Expression = parts[2];
+
+      for (let i = 3; i < n; i++) {
+        thisExpr = new DotExpr({ this: thisExpr, expression: parts[i] });
+      }
+
+      table = new TableExpr({ this: thisExpr, db: parts[1], catalog: parts[0] });
+    }
+
+    if (allComments) {
+      table.addComments(allComments);
+    }
+
+    return table;
+  }
+
   parseTableParts (options: {
     schema?: boolean;
     isDbReference?: boolean;
     wildcard?: boolean;
-  } = {}): TableExpr {
+    fast?: boolean;
+  } = {}): TableExpr | undefined {
     const {
       schema = false,
       isDbReference = false,
       wildcard = false,
+      fast = false,
     } = options;
+
+    if (fast) {
+      return this.parseTablePartsFast();
+    }
+
     let catalog: Expression | string | undefined;
     let db: Expression | string | undefined;
     let table: Expression | string | undefined = this.parseTablePart({
@@ -7943,6 +8048,43 @@ export class Parser {
       parsePartition = false,
       consumePipe = false,
     } = options;
+
+    if (!schema && !isDbReference && !consumePipe && !joins) {
+      const index = this.index;
+      const table = this.parseTableParts({ fast: true });
+
+      if (table) {
+        const currTt = this.curr?.tokenType;
+        const nextTt = this.next?.tokenType;
+        const fastTerminators = this._constructor.TABLE_FAST_TERMINATORS;
+
+        if (currTt !== undefined && fastTerminators.has(currTt) && nextTt !== TokenType.MATCH_CONDITION) {
+          return table;
+        }
+
+        const postfixTokens = this._constructor.TABLE_POSTFIX_TOKENS;
+
+        if (
+          (currTt === undefined || !postfixTokens.has(currTt))
+          && (nextTt === undefined || !postfixTokens.has(nextTt))
+        ) {
+          const alias = this.parseTableAlias({
+            aliasTokens: aliasTokens || this._constructor.TABLE_ALIAS_TOKENS,
+          });
+
+          if (alias) {
+            table.setArgKey('alias', alias);
+          }
+
+          if (this.curr?.tokenType !== undefined && fastTerminators.has(this.curr.tokenType)) {
+            return table;
+          }
+        }
+
+        this.retreat(index);
+      }
+    }
+
     const stream = this.parseStream();
 
     if (stream) {
@@ -8017,7 +8159,7 @@ export class Parser {
     }
 
     // Postgres supports a wildcard (table) suffix operator, which is a no-op in this context
-    this.matchTextSeq('*');
+    this.match(TokenType.STAR);
 
     const shouldParsePartition = parsePartition || this._constructor.SUPPORTS_PARTITION_SELECTION;
 
