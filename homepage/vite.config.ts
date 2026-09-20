@@ -4,6 +4,9 @@ import path, {
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import {
+  typedown,
+} from 'typerighter/vite';
+import {
   defineConfig,
 } from 'vite';
 
@@ -35,5 +38,8 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
+    ...typedown({
+      root: 'api-reference',
+    }),
   ],
 });

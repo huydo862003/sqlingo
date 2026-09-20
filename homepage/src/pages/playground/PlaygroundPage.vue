@@ -1,26 +1,30 @@
 <template>
   <MainLayout>
-    <main class="px-7">
-      <div class="mt-8 mb-6">
-        <h1 class="m-0 text-3xl font-bold tracking-tight">
+    <main class="mx-auto max-w-[1040px] px-8">
+      <div class="mt-12 mb-8">
+        <h1 class="td-pg-title">
           Playground
         </h1>
-        <p class="gui-neutral-fg-muted mt-2 text-sm">
+        <p class="td-pg-desc">
           Everything runs locally in your browser. Nothing is sent anywhere.
         </p>
-        <div class="gui-primary-border mt-4 inline-flex rounded-[10px] border bg-(--color-primary-3) p-1">
+        <div class="td-pg-tabs">
           <button
             type="button"
-            class="cursor-pointer rounded-[7px] border-none px-5 py-2.5 text-sm font-semibold"
-            :class="tab === Tab.Transpile ? 'gui-primary-fg bg-white shadow-xs' : 'gui-primary-fg-muted bg-transparent'"
+            class="td-pg-tab"
+            :class="{
+              'td-pg-tab--active': tab === Tab.Transpile,
+            }"
             @click="onSelectTranspile"
           >
             Transpile
           </button>
           <button
             type="button"
-            class="cursor-pointer rounded-[7px] border-none px-5 py-2.5 text-sm font-semibold"
-            :class="tab === Tab.Dbml ? 'gui-primary-fg bg-white shadow-xs' : 'gui-primary-fg-muted bg-transparent'"
+            class="td-pg-tab"
+            :class="{
+              'td-pg-tab--active': tab === Tab.Dbml,
+            }"
             @click="onSelectDbml"
           >
             SQL to DBML
@@ -35,7 +39,7 @@
         <SqlToDbml />
       </div>
 
-      <div class="mt-8" />
+      <div class="mt-12" />
     </main>
   </MainLayout>
 </template>
@@ -79,3 +83,49 @@ function selectTab (mode: Tab) {
   store.persist();
 }
 </script>
+
+<style scoped>
+.td-pg-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  color: var(--gui-primary-solid);
+}
+
+.td-pg-desc {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--gui-neutral-solid);
+}
+
+.td-pg-tabs {
+  display: inline-flex;
+  margin-top: 20px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  background: var(--gui-neutral-bg-active);
+}
+
+.td-pg-tab {
+  cursor: pointer;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: transparent;
+  color: var(--gui-neutral-solid);
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    background var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
+}
+
+.td-pg-tab--active {
+  background: var(--gui-neutral-bg);
+  color: var(--gui-neutral-fg);
+  box-shadow: var(--shadow-xs);
+}
+</style>

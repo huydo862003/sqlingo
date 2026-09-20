@@ -4,7 +4,10 @@
     <div class="flex-1">
       <slot />
     </div>
-    <footer class="td-footer">
+    <footer
+      v-if="!hideFooter"
+      class="td-footer"
+    >
       <div class="td-footer-inner">
         <span class="td-footer-text">
           sqlingo is
@@ -44,16 +47,18 @@ interface Crumb {
 
 const {
   breadcrumb = [],
+  hideFooter = false,
 } = defineProps<{
   /** Navigation breadcrumb items */
   breadcrumb?: Crumb[];
+  /** Whether the footer should be hidden */
+  hideFooter?: boolean;
 }>();
 </script>
 
 <style scoped>
 .td-footer {
-  border-top: 1px solid var(--gui-neutral-border-subtle);
-  background: var(--gui-neutral-bg-subtle);
+  background: var(--color-neutral-12);
   flex-shrink: 0;
 }
 
@@ -71,13 +76,12 @@ const {
 }
 
 .td-footer-link {
-  color: var(--gui-primary-solid);
+  color: var(--color-primary-8);
   text-decoration: none;
   font-size: var(--text-sm);
 }
 
 .td-footer-link:hover {
-  color: var(--gui-primary-solid-hover);
   text-decoration: underline;
 }
 </style>
