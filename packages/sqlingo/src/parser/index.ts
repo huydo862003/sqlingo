@@ -41,6 +41,7 @@ import {
   ArrayConcatExpr,
   ArrayContainsAllExpr,
   ArrayExpr,
+  ArrayIntersectExpr,
   ArrayPrependExpr,
   ArrayRemoveExpr,
   AtIndexExpr,
@@ -1115,6 +1116,8 @@ export class Parser {
       ARRAY_APPEND: buildArrayAppend,
       ARRAY_CAT: buildArrayConcat,
       ARRAY_CONCAT: buildArrayConcat,
+      ARRAY_INTERSECT: (args: Expression[]) => new ArrayIntersectExpr({ expressions: args }),
+      ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({ expressions: args }),
       ARRAY_PREPEND: buildArrayPrepend,
       ARRAY_REMOVE: buildArrayRemove,
 
@@ -13921,6 +13924,10 @@ export class Parser {
   }
 
   parseUniqueKey (): Expression | undefined {
+    if (this.curr && this.curr.text.toUpperCase() in this._constructor.CONSTRAINT_PARSERS) {
+      return undefined;
+    }
+
     return this.parseIdVar({
       anyToken: false,
     });

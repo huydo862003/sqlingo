@@ -630,6 +630,20 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT CURRENT_CLIENT()');
     this.validateIdentity('SELECT CURRENT_IP_ADDRESS()');
     this.validateIdentity('SELECT CURRENT_DATABASE()');
+
+    this.validateAll("SELECT 1 WHERE 'abc' ILIKE ANY('%a%')", {
+      write: {
+        snowflake: "SELECT 1 WHERE 'abc' ILIKE ANY('%a%')",
+        duckdb: "SELECT 1 WHERE 'abc' ILIKE '%a%'",
+      },
+    });
+    this.validateAll("SELECT 1 WHERE 'abc' LIKE ALL ('%a%')", {
+      write: {
+        snowflake: "SELECT 1 WHERE 'abc' LIKE ALL ('%a%')",
+        duckdb: "SELECT 1 WHERE 'abc' LIKE '%a%'",
+      },
+    });
+
     this.validateIdentity('SELECT CURRENT_SCHEMAS()');
     this.validateIdentity('SELECT CURRENT_SECONDARY_ROLES()');
     this.validateIdentity('SELECT CURRENT_SESSION()');
