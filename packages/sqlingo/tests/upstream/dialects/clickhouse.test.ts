@@ -2059,12 +2059,15 @@ LIFETIME(MIN 0 MAX 0)`,
     for (const unit of [
       'SECOND',
       'DAY',
+      'MONTH',
       'YEAR',
     ]) {
       this.validateAll(
         `toStartOf${unit}(x)`,
         {
           write: {
+            'clickhouse, version=23.8': `dateTrunc('${unit.toLowerCase()}', x)`,
+            'clickhouse, version=24.1': `dateTrunc('${unit}', x)`,
             databricks: `DATE_TRUNC('${unit}', x)`,
             duckdb: `DATE_TRUNC('${unit}', x)`,
             doris: `DATE_TRUNC(x, '${unit}')`,
@@ -2079,6 +2082,8 @@ LIFETIME(MIN 0 MAX 0)`,
       'toMonday(x)',
       {
         write: {
+          'clickhouse, version=23.8': "dateTrunc('week', x)",
+          'clickhouse, version=24.1': "dateTrunc('WEEK', x)",
           databricks: 'DATE_TRUNC(\'WEEK\', x)',
           duckdb: 'DATE_TRUNC(\'WEEK\', x)',
           doris: 'DATE_TRUNC(x, \'WEEK\')',

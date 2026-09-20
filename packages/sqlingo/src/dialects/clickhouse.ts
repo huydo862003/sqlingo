@@ -195,6 +195,7 @@ import {
   noPivotSql,
   Dialect, NormalizationStrategy, Dialects,
   unitToVar,
+  unitToStr,
   jarowinklerSimilarity,
   renameFunc,
   varMapSql,
@@ -2514,13 +2515,6 @@ export class ClickHouseGenerator extends Generator {
         unixToTimeSql,
       ],
       [
-        TimestampTruncExpr,
-        timestampTruncSql({
-          func: 'dateTrunc',
-          zone: true,
-        }),
-      ],
-      [
         TrimExpr,
         function (this: Generator, e: TrimExpr) {
           return trimSql.call(this, e, {
@@ -2988,6 +2982,22 @@ export class ClickHouseGenerator extends Generator {
     return super.valuesSql(expression, {
       valuesAsTable,
     });
+  }
+
+  timestampTruncSql (expression: TimestampTruncExpr): string {
+    let unit = unitToStr(expression);
+
+    // https://clickhouse.com/docs/whats-new/changelog/2023#improvement
+    if (
+      (this.dialect.version.major < 23 || (this.dialect.version.major === 23 && this.dialect.version.minor < 12))
+      && unit
+      && unit instanceof LiteralExpr
+      && unit.args.isString
+    ) {
+      unit = LiteralExpr.string(unit.name.toLowerCase());
+    }
+
+    return this.func('dateTrunc', [unit, expression.args.this, expression.args.zone]);
   }
 }
 
