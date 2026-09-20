@@ -86,6 +86,14 @@
             <div class="td-demo-bar">
               <span class="td-demo-dot td-demo-dot--primary" />
               <span class="td-demo-bar-label">EXAMPLE</span>
+              <div class="flex-1" />
+              <button
+                type="button"
+                class="td-demo-copy"
+                @click="copyCode(demo.code)"
+              >
+                {{ codeCopied ? 'copied' : 'copy' }}
+              </button>
             </div>
             <GCodeBlock
               :id="`demo-${name}`"
@@ -338,6 +346,15 @@ function copyInstall () {
 }
 
 const activeDemo = ref('parse');
+const codeCopied = ref(false);
+
+function copyCode (code: string) {
+  navigator.clipboard?.writeText(code);
+  codeCopied.value = true;
+  setTimeout(() => {
+    codeCopied.value = false;
+  }, 1400);
+}
 
 const demos: Record<string, {
   code: string;
@@ -685,6 +702,28 @@ const shownCount = computed(() =>
 
 .td-demo-bar-label--success {
   color: var(--gui-success-fg-muted);
+}
+
+.td-demo-copy {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--gui-neutral-border-subtle);
+  background: var(--gui-neutral-bg);
+  color: var(--gui-neutral-solid);
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-default),
+    color var(--duration-fast) var(--ease-default);
+}
+
+.td-demo-copy:hover {
+  background: var(--gui-neutral-bg-active);
+  color: var(--gui-neutral-fg);
 }
 
 .td-demo-caption {
