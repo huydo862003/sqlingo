@@ -28534,9 +28534,7 @@ export type StrtokExprArgs = Merge<[
 export class StrtokExpr extends FuncExpr {
   static key = ExpressionKey.STRTOK;
 
-  static requiredArgs = new Set([
-    'this',
-  ]);
+  static requiredArgs = new Set(['this']);
 
   static availableArgs = new Set([
     'this',

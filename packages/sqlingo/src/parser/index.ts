@@ -1116,8 +1116,12 @@ export class Parser {
       ARRAY_APPEND: buildArrayAppend,
       ARRAY_CAT: buildArrayConcat,
       ARRAY_CONCAT: buildArrayConcat,
-      ARRAY_INTERSECT: (args: Expression[]) => new ArrayIntersectExpr({ expressions: args }),
-      ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({ expressions: args }),
+      ARRAY_INTERSECT: (args: Expression[]) => new ArrayIntersectExpr({
+        expressions: args,
+      }),
+      ARRAY_INTERSECTION: (args: Expression[]) => new ArrayIntersectExpr({
+        expressions: args,
+      }),
       ARRAY_PREPEND: buildArrayPrepend,
       ARRAY_REMOVE: buildArrayRemove,
 
@@ -7870,10 +7874,12 @@ export class Parser {
       if (!hasDot) {
         if (currTt !== undefined && this._constructor.TABLE_POSTFIX_TOKENS.has(currTt)) {
           this.retreat(index);
+
           return undefined;
         }
       } else if (currTt === undefined || !this._constructor.FAST_COLUMN_TOKENS.has(currTt)) {
         this.retreat(index);
+
         return undefined;
       }
 
@@ -7902,17 +7908,29 @@ export class Parser {
     let table: TableExpr;
 
     if (n === 1) {
-      table = new TableExpr({ this: parts[0] });
+      table = new TableExpr({
+        this: parts[0],
+      });
     } else if (n === 2) {
-      table = new TableExpr({ this: parts[1], db: parts[0] });
+      table = new TableExpr({
+        this: parts[1],
+        db: parts[0],
+      });
     } else {
       let thisExpr: Expression = parts[2];
 
       for (let i = 3; i < n; i++) {
-        thisExpr = new DotExpr({ this: thisExpr, expression: parts[i] });
+        thisExpr = new DotExpr({
+          this: thisExpr,
+          expression: parts[i],
+        });
       }
 
-      table = new TableExpr({ this: thisExpr, db: parts[1], catalog: parts[0] });
+      table = new TableExpr({
+        this: thisExpr,
+        db: parts[1],
+        catalog: parts[0],
+      });
     }
 
     if (allComments) {
@@ -8050,7 +8068,9 @@ export class Parser {
 
     if (!schema && !isDbReference && !consumePipe && !joins) {
       const index = this.index;
-      const table = this.parseTableParts({ fast: true });
+      const table = this.parseTableParts({
+        fast: true,
+      });
 
       if (table) {
         const currTt = this.curr?.tokenType;

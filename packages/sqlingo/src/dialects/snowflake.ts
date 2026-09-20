@@ -4126,7 +4126,10 @@ class SnowflakeGenerator extends Generator {
   }
 
   arrayToStringSql (expression: ArrayToStringExpr): string {
-    return this.func('ARRAY_TO_STRING', [expression.args.this, expression.args.expression]);
+    return this.func('ARRAY_TO_STRING', [
+      expression.args.this,
+      expression.args.expression,
+    ]);
   }
 
   arraySql (expression: ArrayExpr): string {

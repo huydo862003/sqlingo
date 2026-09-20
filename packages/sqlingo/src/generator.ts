@@ -2553,9 +2553,9 @@ export class Generator {
       result = result + ' ';
     }
 
-    // Escape block comment markers to prevent premature closure or unintended nesting.
+    // Escape block comment markers to prevent premature closure or unintended nesting
     // Single-line comments (--) are converted to block comments (/* */) on output,
-    // and any */ in the original text would close the comment early.
+    // and any */ in the original text would close the comment early
     result = result.replace(/\*\//g, '* /').replace(/\/\*/g, '/ *');
 
     return result;

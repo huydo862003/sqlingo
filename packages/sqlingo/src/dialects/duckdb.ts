@@ -51,7 +51,6 @@ import type {
   ObjectInsertExpr,
   RespectNullsExpr,
   ExpressionValue,
-
   MapDeleteExpr,
   MapInsertExpr,
   MapPickExpr,
@@ -60,6 +59,8 @@ import type {
   ArraySliceExpr,
   DateTruncExpr,
   SplitPartExpr,
+  StrPositionExpr,
+  StrtokExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -173,7 +174,6 @@ import {
   Sha1DigestExpr,
   Sha2DigestExpr,
   ShaExpr,
-  StrPositionExpr,
   StrToUnixExpr,
   TimeAddExpr,
   TimeDiffExpr,
@@ -229,7 +229,6 @@ import {
   PercentileDiscExpr,
   CoalesceExpr,
   ArrayToStringExpr,
-  StrtokExpr,
   LtExpr,
   LteExpr,
   RegexpCountExpr,
@@ -7246,7 +7245,12 @@ class DuckDBGenerator extends Generator {
       const filteredArray = func(
         'LIST_FILTER',
         splitArray,
-        new LambdaExpr({ this: new NotExpr({ this: isEmpty.copy() }), expressions: [x.copy()] }),
+        new LambdaExpr({
+          this: new NotExpr({
+            this: isEmpty.copy(),
+          }),
+          expressions: [x.copy()],
+        }),
       );
 
       const baseFunc = new BracketExpr({

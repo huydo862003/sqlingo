@@ -202,7 +202,6 @@ import {
   buildLike,
   buildJsonExtractPath,
   trimSql,
-  timestampTruncSql,
   sha256Sql,
   sha2DigestSql,
   strPositionSql,
@@ -2997,7 +2996,11 @@ export class ClickHouseGenerator extends Generator {
       unit = LiteralExpr.string(unit.name.toLowerCase());
     }
 
-    return this.func('dateTrunc', [unit, expression.args.this, expression.args.zone]);
+    return this.func('dateTrunc', [
+      unit,
+      expression.args.this,
+      expression.args.zone,
+    ]);
   }
 }
 
