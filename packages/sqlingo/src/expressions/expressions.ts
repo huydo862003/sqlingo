@@ -345,7 +345,7 @@ export class Expression implements
    * @returns The alias name, or empty string if no alias
    */
   get alias (): string {
-    if (this.args.alias instanceof TableAliasExpr) {
+    if (this.args.alias instanceof Expression) {
       return this.args.alias.name;
     }
 
