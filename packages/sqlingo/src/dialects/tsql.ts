@@ -1836,7 +1836,15 @@ export class TSQLGenerator extends Generator {
       ],
       [
         TimeStrToTimeExpr,
-        timeStrToTimeSql,
+        function (this: Generator, expression: TimeStrToTimeExpr): string {
+          const sql = timeStrToTimeSql.call(this, expression);
+
+          if (expression.args.zone) {
+            return `${sql} AT TIME ZONE 'UTC'`;
+          }
+
+          return sql;
+        },
       ],
       [
         TimeToStrExpr,

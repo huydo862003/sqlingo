@@ -505,7 +505,7 @@ export class TeradataGenerator extends Generator {
   static CAN_IMPLEMENT_ARRAY_ANY = true;
   static TZ_TO_WITH_TIME_ZONE = true;
   static ARRAY_SIZE_NAME = 'CARDINALITY';
-  static NVL2_SUPPORTED = false;
+  static NVL2_SUPPORTED = true;
   static SUPPORTS_TO_NUMBER = false;
   static EXCEPT_INTERSECT_SUPPORT_ALL_CLAUSE = false;
   static SUPPORTS_MEDIAN = false;

@@ -2551,7 +2551,7 @@ class MySQLGenerator extends Generator {
     return this.sql(expression.args.this);
   }
 
-  public isasciiSql (expression: IsAsciiExpr): string {
+  public isAsciiSql (expression: IsAsciiExpr): string {
     return `REGEXP_LIKE(${this.sql(expression.args.this)}, '^[[:ascii:]]*$')`;
   }
 

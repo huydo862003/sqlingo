@@ -16978,7 +16978,9 @@ export class Parser {
       const offsetExpr = offset.args.expression;
       const offsetVal: number = typeof offsetExpr === 'number' ? offsetExpr : (assertIsInstanceOf(offsetExpr, Expression), offsetExpr.toValue() as number);
 
-      query.offset(LiteralExpr.number(currOffsetVal + offsetVal), { copy: false });
+      query.offset(LiteralExpr.number(currOffsetVal + offsetVal), {
+        copy: false,
+      });
     }
 
     return query;

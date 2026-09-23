@@ -21565,6 +21565,13 @@ export type WeekOfYearExprArgs = Merge<[
 export class WeekOfYearExpr extends FuncExpr {
   static key = ExpressionKey.WEEK_OF_YEAR;
 
+  static override sqlNames (): string[] {
+    return [
+      'WEEK_OF_YEAR',
+      'WEEKOFYEAR',
+    ];
+  }
+
   static argOrder = ['this'];
 
   declare args: WeekOfYearExprArgs;
@@ -29001,8 +29008,8 @@ export class StrToUnixExpr extends FuncExpr {
   ]);
 
   static argOrder = [
-    'format',
     'this',
+    'format',
   ];
 
   declare args: StrToUnixExprArgs;
@@ -29899,8 +29906,8 @@ export class UnixToStrExpr extends FuncExpr {
   ]);
 
   static argOrder = [
-    'format',
     'this',
+    'format',
   ];
 
   declare args: UnixToStrExprArgs;

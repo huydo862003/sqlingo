@@ -4156,10 +4156,23 @@ export class Generator {
         .join(' ');
       const optionsStr = options ? ` ${options}` : '';
 
-      return `LIKE ${this.sql(expression, 'this')}${optionsStr}`;
+      const like = `LIKE ${this.sql(expression, 'this')}${optionsStr}`;
+
+      if (this._constructor.LIKE_PROPERTY_INSIDE_SCHEMA && !(expression.parent instanceof SchemaExpr)) {
+        return `(${like})`;
+      }
+
+      return like;
     }
 
-    return this.propertySql(expression);
+    if (expression.args.expressions?.length) {
+      this.unsupported('Transpilation of LIKE property options is unsupported');
+    }
+
+    const selectExpr = select('*').from(expression.args.this as Expression)
+      .limit(0);
+
+    return `AS ${this.sql(selectExpr)}`;
   }
 
   fallbackPropertySql (expression: FallbackPropertyExpr): string {
@@ -8430,7 +8443,7 @@ export class Generator {
     }
 
     // SQLGlot's executor supports ARRAY_ANY, so we don't wanna warn for the SQLGlot dialect
-    if (!(this.dialect._constructor !== Dialect)) {
+    if (this.dialect._constructor !== Dialect) {
       this.unsupported('ARRAY_ANY is unsupported');
     }
 
