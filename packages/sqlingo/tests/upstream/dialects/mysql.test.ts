@@ -959,6 +959,15 @@ class TestMySQL extends Validator {
     }
 
     this.validateAll(
+      "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t",
+      {
+        write: {
+          mysql: "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t",
+          postgres: "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT col + INTERVAL '1 DAY' * num_days FROM t",
+        },
+      },
+    );
+    this.validateAll(
       'CURDATE()',
       {
         write: {
