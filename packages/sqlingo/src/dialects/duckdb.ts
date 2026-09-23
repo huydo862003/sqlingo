@@ -136,6 +136,7 @@ import {
   toIdentifier,
   TableFromRowsExpr,
   InitcapExpr,
+  IcebergPropertyExpr,
   IntDivExpr,
   IsArrayExpr,
   IsInfExpr,
@@ -3347,6 +3348,10 @@ class DuckDBGenerator extends Generator {
         renameFunc('UNNEST'),
       ],
       [
+        IcebergPropertyExpr,
+        function () { return ''; },
+      ],
+      [
         IntDivExpr,
         function (this: Generator, e) {
           return this.binary(e, '//');
@@ -4130,6 +4135,7 @@ class DuckDBGenerator extends Generator {
     locations.set(TemporaryPropertyExpr, PropertiesLocation.POST_CREATE);
     locations.set(ReturnsPropertyExpr, PropertiesLocation.POST_ALIAS);
     locations.set(SequencePropertiesExpr, PropertiesLocation.POST_EXPRESSION);
+    locations.set(IcebergPropertyExpr, PropertiesLocation.POST_CREATE);
 
     return locations;
   }
