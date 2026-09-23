@@ -766,6 +766,16 @@ describe('TestOptimizer', () => {
         dialect: 'bigquery',
       }),
     ).toBe('SELECT (SELECT `col_st`.`value` AS `value` FROM UNNEST(`b`.`col_st`) AS `col_st`) AS `vcol1` FROM `t` AS `b`');
+
+    expect(
+      qualify(
+        parseOne('SELECT * FROM t'),
+        {
+          schema: { t: { end: 'text' } },
+          quoteIdentifiers: false,
+        },
+      ).sql(),
+    ).toBe('SELECT t.end AS end FROM t AS t');
   });
 
   it('test_validate_columns', () => {

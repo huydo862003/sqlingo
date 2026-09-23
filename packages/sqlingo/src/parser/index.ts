@@ -11527,7 +11527,7 @@ export class Parser {
         return expressions;
       }
 
-      if (!this.next && this.match(TokenType.END)) {
+      if (expressions.length && !this.next && this.match(TokenType.END)) {
         expressions.push(new EndStatementExpr());
         continue;
       }
