@@ -1325,6 +1325,22 @@ describe('TestOptimizer', () => {
 
     expect(subqueryScope?.isCorrelatedSubquery).toBe(true);
     expect(subqueryScope?.externalColumns.map((c) => c.sql())).toContain('x.id');
+
+    // Correlated subquery referencing a CTE defined in the same WITH clause as another CTE used in the outer query
+    const correlatedSql2 = "WITH x AS (SELECT 1 AS id), y AS (SELECT 2 AS id) SELECT (SELECT y.id FROM y WHERE y.id = x.id) FROM x";
+    const correlatedScopes2 = traverseScope(parseOne(correlatedSql2));
+    const subqueryScope2 = correlatedScopes2.find((s) => s.isSubquery);
+
+    expect(subqueryScope2?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope2?.externalColumns.map((c) => c.sql())).toContain('x.id');
+
+    // Correlated subquery referencing outer CTE through a derived table
+    const correlatedSql3 = "WITH x AS (SELECT 1 AS id) SELECT (SELECT x.id FROM (SELECT * FROM x) AS sub) FROM x";
+    const correlatedScopes3 = traverseScope(parseOne(correlatedSql3));
+    const subqueryScope3 = correlatedScopes3.find((s) => s.isSubquery);
+
+    expect(subqueryScope3?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope3?.externalColumns.map((c) => c.sql())).toContain('x.id');
   });
 
   it('test_annotate_types', () => {
