@@ -1,5 +1,5 @@
 import {
-  describe, test, expect,
+  describe, test, expect, vi,
 } from 'vitest';
 import {
   parseOne,
@@ -2155,6 +2155,29 @@ class TestDuckDB extends Validator {
     expect(this.parseOne(nthSql, { dialect: 'duckdb' }).sql({ dialect: 'duckdb' })).toContain('IGNORE NULLS');
   }
 
+  testIcebergPropertyNoWarning () {
+    const expression = parseOne('CREATE ICEBERG TABLE t (a INT)', { dialect: 'snowflake' });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(expression.sql({ dialect: 'duckdb' })).toBe('CREATE TABLE t (a INT)');
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  }
+
+  testNonIcebergPropertyStillWarns () {
+    const expression = parseOne('CREATE TRANSIENT TABLE t (a INT)', { dialect: 'snowflake' });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(expression.sql({ dialect: 'duckdb' })).toBe('CREATE TABLE t (a INT)');
+      expect(warnSpy).toHaveBeenCalled();
+      expect(warnSpy.mock.calls[0][0]).toContain('Unsupported');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  }
+
   testMapPick () {
     const sql = 'SELECT MAP_PICK(t.t_map, t.t_key) FROM t';
     let annotated = annotateTypes(
@@ -2228,5 +2251,7 @@ describe('TestDuckDB', () => {
   test('testToArray', () => t.testToArray());
   test('testCurrentSchemas', () => t.testCurrentSchemas());
   test('testIgnoreNulls', () => t.testIgnoreNulls());
+  test('testIcebergPropertyNoWarning', () => t.testIcebergPropertyNoWarning());
+  test('testNonIcebergPropertyStillWarns', () => t.testNonIcebergPropertyStillWarns());
   test('testMapPick', () => t.testMapPick());
 });

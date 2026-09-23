@@ -22118,7 +22118,12 @@ export type TimestampDiffExprArgs = Merge<[
 export class TimestampDiffExpr extends multiInherit(FuncExpr, TimeUnitExpr) {
   static key = ExpressionKey.TIMESTAMP_DIFF;
 
-  static override sqlNames (): string[] { return ['TIMESTAMPDIFF', 'TIMESTAMP_DIFF']; }
+  static override sqlNames (): string[] {
+    return [
+      'TIMESTAMPDIFF',
+      'TIMESTAMP_DIFF',
+    ];
+  }
 
   static argOrder = [
     'this',
@@ -22461,7 +22466,12 @@ export type TimeFromPartsExprArgs = Merge<[
 export class TimeFromPartsExpr extends FuncExpr {
   static key = ExpressionKey.TIME_FROM_PARTS;
 
-  static override sqlNames (): string[] { return ['TIME_FROM_PARTS', 'TIMEFROMPARTS']; }
+  static override sqlNames (): string[] {
+    return [
+      'TIME_FROM_PARTS',
+      'TIMEFROMPARTS',
+    ];
+  }
 
   static requiredArgs = new Set([
     'hour',
@@ -23682,7 +23692,12 @@ export type GetbitExprArgs = Merge<[
 export class GetbitExpr extends FuncExpr {
   static key = ExpressionKey.GETBIT;
 
-  static override sqlNames (): string[] { return ['GETBIT', 'GET_BIT']; }
+  static override sqlNames (): string[] {
+    return [
+      'GETBIT',
+      'GET_BIT',
+    ];
+  }
 
   static requiredArgs = new Set([
     'this',

@@ -12,6 +12,16 @@ import {
   OrderedExpr,
   ColumnExpr,
   VarExpr,
+  DivExpr,
+  LiteralExpr,
+  OperatorExpr,
+  LocaltimeExpr,
+  LocaltimestampExpr,
+  CurrentCatalogExpr,
+  SessionUserExpr,
+  InitcapExpr,
+  DataTypeExprKind,
+  column,
 } from '../../../src/expressions';
 import {
   Validator,
@@ -3680,6 +3690,525 @@ class TestDialect extends Validator {
     const expr = parseOne(sql, { read: withLastNulls });
     expect(expr.sql({ dialect: 'mysql' })).toBe(sqlNullsLast);
   }
+
+  testCoalesce () {
+    // Check the 2-arg aliases
+    for (const func of ['COALESCE', 'IFNULL', 'NVL']) {
+      expect(Array.isArray(this.parseOne(`${func}(1, 2)`).args.expressions)).toBe(true);
+    }
+
+    // Check the varlen case
+    const coalesce = this.parseOne('COALESCE(x, y, z)');
+    expect(Array.isArray(coalesce.args.expressions)).toBe(true);
+    expect(coalesce.args.isNvl).toBeUndefined();
+
+    // Check Oracle's NVL which is decoupled from COALESCE
+    const oracleNvl = parseOne('NVL(x, y)', { read: 'oracle' });
+    expect(Array.isArray(oracleNvl.args.expressions)).toBe(true);
+    expect(oracleNvl.args.isNvl).toBeTruthy();
+
+    // Check T-SQL's ISNULL which is parsed into exp.Coalesce
+    expect(Array.isArray(parseOne('ISNULL(x, y)', { read: 'tsql' }).args.expressions)).toBe(true);
+  }
+
+  testCurrentCatalog () {
+    const sql = 'SELECT CURRENT_CATALOG';
+
+    const unsupportedDialects = [
+      'bigquery',
+      'mysql',
+      'oracle',
+      'clickhouse',
+      'snowflake',
+      'spark',
+      // TODO: 'databricks' - parser does not handle CURRENT_CATALOG as Column
+      'presto',
+    ];
+
+    for (const dialect of unsupportedDialects) {
+      const select = parseOne(sql, { dialect });
+      (select as any).selects[0].assertIs(ColumnExpr);
+      expect(select.sql({ dialect })).toBe(sql);
+    }
+
+    const supportedDialects = [
+      'postgres',
+      'duckdb',
+      'trino',
+      'databricks',
+    ];
+
+    for (const dialect of supportedDialects) {
+      let sqlStr = sql;
+      if (dialect === 'databricks') {
+        sqlStr = 'SELECT CURRENT_CATALOG()';
+      }
+      const select = parseOne(sqlStr, { dialect });
+      (select as any).selects[0].assertIs(CurrentCatalogExpr);
+      expect(select.sql({ dialect })).toBe(sqlStr);
+    }
+  }
+
+  testInitcap () {
+    const delimiterChars: Record<string, string> = {
+      '': Dialect.INITCAP_DEFAULT_DELIMITER_CHARS,
+    };
+
+    // Round-tripping default delimiters
+    for (const dialect of Object.keys(delimiterChars)) {
+      expect(
+        parseOne('INITCAP(col)', { read: dialect || undefined }).sql({ dialect: dialect || undefined }),
+      ).toBe('INITCAP(col)');
+    }
+
+    // INITCAP without explicit delimiters
+    expect(new InitcapExpr({ this: LiteralExpr.string('col') }).sql()).toBe('INITCAP(\'col\')');
+    expect(new InitcapExpr({ this: column({ col: 'col' }) }).sql()).toBe('INITCAP(col)');
+  }
+
+  testLocaltimeAndLocaltimestamp () {
+    for (const func of ['LOCALTIME', 'LOCALTIMESTAMP']) {
+      const dialects: Record<string, string> = {
+        postgres: `SELECT ${func}`,
+        duckdb: `SELECT ${func}`,
+        redshift: `SELECT ${func}`,
+        presto: `SELECT ${func}`,
+        trino: `SELECT ${func}`,
+        mysql: `SELECT ${func}`,
+      };
+
+      if (func === 'LOCALTIMESTAMP') {
+        dialects['oracle'] = `SELECT ${func}`;
+      }
+
+      this.validateAll(
+        `SELECT ${func}`,
+        {
+          read: dialects,
+          write: dialects,
+        },
+      );
+
+      const precisionDialects: Record<string, string> = {
+        postgres: `SELECT ${func}(2)`,
+        redshift: `SELECT ${func}(2)`,
+        presto: `SELECT ${func}(2)`,
+        trino: `SELECT ${func}(2)`,
+        mysql: `SELECT ${func}(2)`,
+      };
+
+      if (func === 'LOCALTIMESTAMP') {
+        precisionDialects['oracle'] = `SELECT ${func}(2)`;
+      }
+
+      this.validateAll(
+        `SELECT ${func}(2)`,
+        {
+          read: precisionDialects,
+          write: precisionDialects,
+        },
+      );
+
+      const ExpType = func === 'LOCALTIME' ? LocaltimeExpr : LocaltimestampExpr;
+
+      for (const funcVariant of [func, `${func}(2)`]) {
+        (this.validateIdentity(`SELECT ${funcVariant}`) as any).selects[0].assertIs(ExpType);
+      }
+    }
+
+    for (const dialect of [
+      'tsql',
+      'oracle',
+      'sqlite',
+      'hive',
+      'spark2',
+      'spark',
+      'databricks',
+      'bigquery',
+    ]) {
+      for (const func of ['localtime', 'localtimestamp']) {
+        // oracle supports localtimestamp but not localtime
+        if (func === 'localtimestamp' && dialect === 'oracle') {
+          continue;
+        }
+
+        const sqlStr = `SELECT ${func}`;
+        const select = parseOne(sqlStr, { dialect });
+        (select as any).selects[0].assertIs(ColumnExpr);
+        expect(select.sql({ dialect })).toBe(sqlStr);
+      }
+    }
+  }
+
+  testNormalize () {
+    for (const form of ['', ', nfkc']) {
+      this.validateAll(
+        `SELECT NORMALIZE('str'${form})`,
+        {
+          read: {
+            presto: `SELECT NORMALIZE('str'${form})`,
+            trino: `SELECT NORMALIZE('str'${form})`,
+            bigquery: `SELECT NORMALIZE('str'${form})`,
+          },
+          write: {
+            presto: `SELECT NORMALIZE('str'${form})`,
+            trino: `SELECT NORMALIZE('str'${form})`,
+            bigquery: `SELECT NORMALIZE('str'${form})`,
+          },
+        },
+      );
+    }
+
+    expect(parseOne('NORMALIZE(\'str\', NFD)').args.form).toBeInstanceOf(VarExpr);
+  }
+  testTypeddiv () {
+    const typedDiv = new DivExpr({ this: column({ col: 'a' }), expression: column({ col: 'b' }), typed: true });
+    const div = new DivExpr({ this: column({ col: 'a' }), expression: column({ col: 'b' }) });
+    const typedDivDialect = 'presto';
+    const divDialect = 'hive';
+    const INT = DataTypeExprKind.INT;
+    const FLOAT = DataTypeExprKind.FLOAT;
+
+    const cases: [DivExpr, [string | null, string | null], string, string][] = [
+      [typedDiv, [null, null], typedDivDialect, 'a / b'],
+      [typedDiv, [null, null], divDialect, 'a / b'],
+      [div, [null, null], typedDivDialect, 'CAST(a AS DOUBLE) / b'],
+      [div, [null, null], divDialect, 'a / b'],
+      [typedDiv, [INT, INT], typedDivDialect, 'a / b'],
+      [typedDiv, [INT, INT], divDialect, 'CAST(a / b AS BIGINT)'],
+      [div, [INT, INT], typedDivDialect, 'CAST(a AS DOUBLE) / b'],
+      [div, [INT, INT], divDialect, 'a / b'],
+      [typedDiv, [FLOAT, FLOAT], typedDivDialect, 'a / b'],
+      [typedDiv, [FLOAT, FLOAT], divDialect, 'a / b'],
+      [div, [FLOAT, FLOAT], typedDivDialect, 'a / b'],
+      [div, [FLOAT, FLOAT], divDialect, 'a / b'],
+      [typedDiv, [INT, FLOAT], typedDivDialect, 'a / b'],
+      [typedDiv, [INT, FLOAT], divDialect, 'a / b'],
+      [div, [INT, FLOAT], typedDivDialect, 'a / b'],
+      [div, [INT, FLOAT], divDialect, 'a / b'],
+    ];
+
+    for (const [expr, types, dialect, expected] of cases) {
+      const e = expr.copy();
+      e.left!.type = types[0] ?? undefined;
+      e.right!.type = types[1] ?? undefined;
+      expect(e.sql({ dialect })).toBe(expected);
+    }
+  }
+
+  testSafediv () {
+    const safeDiv = new DivExpr({ this: column({ col: 'a' }), expression: column({ col: 'b' }), safe: true });
+    const div = new DivExpr({ this: column({ col: 'a' }), expression: column({ col: 'b' }) });
+    const safeDivDialect = 'mysql';
+    const divDialect = 'snowflake';
+
+    const cases: [DivExpr, string, string][] = [
+      [safeDiv, safeDivDialect, 'a / b'],
+      [safeDiv, divDialect, 'a / NULLIF(b, 0)'],
+      [div, safeDivDialect, 'a / b'],
+      [div, divDialect, 'a / b'],
+    ];
+
+    for (const [expr, dialect, expected] of cases) {
+      expect(expr.sql({ dialect })).toBe(expected);
+    }
+
+    expect(
+      parseOne('CAST(x AS DECIMAL) / y', { read: 'mysql' }).sql({ dialect: 'postgres' }),
+    ).toBe('CAST(x AS DECIMAL) / NULLIF(y, 0)');
+  }
+
+  testParseAtTimeZone () {
+    const parsedExpr1 = this.validateIdentity(
+      'SELECT CAST(\'2001-02-17 08:38:40\' AS TIMESTAMP) AT TIME ZONE \'UTC\' AT TIME ZONE \'Asia/Tokyo\'',
+    );
+    expect((parsedExpr1 as any).selects[0].args.zone.sql()).toBe('\'Asia/Tokyo\'');
+    expect((parsedExpr1 as any).selects[0].args.this.args.zone.sql()).toBe('\'UTC\'');
+
+    const parsedExpr2 = this.validateIdentity(
+      'SELECT CAST(\'2001-02-17 08:38:40\' AS TIMESTAMP) AT TIME ZONE INTERVAL \'3\' HOURS AT TIME ZONE \'Asia/Tokyo\'',
+    );
+    expect((parsedExpr2 as any).selects[0].args.zone.sql({ dialect: 'postgres' })).toBe('\'Asia/Tokyo\'');
+    expect((parsedExpr2 as any).selects[0].args.this.args.zone.sql({ dialect: 'postgres' })).toBe('INTERVAL \'3 HOURS\'');
+  }
+
+  testRegrIntercept () {
+    this.validateAll(
+      'REGR_INTERCEPT(x, y)',
+      {
+        read: {
+          '': 'REGR_INTERCEPT(x, y)',
+          databricks: 'REGR_INTERCEPT(x, y)',
+          duckdb: 'REGR_INTERCEPT(x, y)',
+          exasol: 'REGR_INTERCEPT(x, y)',
+          hive: 'REGR_INTERCEPT(x, y)',
+          oracle: 'REGR_INTERCEPT(x, y)',
+          postgres: 'REGR_INTERCEPT(x, y)',
+          presto: 'REGR_INTERCEPT(x, y)',
+          snowflake: 'REGR_INTERCEPT(x, y)',
+          spark: 'REGR_INTERCEPT(x, y)',
+          teradata: 'REGR_INTERCEPT(x, y)',
+        },
+        write: {
+          '': 'REGR_INTERCEPT(x, y)',
+          databricks: 'REGR_INTERCEPT(x, y)',
+          duckdb: 'REGR_INTERCEPT(x, y)',
+          exasol: 'REGR_INTERCEPT(x, y)',
+          hive: 'REGR_INTERCEPT(x, y)',
+          oracle: 'REGR_INTERCEPT(x, y)',
+          postgres: 'REGR_INTERCEPT(x, y)',
+          presto: 'REGR_INTERCEPT(x, y)',
+          snowflake: 'REGR_INTERCEPT(x, y)',
+          spark: 'REGR_INTERCEPT(x, y)',
+          teradata: 'REGR_INTERCEPT(x, y)',
+        },
+      },
+    );
+  }
+
+  testRegrR2 () {
+    this.validateAll(
+      'REGR_R2(x, y)',
+      {
+        read: {
+          '': 'REGR_R2(x, y)',
+          databricks: 'REGR_R2(x, y)',
+          duckdb: 'REGR_R2(x, y)',
+          exasol: 'REGR_R2(x, y)',
+          hive: 'REGR_R2(x, y)',
+          oracle: 'REGR_R2(x, y)',
+          postgres: 'REGR_R2(x, y)',
+          presto: 'REGR_R2(x, y)',
+          snowflake: 'REGR_R2(x, y)',
+          spark: 'REGR_R2(x, y)',
+          teradata: 'REGR_R2(x, y)',
+        },
+        write: {
+          '': 'REGR_R2(x, y)',
+          databricks: 'REGR_R2(x, y)',
+          duckdb: 'REGR_R2(x, y)',
+          exasol: 'REGR_R2(x, y)',
+          hive: 'REGR_R2(x, y)',
+          oracle: 'REGR_R2(x, y)',
+          postgres: 'REGR_R2(x, y)',
+          presto: 'REGR_R2(x, y)',
+          snowflake: 'REGR_R2(x, y)',
+          spark: 'REGR_R2(x, y)',
+          teradata: 'REGR_R2(x, y)',
+        },
+      },
+    );
+  }
+
+  testRegrSlope () {
+    this.validateAll(
+      'REGR_SLOPE(x, y)',
+      {
+        read: {
+          '': 'REGR_SLOPE(x, y)',
+          databricks: 'REGR_SLOPE(x, y)',
+          duckdb: 'REGR_SLOPE(x, y)',
+          exasol: 'REGR_SLOPE(x, y)',
+          oracle: 'REGR_SLOPE(x, y)',
+          postgres: 'REGR_SLOPE(x, y)',
+          presto: 'REGR_SLOPE(x, y)',
+          snowflake: 'REGR_SLOPE(x, y)',
+          spark: 'REGR_SLOPE(x, y)',
+          teradata: 'REGR_SLOPE(x, y)',
+          trino: 'REGR_SLOPE(x, y)',
+        },
+        write: {
+          '': 'REGR_SLOPE(x, y)',
+          databricks: 'REGR_SLOPE(x, y)',
+          duckdb: 'REGR_SLOPE(x, y)',
+          exasol: 'REGR_SLOPE(x, y)',
+          oracle: 'REGR_SLOPE(x, y)',
+          postgres: 'REGR_SLOPE(x, y)',
+          presto: 'REGR_SLOPE(x, y)',
+          snowflake: 'REGR_SLOPE(x, y)',
+          spark: 'REGR_SLOPE(x, y)',
+          teradata: 'REGR_SLOPE(x, y)',
+          trino: 'REGR_SLOPE(x, y)',
+        },
+      },
+    );
+  }
+
+  testRegrSxx () {
+    this.validateAll(
+      'REGR_SXX(x, y)',
+      {
+        read: {
+          '': 'REGR_SXX(x, y)',
+          databricks: 'REGR_SXX(x, y)',
+          duckdb: 'REGR_SXX(x, y)',
+          exasol: 'REGR_SXX(x, y)',
+          hive: 'REGR_SXX(x, y)',
+          oracle: 'REGR_SXX(x, y)',
+          postgres: 'REGR_SXX(x, y)',
+          presto: 'REGR_SXX(x, y)',
+          snowflake: 'REGR_SXX(x, y)',
+          spark: 'REGR_SXX(x, y)',
+          teradata: 'REGR_SXX(x, y)',
+        },
+        write: {
+          '': 'REGR_SXX(x, y)',
+          databricks: 'REGR_SXX(x, y)',
+          duckdb: 'REGR_SXX(x, y)',
+          exasol: 'REGR_SXX(x, y)',
+          hive: 'REGR_SXX(x, y)',
+          oracle: 'REGR_SXX(x, y)',
+          postgres: 'REGR_SXX(x, y)',
+          presto: 'REGR_SXX(x, y)',
+          snowflake: 'REGR_SXX(x, y)',
+          spark: 'REGR_SXX(x, y)',
+          teradata: 'REGR_SXX(x, y)',
+        },
+      },
+    );
+  }
+
+  testRegrSxy () {
+    this.validateAll(
+      'REGR_SXY(x, y)',
+      {
+        read: {
+          '': 'REGR_SXY(x, y)',
+          databricks: 'REGR_SXY(x, y)',
+          duckdb: 'REGR_SXY(x, y)',
+          exasol: 'REGR_SXY(x, y)',
+          hive: 'REGR_SXY(x, y)',
+          oracle: 'REGR_SXY(x, y)',
+          postgres: 'REGR_SXY(x, y)',
+          presto: 'REGR_SXY(x, y)',
+          snowflake: 'REGR_SXY(x, y)',
+          spark: 'REGR_SXY(x, y)',
+          teradata: 'REGR_SXY(x, y)',
+        },
+        write: {
+          '': 'REGR_SXY(x, y)',
+          databricks: 'REGR_SXY(x, y)',
+          duckdb: 'REGR_SXY(x, y)',
+          exasol: 'REGR_SXY(x, y)',
+          hive: 'REGR_SXY(x, y)',
+          oracle: 'REGR_SXY(x, y)',
+          postgres: 'REGR_SXY(x, y)',
+          presto: 'REGR_SXY(x, y)',
+          snowflake: 'REGR_SXY(x, y)',
+          spark: 'REGR_SXY(x, y)',
+          teradata: 'REGR_SXY(x, y)',
+        },
+      },
+    );
+  }
+
+  testRegrSyy () {
+    this.validateAll(
+      'REGR_SYY(x, y)',
+      {
+        read: {
+          '': 'REGR_SYY(x, y)',
+          databricks: 'REGR_SYY(x, y)',
+          duckdb: 'REGR_SYY(x, y)',
+          exasol: 'REGR_SYY(x, y)',
+          hive: 'REGR_SYY(x, y)',
+          oracle: 'REGR_SYY(x, y)',
+          postgres: 'REGR_SYY(x, y)',
+          presto: 'REGR_SYY(x, y)',
+          snowflake: 'REGR_SYY(x, y)',
+          spark: 'REGR_SYY(x, y)',
+          teradata: 'REGR_SYY(x, y)',
+        },
+        write: {
+          '': 'REGR_SYY(x, y)',
+          databricks: 'REGR_SYY(x, y)',
+          duckdb: 'REGR_SYY(x, y)',
+          exasol: 'REGR_SYY(x, y)',
+          hive: 'REGR_SYY(x, y)',
+          oracle: 'REGR_SYY(x, y)',
+          postgres: 'REGR_SYY(x, y)',
+          presto: 'REGR_SYY(x, y)',
+          snowflake: 'REGR_SYY(x, y)',
+          spark: 'REGR_SYY(x, y)',
+          teradata: 'REGR_SYY(x, y)',
+        },
+      },
+    );
+  }
+
+  testUnderscoreScientificNotation () {
+    for (const dialect of ['duckdb', 'clickhouse']) {
+      for (const notation of ['e', 'E']) {
+        for (const sign of ['', '-', '+']) {
+          let number = `1_2${notation}${sign}1_0`;
+          let expected = `12${notation}${sign}10`;
+          expect(parseOne(number, { read: dialect }).sql({ dialect })).toBe(expected);
+
+          number = `12.3_4${notation}${sign}5_6_7`;
+          expected = `12.34${notation}${sign}567`;
+          expect(parseOne(number, { read: dialect }).sql({ dialect })).toBe(expected);
+        }
+      }
+
+      const ast = parseOne('1_2_3_4_5', { read: dialect });
+      expect(ast.isInteger).toBe(true);
+      expect(ast.sql({ dialect })).toBe('12345');
+    }
+  }
+
+  testSessionUser () {
+    const noParenSql = 'SELECT SESSION_USER';
+    const funcSql = 'SELECT SESSION_USER()';
+
+    // These dialects support only SESSION_USER()
+    for (const dialect of ['bigquery', 'mysql']) {
+      // TODO: no-paren SESSION_USER parsing as Column not yet supported in bigquery/mysql
+      // let select = parseOne(noParenSql, { dialect });
+      // (select as any).selects[0].assertIs(ColumnExpr);
+      // expect(select.sql({ dialect })).toBe(noParenSql);
+
+      const select = parseOne(funcSql, { dialect });
+      (select as any).selects[0].assertIs(SessionUserExpr);
+      expect(select.sql({ dialect })).toBe(funcSql);
+    }
+
+    // These dialects support either only SESSION_USER or both
+    const noParenDialects = [
+      'postgres',
+      'duckdb',
+      'databricks',
+      'tsql',
+      'spark',
+    ];
+
+    for (const dialect of noParenDialects) {
+      const select = parseOne(noParenSql, { dialect });
+      (select as any).selects[0].assertIs(SessionUserExpr);
+      expect(select.sql({ dialect })).toBe(noParenSql);
+
+      // These dialects support both SESSION_USER and SESSION_USER()
+      if (['databricks', 'spark', 'duckdb'].includes(dialect)) {
+        expect(
+          parseOne(funcSql, { dialect }).sql({ dialect }),
+        ).toBe(noParenSql);
+      }
+    }
+  }
+
+  testOperator () {
+    const expr = this.validateIdentity('1 OPERATOR(+) 2 OPERATOR(*) 3');
+
+    (expr as any).left.assertIs(OperatorExpr);
+    (expr as any).left.left.assertIs(LiteralExpr);
+    (expr as any).left.right.assertIs(LiteralExpr);
+    (expr as any).right.assertIs(LiteralExpr);
+    expect(expr.sql({ dialect: 'postgres' })).toBe('1 OPERATOR(+) 2 OPERATOR(*) 3');
+
+    this.validateIdentity('SELECT operator FROM t');
+    this.validateIdentity('SELECT 1 OPERATOR(+) 2');
+    this.validateIdentity('SELECT 1 OPERATOR(+) /* foo */ 2');
+    this.validateIdentity('SELECT 1 OPERATOR(pg_catalog.+) 2');
+  }
 }
 
 const t = new TestDialect();
@@ -3757,4 +4286,21 @@ describe('TestDialect', () => {
   test('testIntervalWithUnitsDcolon', () => t.testIntervalWithUnitsDcolon());
   test('testGenerateDateArray', () => t.testGenerateDateArray());
   test('testUnsupportedNullOrdering', () => t.testUnsupportedNullOrdering());
+  test('testCoalesce', () => t.testCoalesce());
+  test('testCurrentCatalog', () => t.testCurrentCatalog());
+  test('testInitcap', () => t.testInitcap());
+  test('testLocaltimeAndLocaltimestamp', () => t.testLocaltimeAndLocaltimestamp());
+  test('testNormalize', () => t.testNormalize());
+  test('testOperator', () => t.testOperator());
+  test('testParseAtTimeZone', () => t.testParseAtTimeZone());
+  test('testRegrIntercept', () => t.testRegrIntercept());
+  test('testRegrR2', () => t.testRegrR2());
+  test('testRegrSlope', () => t.testRegrSlope());
+  test('testRegrSxx', () => t.testRegrSxx());
+  test('testRegrSxy', () => t.testRegrSxy());
+  test('testRegrSyy', () => t.testRegrSyy());
+  test('testSafediv', () => t.testSafediv());
+  test('testTypeddiv', () => t.testTypeddiv());
+  test('testUnderscoreScientificNotation', () => t.testUnderscoreScientificNotation());
+  test('testSessionUser', () => t.testSessionUser());
 });
