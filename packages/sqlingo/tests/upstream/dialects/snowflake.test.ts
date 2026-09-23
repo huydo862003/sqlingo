@@ -667,6 +667,51 @@ class TestSnowflake extends Validator {
         duckdb: "SELECT 1 WHERE 'abc' LIKE '%a%'",
       },
     });
+    this.validateAll(
+      "SELECT 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' LIKE 'he#%lo' ESCAPE '#' OR 'he%lo' LIKE 'hello' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' LIKE 'he#%lo' ESCAPE '#' AND 'he%lo' LIKE 'he#%lo2' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 'he%lo' ILIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' ILIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' ILIKE 'he#%lo' ESCAPE '#' OR 'he%lo' ILIKE 'hello' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 1 WHERE 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#' AND x = 1",
+      {
+        write: {
+          snowflake: "SELECT 1 WHERE 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#' AND x = 1",
+          duckdb: "SELECT 1 WHERE ('he%lo' LIKE 'he#%lo' ESCAPE '#' OR 'he%lo' LIKE 'hello' ESCAPE '#') AND x = 1",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 1 WHERE 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#' OR x = 1",
+      {
+        write: {
+          snowflake: "SELECT 1 WHERE 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#' OR x = 1",
+          duckdb: "SELECT 1 WHERE ('he%lo' LIKE 'he#%lo' ESCAPE '#' AND 'he%lo' LIKE 'he#%lo2' ESCAPE '#') OR x = 1",
+        },
+      },
+    );
 
     this.validateIdentity('SELECT CURRENT_SCHEMAS()');
     this.validateIdentity('SELECT CURRENT_SECONDARY_ROLES()');

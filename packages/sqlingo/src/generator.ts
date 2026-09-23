@@ -7340,6 +7340,16 @@ export class Generator {
   }
 
   escapeSql (expression: EscapeExpr): string {
+    const thisExpr = expression.args.this;
+
+    if (
+      (thisExpr instanceof LikeExpr || thisExpr instanceof ILikeExpr)
+      && (thisExpr.args.expression instanceof AllExpr || thisExpr.args.expression instanceof AnyExpr)
+      && !this._constructor.SUPPORTS_LIKE_QUANTIFIERS
+    ) {
+      return this.likeSql(thisExpr, expression);
+    }
+
     return this.binary(expression, 'ESCAPE');
   }
 
@@ -7373,7 +7383,7 @@ export class Generator {
     return this.likeSql(expression);
   }
 
-  likeSql (expression: LikeExpr | ILikeExpr): string {
+  likeSql (expression: LikeExpr | ILikeExpr, escape?: EscapeExpr): string {
     const thisExpr = expression.args.this;
     const rhs = expression.args.expression;
 
@@ -7403,26 +7413,34 @@ export class Generator {
 
       const connective = rhs instanceof AnyExpr ? or : and;
 
-      // Build the expanded expression: (this LIKE expr1 OR this LIKE expr2...)
-      let likeExpr: Expression = new expClass({
-        this: thisExpr,
-        expression: exprs?.[0],
-      });
+      const makeLike = (expr: ExpressionValue): Expression => {
+        let like: Expression = new expClass({
+          this: thisExpr,
+          expression: expr,
+        });
+
+        if (escape) {
+          like = new (escape.constructor as typeof Expression)({
+            this: like,
+            expression: (escape.args.expression as Expression).copy(),
+          });
+        }
+
+        return like;
+      };
+
+      let likeExpr: Expression = makeLike(exprs?.[0]);
 
       for (let i = 1; i < (exprs?.length || 0); i++) {
         likeExpr = connective([
           likeExpr,
-          new expClass({
-            this: thisExpr,
-            expression: exprs?.[i] || 0,
-          }),
+          makeLike(exprs?.[i] || 0),
         ]);
       }
 
-      const parent = expression.parent;
+      const parent = escape ? escape.parent : expression.parent;
 
-      // Wrap in parentheses if the expansion happens within another condition to maintain precedence
-      if (parent instanceof ConditionExpr && !(parent instanceof likeExpr._constructor)) {
+      if (parent instanceof ConditionExpr && !(parent instanceof ParenExpr) && !(parent instanceof likeExpr._constructor)) {
         likeExpr = paren(likeExpr, {
           copy: false,
         });
