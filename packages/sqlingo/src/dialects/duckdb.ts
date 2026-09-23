@@ -724,9 +724,9 @@ function toBooleanSql (this: Generator, expression: ToBooleanExpr): string {
   let caseExpr: CaseExpr;
 
   if (isSafe) {
-    caseExpr = baseCaseExpr.else(func('TRY_CAST', arg!, DataTypeExpr.build('BOOLEAN')!));
+    caseExpr = baseCaseExpr.else(func('TRY_CAST', arg!, DataTypeExpr.build(DataTypeExprKind.BOOLEAN)!));
   } else {
-    const castToReal = func('TRY_CAST', arg!, DataTypeExpr.build('REAL')!);
+    const castToReal = func('TRY_CAST', arg!, DataTypeExpr.build(DataTypeExprKind.FLOAT)!);
     const nanInfCheck = new OrExpr({
       this: func('ISNAN', castToReal),
       expression: func('ISINF', castToReal),
@@ -2032,7 +2032,7 @@ function regrValSql (this: Generator, expression: RegrValxExpr | RegrValyExpr): 
 
   // Default to DOUBLE for regression if still unknown
   if (!resultType || typeof resultType === 'string' || resultType.args.this === DataTypeExprKind.UNKNOWN) {
-    resultType = DataTypeExpr.build('DOUBLE');
+    resultType = DataTypeExpr.build(DataTypeExprKind.DOUBLE);
   }
 
   const typedNull = new CastExpr({
@@ -2628,7 +2628,7 @@ class DuckDBParser extends Parser {
   static get TYPE_CONVERTERS () {
     return {
       [DataTypeExprKind.DECIMAL]: buildDefaultDecimalType(18, 3),
-      [DataTypeExprKind.TEXT]: () => DataTypeExpr.build('TEXT') ?? new DataTypeExpr({
+      [DataTypeExprKind.TEXT]: () => DataTypeExpr.build(DataTypeExprKind.TEXT) ?? new DataTypeExpr({
         this: DataTypeExprKind.TEXT,
       }),
     };
@@ -4782,7 +4782,7 @@ class DuckDBGenerator extends Generator {
     const thisNode = expression.args.this;
     const timeFormat = this.formatTime(expression);
     const safe = expression.args.safe;
-    const timeType = DataTypeExpr.build('TIME', {
+    const timeType = DataTypeExpr.build(DataTypeExprKind.TIME, {
       dialect: 'duckdb',
     });
     const CastClass = safe ? TryCastExpr : CastExpr;
@@ -5528,7 +5528,7 @@ class DuckDBGenerator extends Generator {
         new AddExpr({
           this: new CastExpr({
             this: LiteralExpr.string('00:00:00'),
-            to: DataTypeExpr.build('TIME'),
+            to: DataTypeExpr.build(DataTypeExprKind.TIME),
           }),
           expression: new IntervalExpr({
             this: totalSeconds,
@@ -5644,7 +5644,7 @@ class DuckDBGenerator extends Generator {
       if (partName === 'EPOCH_SECOND') {
         result = new CastExpr({
           this: result,
-          to: DataTypeExpr.build('BIGINT', {
+          to: DataTypeExpr.build(DataTypeExprKind.BIGINT, {
             dialect: 'duckdb',
           }),
         });

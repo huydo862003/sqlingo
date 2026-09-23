@@ -705,7 +705,7 @@ class PostgresParser extends Parser {
       DATE_TRUNC: buildTimestampTrunc,
       DIV: (args: Expression[]) => new CastExpr({
         this: binaryFromFunction(IntDivExpr)(args),
-        to: DataTypeExpr.build('decimal'),
+        to: DataTypeExpr.build(DataTypeExprKind.DECIMAL),
       }),
       GENERATE_SERIES: buildGenerateSeries,
       GET_BIT: (args: Expression[]) => new GetbitExpr({

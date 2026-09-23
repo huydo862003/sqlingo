@@ -1491,7 +1491,7 @@ class PrestoGenerator extends Generator {
     const value = expression.args.expression;
     const ts = new CastExpr({
       this: value,
-      to: DataTypeExpr.build('TIMESTAMP'),
+      to: DataTypeExpr.build(DataTypeExprKind.TIMESTAMP),
     });
     let toUnix: Expression = new TimeToUnixExpr({
       this: ts,
