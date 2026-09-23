@@ -5482,6 +5482,11 @@ export class Generator {
 
       if (window instanceof WindowExpr) {
         windowThis = window.args.this;
+
+        if (windowThis?.key === 'ignoreNulls' || windowThis?.key === 'respectNulls') {
+          windowThis = (windowThis as Expression).args.this;
+        }
+
         spec = window.args.spec;
       }
 
