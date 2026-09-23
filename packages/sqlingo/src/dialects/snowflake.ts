@@ -1377,6 +1377,20 @@ class SnowflakeParser extends Parser {
   }
 
   @cache
+  static get RANGE_PARSERS (): Record<string, (this: Parser, thisExpr: Expression, ...args: unknown[]) => Expression | undefined> {
+    return {
+      ...Parser.RANGE_PARSERS,
+      [TokenType.RLIKE]: function (this: Parser, thisExpr: Expression) {
+        return this.expression(RegexpLikeExpr, {
+          this: thisExpr,
+          expression: this.parseBitwise(),
+          fullMatch: true,
+        });
+      },
+    };
+  }
+
+  @cache
   static get FUNCTIONS (): Record<string, (args: Expression[], options: {
     dialect: Dialect;
   }) => Expression> {

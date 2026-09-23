@@ -4838,33 +4838,20 @@ class DuckDBGenerator extends Generator {
     const pattern = expression.args.expression;
     let flag = expression.args.flag;
 
-    if (!expression.args.fullMatch) {
-      return this.func('REGEXP_MATCHES', [
+    if (expression.args.fullMatch) {
+      const validatedFlags = this.validateRegexpFlags(flag, 'cims');
+      flag = validatedFlags ? LiteralExpr.string(validatedFlags) : undefined;
+
+      return this.func('REGEXP_FULL_MATCH', [
         thisExpr,
         pattern,
         flag,
       ] as Expression[]);
     }
 
-    const validatedFlags = this.validateRegexpFlags(flag, 'cims');
-
-    const anchoredPattern = new ConcatExpr({
-      expressions: [
-        LiteralExpr.string('^('),
-        new ParenExpr({
-          this: pattern,
-        }),
-        LiteralExpr.string(')$'),
-      ],
-    });
-
-    if (validatedFlags) {
-      flag = LiteralExpr.string(validatedFlags);
-    }
-
     return this.func('REGEXP_MATCHES', [
       thisExpr,
-      anchoredPattern,
+      pattern,
       flag,
     ] as Expression[]);
   }

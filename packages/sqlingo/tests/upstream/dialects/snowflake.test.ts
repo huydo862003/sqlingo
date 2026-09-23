@@ -2134,6 +2134,7 @@ class TestSnowflake extends Validator {
             'SELECT RLIKE(a, b)',
             {
               write: {
+                'duckdb': "SELECT REGEXP_FULL_MATCH(a, b)",
                 'hive': 'SELECT a RLIKE b',
                 'snowflake': 'SELECT REGEXP_LIKE(a, b)',
                 'spark': 'SELECT a RLIKE b',
@@ -2141,9 +2142,19 @@ class TestSnowflake extends Validator {
             },
           );
           this.validateAll(
+            "SELECT RLIKE(a, b, 'i')",
+            {
+              write: {
+                'duckdb': "SELECT REGEXP_FULL_MATCH(a, b, 'i')",
+                'snowflake': "SELECT REGEXP_LIKE(a, b, 'i')",
+              },
+            },
+          );
+          this.validateAll(
             '\'foo\' REGEXP \'bar\'',
             {
               write: {
+                'duckdb': "REGEXP_FULL_MATCH('foo', 'bar')",
                 'snowflake': 'REGEXP_LIKE(\'foo\', \'bar\')',
                 'postgres': '\'foo\' ~ \'bar\'',
                 'mysql': 'REGEXP_LIKE(\'foo\', \'bar\')',
@@ -2155,6 +2166,7 @@ class TestSnowflake extends Validator {
             '\'foo\' NOT REGEXP \'bar\'',
             {
               write: {
+                'duckdb': "NOT REGEXP_FULL_MATCH('foo', 'bar')",
                 'snowflake': 'NOT REGEXP_LIKE(\'foo\', \'bar\')',
                 'postgres': 'NOT \'foo\' ~ \'bar\'',
                 'mysql': 'NOT REGEXP_LIKE(\'foo\', \'bar\')',
