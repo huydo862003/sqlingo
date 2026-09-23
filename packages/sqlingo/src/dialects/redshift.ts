@@ -37,6 +37,7 @@ import {
   JsonExtractExpr,
   JsonExtractScalarExpr,
   LastDayExpr,
+  LengthExpr,
   LiteralExpr,
   ParseJsonExpr,
   PivotExpr,
@@ -239,6 +240,7 @@ class RedshiftParser extends Postgres.Parser {
             expression: seqGet(args, 1) || LiteralExpr.string(','),
           }),
         STRTOL: (args: unknown[]) => FromBaseExpr.fromArgList(args),
+        TEXTLEN: (args: unknown[]) => LengthExpr.fromArgList(args),
       };
 
       delete functions['GET_BIT'];

@@ -401,6 +401,7 @@ class TestRedshift extends Validator {
       },
     );
     this.validateIdentity('SELECT VERSION()');
+    this.validateIdentity("SELECT TEXTLEN('hello world')", "SELECT LENGTH('hello world')");
   }
 
   testIdentity () {
