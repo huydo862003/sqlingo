@@ -2978,6 +2978,7 @@ class DuckDBGenerator extends Generator {
   static IGNORE_NULLS_IN_FUNC = true;
   static IGNORE_NULLS_BEFORE_ORDER = false;
   static JSON_PATH_BRACKETED_KEY_SUPPORTED = false;
+  static SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY = false;
   static SUPPORTS_CREATE_TABLE_LIKE = false;
   static MULTI_ARG_DISTINCT = false;
   static CAN_IMPLEMENT_ARRAY_ANY = true;

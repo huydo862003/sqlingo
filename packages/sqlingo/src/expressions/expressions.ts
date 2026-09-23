@@ -4332,12 +4332,14 @@ export type DropExprArgs = Merge<[
     exists?: boolean;
     temporary?: boolean;
     materialized?: boolean;
-    cascade?: Expression;
+    cascade?: boolean | Expression;
+    restrict?: boolean;
     constraints?: Expression[];
     purge?: Expression;
     cluster?: Expression;
     concurrently?: Expression;
     sync?: boolean;
+    iceberg?: boolean;
     this?: Expression;
     expressions?: Expression[];
   },
@@ -4356,11 +4358,13 @@ export class DropExpr extends Expression {
     'temporary',
     'materialized',
     'cascade',
+    'restrict',
     'constraints',
     'purge',
     'cluster',
     'concurrently',
     'sync',
+    'iceberg',
   ]);
 
   declare args: DropExprArgs;

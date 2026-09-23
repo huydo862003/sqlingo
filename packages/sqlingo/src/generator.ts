@@ -976,6 +976,9 @@ export class Generator {
   // Whether SELECT *, ... EXCLUDE requires wrapping in a subquery for transpilation
   static STAR_EXCLUDE_REQUIRES_DERIVED_TABLE = true;
 
+  // Whether DROP and ALTER statements against Iceberg tables include 'ICEBERG'
+  static SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY = true;
+
   static AFTER_HAVING_MODIFIER_TRANSFORMS: Map<string, (this: Generator, e: Expression) => string> = new Map([
     [
       'cluster',
@@ -3692,12 +3695,14 @@ export class Generator {
     onCluster = onCluster ? ` ${onCluster}` : '';
     const temporary = expression.args.temporary ? ' TEMPORARY' : '';
     const materialized = expression.args.materialized ? ' MATERIALIZED' : '';
+    const iceberg = expression.args.iceberg && this._constructor.SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY ? ' ICEBERG' : '';
     const cascade = expression.args.cascade ? ' CASCADE' : '';
+    const restrict = expression.args.restrict ? ' RESTRICT' : '';
     const constraints = expression.args.constraints ? ' CONSTRAINTS' : '';
     const purge = expression.args.purge ? ' PURGE' : '';
     const sync = expression.args.sync ? ' SYNC' : '';
 
-    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}${sync}`;
+    return `DROP${temporary}${materialized}${iceberg} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${restrict}${constraints}${purge}${sync}`;
   }
 
   setOperation (expression: SetOperationExpr): string {

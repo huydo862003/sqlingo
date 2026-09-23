@@ -5861,6 +5861,17 @@ MATCH_RECOGNIZE (
     expect(ast3.args.iceberg).toBe(true);
   }
 
+  testDropIcebergTable () {
+    const ast = this.validateIdentity('DROP ICEBERG TABLE t');
+
+    expect(ast.args.iceberg).toBe(true);
+    this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t');
+    const ast2 = this.validateIdentity('DROP ICEBERG TABLE t RESTRICT');
+
+    expect(ast2.args.restrict).toBe(true);
+    this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t RESTRICT');
+  }
+
   testShowPrimaryKeys () {
     this.validateIdentity('SHOW PRIMARY KEYS');
     this.validateIdentity('SHOW PRIMARY KEYS IN ACCOUNT');
@@ -7954,6 +7965,9 @@ describe('TestSnowflake', () => {
     validator.testShowTables();
   });
 
+  test('test drop iceberg table', () => {
+    validator.testDropIcebergTable();
+  });
   test('test show primary keys', () => {
     validator.testShowPrimaryKeys();
   });

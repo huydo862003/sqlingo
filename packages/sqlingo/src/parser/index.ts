@@ -4430,10 +4430,11 @@ export class Parser {
     const start = this.prev;
     const temporary = this.match(TokenType.TEMPORARY) || undefined;
     const materialized = this.matchTextSeq('MATERIALIZED') || undefined;
+    const iceberg = this.matchTextSeq('ICEBERG') || undefined;
 
     const kind = (this.matchSet(this._constructor.CREATABLES) || undefined) && this.prev?.text.toUpperCase();
 
-    if (!kind) {
+    if (!kind || (iceberg && kind && kind !== 'TABLE')) {
       return this.parseAsCommand(start);
     }
 
@@ -4461,6 +4462,8 @@ export class Parser {
       expressions = this.parseWrappedCsv(() => this.parseTypes());
     }
 
+    const cascadeOrRestrict = (this.matchTexts(['CASCADE', 'RESTRICT']) || undefined) && this.prev?.text.toUpperCase();
+
     return this.expression(DropExpr, {
       exists: ifExists,
       this: thisExpr,
@@ -4468,12 +4471,14 @@ export class Parser {
       kind: enumFromString(DropExprKind, this._dialectConstructor.CREATABLE_KIND_MAPPING[kind] || kind) ?? (this._dialectConstructor.CREATABLE_KIND_MAPPING[kind] || kind),
       temporary,
       materialized,
-      cascade: this.matchTextSeq('CASCADE'),
+      cascade: cascadeOrRestrict === 'CASCADE',
+      restrict: cascadeOrRestrict === 'RESTRICT',
       constraints: this.matchTextSeq('CONSTRAINTS'),
       purge: this.matchTextSeq('PURGE'),
       cluster,
       concurrently,
       sync: this.matchTextSeq('SYNC'),
+      iceberg,
     });
   }
 
