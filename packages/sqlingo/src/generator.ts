@@ -6089,12 +6089,15 @@ export class Generator {
       indexOffset?: number;
     } = {},
   ): Expression[] {
+    if (expression.args.jsonAccess) {
+      return expression.args.expressions || [];
+    }
+
     const {
       indexOffset,
     } = options;
 
     const offset = (indexOffset !== undefined ? indexOffset : this.dialect._constructor.INDEX_OFFSET) - (expression.args.offset || 0);
-    // Call apply_index_offset helper (assumed to exist)
     const bracketThis = expression.args.this instanceof Expression ? expression.args.this : new Expression({});
 
     return applyIndexOffset(bracketThis, expression.args.expressions || [], offset, {

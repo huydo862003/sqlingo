@@ -14617,6 +14617,7 @@ export type BracketExprArgs = Merge<[
     offset?: number;
     safe?: boolean;
     returnsListForMaps?: Expression[];
+    jsonAccess?: boolean;
   },
 ]>;
 
@@ -14634,6 +14635,7 @@ export class BracketExpr extends ConditionExpr {
     'offset',
     'safe',
     'returnsListForMaps',
+    'jsonAccess',
   ]);
 
   declare args: BracketExprArgs;

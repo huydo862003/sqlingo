@@ -241,6 +241,12 @@ import {
   JsonExtractScalarExpr,
   JsonKeyValueExpr,
   JsonKeysExpr,
+  JsonPathExpr,
+  JsonPathKeyExpr,
+  JsonPathPartExpr,
+  JsonPathRootExpr,
+  JsonPathSubscriptExpr,
+  JsonPathWildcardExpr,
   JsonObjectAggExpr,
   JsonObjectExpr,
   JsonSchemaExpr,
@@ -11144,139 +11150,101 @@ export class Parser {
 
   buildJsonExtract (
     thisExpr: Expression | undefined,
-    jsonPath: string[],
+    pathParts: JsonPathPartExpr[],
     escape: boolean | undefined,
-  ): JsonExtractExpr {
-    const jsonPathExpr = this.dialect.toJsonPath?.(LiteralExpr.string(jsonPath.join('.')));
-
-    if (jsonPathExpr) {
-      jsonPathExpr.setArgKey('escape', escape);
+  ): [Expression | undefined, JsonPathPartExpr[]] {
+    if (pathParts.length > 1) {
+      thisExpr = this.expression(
+        JsonExtractExpr,
+        {
+          this: thisExpr,
+          expression: new JsonPathExpr({ expressions: pathParts, escape }),
+          variantExtract: true,
+          requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
+        },
+      );
+      pathParts = [new JsonPathRootExpr()];
     }
 
-    return this.expression(
-      JsonExtractExpr,
-      {
-        this: thisExpr,
-        expression: jsonPathExpr,
-        variantExtract: true,
-        requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
-      },
-    );
+    return [thisExpr, pathParts];
   }
 
   parseColonAsVariantExtract (thisExpr?: Expression): Expression | undefined {
-    const casts: DataTypeExpr[] = [];
-    let jsonPath: string[] = [];
+    let pathParts: JsonPathPartExpr[] = [new JsonPathRootExpr()];
     let escape: boolean | undefined;
 
     while (this.match(TokenType.COLON)) {
-      const startIndex = this.index;
+      const key = this.parseIdVar({
+        anyToken: true,
+        tokens: new Set([TokenType.SELECT]),
+      });
 
-      let path: ExpressionValue | undefined = this.parseColumnOps(
-        this.parseField({
-          anyToken: true,
-          tokens: new Set([TokenType.SELECT]),
-        }),
-      );
-
-      while (path instanceof CastExpr) {
-        casts.push(path.args.to as DataTypeExpr);
-        path = path.args.this;
-      }
-
-      let endToken: Token;
-
-      if (0 < casts.length) {
-        const dcolonOffset = this.tokens.slice(startIndex).findIndex(
-          (t) => t.tokenType === TokenType.DCOLON,
-        );
-
-        endToken = this.tokens[startIndex + dcolonOffset - 1];
-      } else {
-        endToken = this.prev as Token;
-      }
-
-      if (path) {
-        if (path instanceof IdentifierExpr && path.args.quoted) {
+      if (key) {
+        if (key instanceof IdentifierExpr && key.args.quoted) {
           escape = true;
         }
 
-        // Dynamic brackets (e.g. value:a[s.x].b.c) can't be in the JSON path string
-        // since the index is a column reference. Traverse Dot/Bracket layers collecting
-        // segments, then process them inside out
-        const segments: [BracketExpr, string[]][] = [];
-        let node: Expression | undefined = path as Expression;
+        pathParts.push(new JsonPathKeyExpr({ this: key.name }));
+      }
 
-        while (true) {
-          const suffixes: string[] = [];
+      while (true) {
+        if (this.match(TokenType.DOT)) {
+          const nextKey = this.parseIdVar({
+            anyToken: true,
+            tokens: new Set([TokenType.SELECT]),
+          });
 
-          while (node instanceof DotExpr) {
-            const dotExpr = node.args.expression;
+          if (nextKey) {
+            if (nextKey instanceof IdentifierExpr && nextKey.args.quoted) {
+              escape = true;
+            }
 
-            suffixes.push(dotExpr instanceof Expression
-              ? dotExpr.sql({
-                dialect: this.dialect,
-              })
-              : '');
-            node = node.args.this as Expression | undefined;
+            pathParts.push(new JsonPathKeyExpr({ this: nextKey.name }));
+          }
+        } else if (this.match(TokenType.L_BRACKET)) {
+          const bracketExpr = this.parseBracketKeyValue();
+
+          if (!this.match(TokenType.R_BRACKET)) {
+            this.raiseError('Expected ]');
           }
 
-          if (node instanceof BracketExpr && (node.args.expressions ?? []).some(
-            (e: Expression) => e.find(ColumnExpr),
-          )) {
-            suffixes.reverse();
-            segments.push([
-              node,
-              suffixes,
-            ]);
-            node = node.args.this as Expression | undefined;
+          if (bracketExpr) {
+            if ((bracketExpr as Expression).isString) {
+              pathParts.push(new JsonPathKeyExpr({ this: (bracketExpr as Expression).name }));
+              escape = true;
+            } else if ((bracketExpr as Expression).isStar) {
+              pathParts.push(new JsonPathSubscriptExpr({ this: new JsonPathWildcardExpr() }));
+            } else if ((bracketExpr as Expression).isNumber) {
+              pathParts.push(new JsonPathSubscriptExpr({ this: (bracketExpr as Expression).toValue() }));
+            } else {
+              [thisExpr, pathParts] = this.buildJsonExtract(thisExpr, pathParts, escape);
+              escape = undefined;
+
+              thisExpr = this.expression(BracketExpr, {
+                this: thisExpr,
+                expressions: [bracketExpr],
+                jsonAccess: true,
+              });
+            }
+          }
+        } else if (this.match(TokenType.DCOLON)) {
+          [thisExpr, pathParts] = this.buildJsonExtract(thisExpr, pathParts, escape);
+          escape = undefined;
+
+          const castType = this.parseTypes();
+
+          if (castType) {
+            thisExpr = this.expression(CastExpr, { this: thisExpr, to: castType });
           } else {
-            break;
+            this.raiseError("Expected type after '::'");
           }
+        } else {
+          break;
         }
-
-        if (0 < segments.length) {
-          const segThis = segments[segments.length - 1][0].args.this;
-
-          jsonPath.push(segThis instanceof Expression
-            ? segThis.sql({
-              dialect: this.dialect,
-            })
-            : '');
-          for (const [
-            bracket,
-            suffixes,
-          ] of [...segments].reverse()) {
-            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
-            thisExpr = new BracketExpr({
-              this: thisExpr,
-              expressions: bracket.args.expressions,
-            });
-            jsonPath = suffixes;
-          }
-
-          if (0 < jsonPath.length) {
-            thisExpr = this.buildJsonExtract(thisExpr, jsonPath, undefined);
-          }
-
-          jsonPath = [];
-          continue;
-        }
-
-        jsonPath.push(this.findSql(this.tokens[startIndex], endToken));
       }
     }
 
-    if (0 < jsonPath.length) {
-      thisExpr = this.buildJsonExtract(thisExpr, jsonPath, escape);
-
-      while (0 < casts.length) {
-        thisExpr = this.expression(CastExpr, {
-          this: thisExpr,
-          to: casts.pop(),
-        });
-      }
-    }
+    [thisExpr] = this.buildJsonExtract(thisExpr, pathParts, escape);
 
     return thisExpr;
   }
