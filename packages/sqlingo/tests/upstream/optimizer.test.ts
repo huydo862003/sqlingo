@@ -1316,6 +1316,14 @@ describe('TestOptimizer', () => {
       'a1',
       'a2',
     ]));
+
+    // Correlated subquery must be detected even when the outer table name collides with a CTE name
+    const correlatedSql = "WITH x AS (SELECT 1 AS id) SELECT x.id, (SELECT MAX(x2.id) FROM x AS x2 WHERE x2.id = x.id) AS mx FROM x";
+    const correlatedScopes = traverseScope(parseOne(correlatedSql));
+    const subqueryScope = correlatedScopes.find((s) => s.isSubquery);
+
+    expect(subqueryScope?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope?.externalColumns.map((c) => c.sql())).toContain('x.id');
   });
 
   it('test_annotate_types', () => {
