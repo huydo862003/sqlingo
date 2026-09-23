@@ -13675,7 +13675,7 @@ export class Parser {
       TokenType.FORMAT,
       TokenType.COMMA,
     ]))) {
-      const fmtString = this.parseString() as StringExpr;
+      const fmtString = this.parseWrapped(() => this.parseString(), { optional: true }) as StringExpr;
 
       fmt = this.parseAtTimeZone(fmtString);
 

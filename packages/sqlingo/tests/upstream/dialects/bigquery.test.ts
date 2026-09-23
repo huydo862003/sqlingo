@@ -3199,6 +3199,29 @@ OPTIONS (
     );
   }
 
+  testCastFormatWithParentheses () {
+    this.validateIdentity(
+      "SELECT CAST('2026-03-24' AS STRING FORMAT ('YYYY'))",
+      "SELECT CAST('2026-03-24' AS STRING FORMAT 'YYYY')",
+    );
+    this.validateIdentity(
+      "SELECT CAST(date AS STRING FORMAT ('YYYY')) FROM (SELECT DATE('2026-03-24') AS date)",
+      "SELECT CAST(date AS STRING FORMAT 'YYYY') FROM (SELECT DATE('2026-03-24') AS date)",
+    );
+    this.validateIdentity(
+      "SELECT CAST(date AS STRING FORMAT ('YYYY-MM-DD'))",
+      "SELECT CAST(date AS STRING FORMAT 'YYYY-MM-DD')",
+    );
+    this.validateIdentity(
+      "SELECT CAST(timestamp AS STRING FORMAT ('YYYY-MM-DD') AT TIME ZONE 'UTC')",
+      "SELECT CAST(timestamp AS STRING FORMAT 'YYYY-MM-DD' AT TIME ZONE 'UTC')",
+    );
+    this.validateIdentity(
+      "SELECT CAST(date AS TIMESTAMP FORMAT ('YYYY-MM-DD HH24:MI:SS'))",
+      "SELECT PARSE_TIMESTAMP('%F %T', date)",
+    );
+  }
+
   testStringAgg () {
     this.validateIdentity('STRING_AGG(a, \' & \')');
     this.validateIdentity('STRING_AGG(DISTINCT a, \' & \')');
@@ -3935,6 +3958,7 @@ describe('TestBigQuery', () => {
   test('testUnixMillis', () => t.testUnixMillis());
   test('testRegexpExtract', () => t.testRegexpExtract());
   test('testFormatTemporal', () => t.testFormatTemporal());
+  test('testCastFormatWithParentheses', () => t.testCastFormatWithParentheses());
   test('testStringAgg', () => t.testStringAgg());
   test('testAnnotateTimestamps', () => t.testAnnotateTimestamps());
   test('testSetOperations', () => t.testSetOperations());
