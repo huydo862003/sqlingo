@@ -263,6 +263,7 @@ import {
   case_,
   cast,
   CastExpr,
+  CheckJsonExpr,
   DataTypeExpr,
   DataTypeExprKind,
   DateAddExpr,
@@ -5346,6 +5347,23 @@ class DuckDBGenerator extends Generator {
     });
 
     return this.sql(expr);
+  }
+
+  checkJsonSql (expression: CheckJsonExpr): string {
+    const arg = expression.args.this as Expression;
+
+    return this.sql(
+      case_()
+        .when(
+          or([
+            new IsExpr({ this: arg, expression: new NullExpr() }),
+            arg.eq(LiteralExpr.string('')),
+            func('json_valid', arg),
+          ]),
+          null_(),
+        )
+        .else(LiteralExpr.string('Invalid JSON')),
+    );
   }
 
   parseJsonSql (expression: ParseJsonExpr): string {

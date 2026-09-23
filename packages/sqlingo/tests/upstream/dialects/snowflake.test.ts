@@ -151,6 +151,16 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT NVL2(col1, col2, col3)');
     this.validateIdentity('SELECT NVL(col1, col2)', 'SELECT COALESCE(col1, col2)');
     this.validateIdentity('SELECT CHR(8364)');
+    this.validateAll(
+      'SELECT CHECK_JSON(x)',
+      {
+        read: { snowflake: 'SELECT CHECK_JSON(x)' },
+        write: {
+          snowflake: 'SELECT CHECK_JSON(x)',
+          duckdb: "SELECT CASE WHEN x IS NULL OR x = '' OR JSON_VALID(x) THEN NULL ELSE 'Invalid JSON' END",
+        },
+      },
+    );
     this.validateIdentity('SELECT CHECK_JSON(\'{"key": "value"}\')');
     this.validateIdentity(
       'SELECT CHECK_XML(\'<root><key attribute="attr">value</key></root>\')',
