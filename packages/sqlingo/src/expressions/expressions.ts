@@ -10930,6 +10930,23 @@ export class EnginePropertyExpr extends PropertyExpr {
   }
 }
 
+export type UuidPropertyExprArgs = Merge<[
+  PropertyExprArgs,
+]>;
+
+export class UuidPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.UUID_PROPERTY;
+
+  static requiredArgs = new Set(['this']);
+  static availableArgs = new Set(['this']);
+
+  declare args: UuidPropertyExprArgs;
+
+  constructor (args: UuidPropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type HeapPropertyExprArgs = Merge<[
   PropertyExprArgs,
   {

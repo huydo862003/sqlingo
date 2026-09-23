@@ -465,6 +465,7 @@ import {
   UtcTimeExpr,
   UtcTimestampExpr,
   VariadicExpr,
+  UuidPropertyExpr,
   VarMapExpr,
   ViewAttributePropertyExpr,
   VolatilePropertyExpr,
@@ -4136,6 +4137,10 @@ export class Generator {
     }
 
     return `${propertyName}=${this.sql(expression, 'this')}`;
+  }
+
+  uuidPropertySql (expression: UuidPropertyExpr): string {
+    return `UUID ${this.sql(expression, 'this')}`;
   }
 
   likePropertySql (expression: LikePropertyExpr): string {

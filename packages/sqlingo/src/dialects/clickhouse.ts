@@ -34,6 +34,7 @@ import {
   StrPositionExpr,
   PropertiesLocation,
   ToTablePropertyExpr,
+  UuidPropertyExpr,
   VolatilePropertyExpr,
   LeadExpr,
   LagExpr,
@@ -1005,6 +1006,9 @@ class ClickHouseParser extends Parser {
       ...Parser.PROPERTY_PARSERS,
       ENGINE: function (this: Parser) {
         return (this as ClickHouseParser).parseEngineProperty();
+      },
+      UUID: function (this: Parser) {
+        return this.expression(UuidPropertyExpr, { this: this.parseString() });
       },
     };
 
@@ -2604,6 +2608,10 @@ export class ClickHouseGenerator extends Generator {
       ],
       [
         ToTablePropertyExpr,
+        PropertiesLocation.POST_NAME,
+      ],
+      [
+        UuidPropertyExpr,
         PropertiesLocation.POST_NAME,
       ],
       [
