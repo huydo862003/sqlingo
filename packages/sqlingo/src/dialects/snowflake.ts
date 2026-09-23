@@ -652,9 +652,9 @@ function buildRegexpReplace (args: Expression[]): RegexpReplaceExpr {
   return regexpReplace;
 }
 
-function showParser (str: string) {
+function showParser (str: string, options?: { terse?: boolean; iceberg?: boolean }) {
   return function (this: Parser): ShowExpr {
-    return (this as SnowflakeParser).parseShowSnowflake(str);
+    return (this as SnowflakeParser).parseShowSnowflake(str, options?.terse, options?.iceberg);
   };
 }
 
@@ -1957,31 +1957,33 @@ class SnowflakeParser extends Parser {
   static get SHOW_PARSERS () {
     return {
       'DATABASES': showParser('DATABASES'),
-      'TERSE DATABASES': showParser('DATABASES'),
       'SCHEMAS': showParser('SCHEMAS'),
-      'TERSE SCHEMAS': showParser('SCHEMAS'),
       'OBJECTS': showParser('OBJECTS'),
-      'TERSE OBJECTS': showParser('OBJECTS'),
       'TABLES': showParser('TABLES'),
-      'TERSE TABLES': showParser('TABLES'),
       'VIEWS': showParser('VIEWS'),
-      'TERSE VIEWS': showParser('VIEWS'),
       'PRIMARY KEYS': showParser('PRIMARY KEYS'),
-      'TERSE PRIMARY KEYS': showParser('PRIMARY KEYS'),
       'IMPORTED KEYS': showParser('IMPORTED KEYS'),
-      'TERSE IMPORTED KEYS': showParser('IMPORTED KEYS'),
       'UNIQUE KEYS': showParser('UNIQUE KEYS'),
-      'TERSE UNIQUE KEYS': showParser('UNIQUE KEYS'),
       'SEQUENCES': showParser('SEQUENCES'),
-      'TERSE SEQUENCES': showParser('SEQUENCES'),
       'STAGES': showParser('STAGES'),
       'COLUMNS': showParser('COLUMNS'),
       'USERS': showParser('USERS'),
-      'TERSE USERS': showParser('USERS'),
       'FILE FORMATS': showParser('FILE FORMATS'),
       'FUNCTIONS': showParser('FUNCTIONS'),
       'PROCEDURES': showParser('PROCEDURES'),
       'WAREHOUSES': showParser('WAREHOUSES'),
+      'ICEBERG TABLES': showParser('TABLES', { iceberg: true }),
+      'TERSE ICEBERG TABLES': showParser('TABLES', { terse: true, iceberg: true }),
+      'TERSE DATABASES': showParser('DATABASES', { terse: true }),
+      'TERSE SCHEMAS': showParser('SCHEMAS', { terse: true }),
+      'TERSE OBJECTS': showParser('OBJECTS', { terse: true }),
+      'TERSE TABLES': showParser('TABLES', { terse: true }),
+      'TERSE VIEWS': showParser('VIEWS', { terse: true }),
+      'TERSE SEQUENCES': showParser('SEQUENCES', { terse: true }),
+      'TERSE USERS': showParser('USERS', { terse: true }),
+      'TERSE PRIMARY KEYS': showParser('PRIMARY KEYS'),
+      'TERSE IMPORTED KEYS': showParser('IMPORTED KEYS'),
+      'TERSE UNIQUE KEYS': showParser('UNIQUE KEYS'),
     };
   }
 
@@ -2485,13 +2487,9 @@ class SnowflakeParser extends Parser {
     });
   }
 
-  parseShowSnowflake (thisNode: string): ShowExpr {
+  parseShowSnowflake (thisNode: string, terse?: boolean, iceberg?: boolean): ShowExpr {
     let scope: Expression | undefined;
     let scopeKind: string | undefined;
-
-    // will identify SHOW TERSE SCHEMAS but not SHOW TERSE PRIMARY KEYS
-    // which is syntactically valid but has no effect on the output
-    const terse = this.tokens[this.index - 2].text.toUpperCase() === 'TERSE';
 
     const history = this.matchTextSeq('HISTORY');
 
@@ -2522,6 +2520,7 @@ class SnowflakeParser extends Parser {
 
     return this.expression(ShowExpr, {
       terse,
+      iceberg,
       this: thisNode,
       history,
       like,
@@ -3836,6 +3835,7 @@ class SnowflakeGenerator extends Generator {
 
   showSql (expression: ShowExpr): string {
     const terse = expression.args.terse ? 'TERSE ' : '';
+    const iceberg = expression.args.iceberg ? 'ICEBERG ' : '';
     const history = expression.args.history ? ' HISTORY' : '';
 
     let like = this.sql(expression, 'like');
@@ -3873,7 +3873,7 @@ class SnowflakeGenerator extends Generator {
 
     privileges = privileges ? ` WITH PRIVILEGES ${privileges}` : '';
 
-    return `SHOW ${terse}${expression.name}${history}${like}${scopeKind}${scope}${startsWith}${limit}${from}${privileges}`;
+    return `SHOW ${terse}${iceberg}${expression.name}${history}${like}${scopeKind}${scope}${startsWith}${limit}${from}${privileges}`;
   }
 
   describeSql (expression: DescribeExpr): string {

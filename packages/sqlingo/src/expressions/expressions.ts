@@ -3329,6 +3329,7 @@ export type ShowExprArgs = Merge<[
     forRole?: Expression;
     intoOutfile?: Expression;
     json?: Expression;
+    iceberg?: boolean;
     this?: Expression;
   },
 ]>;
@@ -3367,6 +3368,7 @@ export class ShowExpr extends Expression {
     'forRole',
     'intoOutfile',
     'json',
+    'iceberg',
   ]);
 
   declare args: ShowExprArgs;

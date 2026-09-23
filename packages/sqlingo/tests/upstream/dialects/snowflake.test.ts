@@ -5831,6 +5831,15 @@ MATCH_RECOGNIZE (
       'SHOW TERSE TABLES IN SCHEMA db1.schema1 STARTS WITH \'a\' LIMIT 10 FROM \'b\'',
     );
 
+    this.validateIdentity(
+      'SHOW ICEBERG TABLES IN db1.schema1',
+      'SHOW ICEBERG TABLES IN SCHEMA db1.schema1',
+    );
+    this.validateIdentity(
+      'SHOW TERSE ICEBERG TABLES IN db1.schema1',
+      'SHOW TERSE ICEBERG TABLES IN SCHEMA db1.schema1',
+    );
+
     const ast = parseOne('SHOW TABLES IN db1.schema1', {
       read: 'snowflake',
     });
@@ -5838,6 +5847,18 @@ MATCH_RECOGNIZE (
     expect(ast.find(TableExpr)?.sql({
       dialect: 'snowflake',
     })).toBe('db1.schema1');
+    expect(ast.args.iceberg).toBeFalsy();
+
+    const ast2 = parseOne('SHOW ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
+
+    expect(ast2.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
+    expect(ast2.args.iceberg).toBe(true);
+
+    const ast3 = parseOne('SHOW TERSE ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
+
+    expect(ast3.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
+    expect(ast3.args.terse).toBe(true);
+    expect(ast3.args.iceberg).toBe(true);
   }
 
   testShowPrimaryKeys () {
