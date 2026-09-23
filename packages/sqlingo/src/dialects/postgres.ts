@@ -237,7 +237,10 @@ function dateAddSql (kind: string) {
     } else {
       const one = LiteralExpr.number(1);
       const intervalTimesValue = new MulExpr({
-        this: new IntervalExpr({ this: one, unit }),
+        this: new IntervalExpr({
+          this: one,
+          unit,
+        }),
         expression: e!,
       });
 

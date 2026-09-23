@@ -754,7 +754,7 @@ export class TypeAnnotator {
       return;
     }
 
-    const order = query.args.order;
+    const order = query.getArgKey('order') as Expression | undefined;
 
     if (!order) {
       return;

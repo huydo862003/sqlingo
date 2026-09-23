@@ -288,6 +288,8 @@ import type {
   ExecuteExpr,
 
   AlterModifySqlSecurityExpr,
+
+  UuidPropertyExpr,
 } from './expressions';
 import {
   DistinctExpr,
@@ -465,7 +467,6 @@ import {
   UtcTimeExpr,
   UtcTimestampExpr,
   VariadicExpr,
-  UuidPropertyExpr,
   VarMapExpr,
   ViewAttributePropertyExpr,
   VolatilePropertyExpr,
@@ -5488,8 +5489,11 @@ export class Generator {
       if (window instanceof WindowExpr) {
         windowThis = window.args.this;
 
-        if (windowThis?.key === 'ignoreNulls' || windowThis?.key === 'respectNulls') {
-          windowThis = (windowThis as Expression).args.this;
+        if ((windowThis as Expression)?.constructor && (
+          ((windowThis as Expression).constructor as typeof Expression).key === 'ignoreNulls'
+          || ((windowThis as Expression).constructor as typeof Expression).key === 'respectNulls'
+        )) {
+          windowThis = (windowThis as Expression).args.this as Expression | undefined;
         }
 
         spec = window.args.spec;
@@ -7432,12 +7436,12 @@ export class Generator {
         return like;
       };
 
-      let likeExpr: Expression = makeLike(exprs?.[0]);
+      let likeExpr: Expression = makeLike(exprs![0]);
 
       for (let i = 1; i < (exprs?.length || 0); i++) {
         likeExpr = connective([
           likeExpr,
-          makeLike(exprs?.[i] || 0),
+          makeLike(exprs![i] || 0),
         ]);
       }
 

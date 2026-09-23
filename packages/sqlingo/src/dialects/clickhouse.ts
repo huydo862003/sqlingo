@@ -1008,7 +1008,9 @@ class ClickHouseParser extends Parser {
         return (this as ClickHouseParser).parseEngineProperty();
       },
       UUID: function (this: Parser) {
-        return this.expression(UuidPropertyExpr, { this: this.parseString() });
+        return this.expression(UuidPropertyExpr, {
+          this: this.parseString(),
+        });
       },
     };
 

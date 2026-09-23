@@ -652,7 +652,10 @@ function buildRegexpReplace (args: Expression[]): RegexpReplaceExpr {
   return regexpReplace;
 }
 
-function showParser (str: string, options?: { terse?: boolean; iceberg?: boolean }) {
+function showParser (str: string, options?: {
+  terse?: boolean;
+  iceberg?: boolean;
+}) {
   return function (this: Parser): ShowExpr {
     return (this as SnowflakeParser).parseShowSnowflake(str, options?.terse, options?.iceberg);
   };
@@ -1972,15 +1975,34 @@ class SnowflakeParser extends Parser {
       'FUNCTIONS': showParser('FUNCTIONS'),
       'PROCEDURES': showParser('PROCEDURES'),
       'WAREHOUSES': showParser('WAREHOUSES'),
-      'ICEBERG TABLES': showParser('TABLES', { iceberg: true }),
-      'TERSE ICEBERG TABLES': showParser('TABLES', { terse: true, iceberg: true }),
-      'TERSE DATABASES': showParser('DATABASES', { terse: true }),
-      'TERSE SCHEMAS': showParser('SCHEMAS', { terse: true }),
-      'TERSE OBJECTS': showParser('OBJECTS', { terse: true }),
-      'TERSE TABLES': showParser('TABLES', { terse: true }),
-      'TERSE VIEWS': showParser('VIEWS', { terse: true }),
-      'TERSE SEQUENCES': showParser('SEQUENCES', { terse: true }),
-      'TERSE USERS': showParser('USERS', { terse: true }),
+      'ICEBERG TABLES': showParser('TABLES', {
+        iceberg: true,
+      }),
+      'TERSE ICEBERG TABLES': showParser('TABLES', {
+        terse: true,
+        iceberg: true,
+      }),
+      'TERSE DATABASES': showParser('DATABASES', {
+        terse: true,
+      }),
+      'TERSE SCHEMAS': showParser('SCHEMAS', {
+        terse: true,
+      }),
+      'TERSE OBJECTS': showParser('OBJECTS', {
+        terse: true,
+      }),
+      'TERSE TABLES': showParser('TABLES', {
+        terse: true,
+      }),
+      'TERSE VIEWS': showParser('VIEWS', {
+        terse: true,
+      }),
+      'TERSE SEQUENCES': showParser('SEQUENCES', {
+        terse: true,
+      }),
+      'TERSE USERS': showParser('USERS', {
+        terse: true,
+      }),
       'TERSE PRIMARY KEYS': showParser('PRIMARY KEYS'),
       'TERSE IMPORTED KEYS': showParser('IMPORTED KEYS'),
       'TERSE UNIQUE KEYS': showParser('UNIQUE KEYS'),

@@ -243,7 +243,6 @@ import {
   JsonKeysExpr,
   JsonPathExpr,
   JsonPathKeyExpr,
-  JsonPathPartExpr,
   JsonPathRootExpr,
   JsonPathSubscriptExpr,
   JsonPathWildcardExpr,
@@ -484,6 +483,8 @@ import {
 import type {
   JoinExprArgs, StringExpr,
   ExpressionValue,
+
+  JsonPathPartExpr,
 } from '../expressions';
 import {
   formatTime,
@@ -4468,7 +4469,10 @@ export class Parser {
       expressions = this.parseWrappedCsv(() => this.parseTypes());
     }
 
-    const cascadeOrRestrict = (this.matchTexts(['CASCADE', 'RESTRICT']) || undefined) && this.prev?.text.toUpperCase();
+    const cascadeOrRestrict = (this.matchTexts([
+      'CASCADE',
+      'RESTRICT',
+    ]) || undefined) && this.prev?.text.toUpperCase();
 
     return this.expression(DropExpr, {
       exists: ifExists,
@@ -11153,12 +11157,15 @@ export class Parser {
     pathParts: JsonPathPartExpr[],
     escape: boolean | undefined,
   ): [Expression | undefined, JsonPathPartExpr[]] {
-    if (pathParts.length > 1) {
+    if (1 < pathParts.length) {
       thisExpr = this.expression(
         JsonExtractExpr,
         {
           this: thisExpr,
-          expression: new JsonPathExpr({ expressions: pathParts, escape }),
+          expression: new JsonPathExpr({
+            expressions: pathParts,
+            escape: escape as unknown as Expression,
+          }),
           variantExtract: true,
           requiresJson: this._constructor.JSON_EXTRACT_REQUIRES_JSON_EXPRESSION,
         },
@@ -11166,7 +11173,10 @@ export class Parser {
       pathParts = [new JsonPathRootExpr()];
     }
 
-    return [thisExpr, pathParts];
+    return [
+      thisExpr,
+      pathParts,
+    ];
   }
 
   parseColonAsVariantExtract (thisExpr?: Expression): Expression | undefined {
@@ -11184,7 +11194,9 @@ export class Parser {
           escape = true;
         }
 
-        pathParts.push(new JsonPathKeyExpr({ this: key.name }));
+        pathParts.push(new JsonPathKeyExpr({
+          this: key.name,
+        }));
       }
 
       while (true) {
@@ -11199,7 +11211,9 @@ export class Parser {
               escape = true;
             }
 
-            pathParts.push(new JsonPathKeyExpr({ this: nextKey.name }));
+            pathParts.push(new JsonPathKeyExpr({
+              this: nextKey.name,
+            }));
           }
         } else if (this.match(TokenType.L_BRACKET)) {
           const bracketExpr = this.parseBracketKeyValue();
@@ -11210,14 +11224,23 @@ export class Parser {
 
           if (bracketExpr) {
             if ((bracketExpr as Expression).isString) {
-              pathParts.push(new JsonPathKeyExpr({ this: (bracketExpr as Expression).name }));
+              pathParts.push(new JsonPathKeyExpr({
+                this: (bracketExpr as Expression).name,
+              }));
               escape = true;
             } else if ((bracketExpr as Expression).isStar) {
-              pathParts.push(new JsonPathSubscriptExpr({ this: new JsonPathWildcardExpr() }));
+              pathParts.push(new JsonPathSubscriptExpr({
+                this: new JsonPathWildcardExpr(),
+              }));
             } else if ((bracketExpr as Expression).isNumber) {
-              pathParts.push(new JsonPathSubscriptExpr({ this: (bracketExpr as Expression).toValue() }));
+              pathParts.push(new JsonPathSubscriptExpr({
+                this: (bracketExpr as Expression).toValue() as number,
+              }));
             } else {
-              [thisExpr, pathParts] = this.buildJsonExtract(thisExpr, pathParts, escape);
+              [
+                thisExpr,
+                pathParts,
+              ] = this.buildJsonExtract(thisExpr, pathParts, escape);
               escape = undefined;
 
               thisExpr = this.expression(BracketExpr, {
@@ -11228,15 +11251,21 @@ export class Parser {
             }
           }
         } else if (this.match(TokenType.DCOLON)) {
-          [thisExpr, pathParts] = this.buildJsonExtract(thisExpr, pathParts, escape);
+          [
+            thisExpr,
+            pathParts,
+          ] = this.buildJsonExtract(thisExpr, pathParts, escape);
           escape = undefined;
 
           const castType = this.parseTypes();
 
           if (castType) {
-            thisExpr = this.expression(CastExpr, { this: thisExpr, to: castType });
+            thisExpr = this.expression(CastExpr, {
+              this: thisExpr,
+              to: castType,
+            });
           } else {
-            this.raiseError("Expected type after '::'");
+            this.raiseError('Expected type after \'::\'');
           }
         } else {
           break;
@@ -11554,7 +11583,9 @@ export class Parser {
 
     expression = expression ? this.parseSetOperations(expression) : this.parseSelect();
 
-    if (expression instanceof SubqueryExpr && this.match(TokenType.PIPE_GT, { advance: false })) {
+    if (expression instanceof SubqueryExpr && this.match(TokenType.PIPE_GT, {
+      advance: false,
+    })) {
       expression = this.parsePipeSyntaxQuery(expression as unknown as QueryExpr) as unknown as Expression;
     }
 
@@ -13648,7 +13679,9 @@ export class Parser {
       TokenType.FORMAT,
       TokenType.COMMA,
     ]))) {
-      const fmtString = this.parseWrapped(() => this.parseString(), { optional: true }) as StringExpr;
+      const fmtString = this.parseWrapped(() => this.parseString(), {
+        optional: true,
+      }) as StringExpr;
 
       fmt = this.parseAtTimeZone(fmtString);
 

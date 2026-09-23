@@ -578,10 +578,18 @@ export class Scope {
   get externalColumns (): ColumnExpr[] {
     if (this._externalColumns === undefined) {
       if (this.expression instanceof SetOperationExpr) {
-        const [left, right] = this.unionScopes;
-        this._externalColumns = [...left.externalColumns, ...right.externalColumns];
+        const [
+          left,
+          right,
+        ] = this.unionScopes;
+
+        this._externalColumns = [
+          ...left.externalColumns,
+          ...right.externalColumns,
+        ];
       } else {
         const localSourceNames = new Set(this.references.map(([name]) => name));
+
         this._externalColumns = this.columns.filter(
           (c) => !localSourceNames.has(c.table) && !this.semiOrAntiJoinTables.has(c.table),
         );

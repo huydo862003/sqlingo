@@ -61,6 +61,9 @@ import type {
   SplitPartExpr,
   StrPositionExpr,
   StrtokExpr,
+
+  ArrayUniqueAggExpr,
+  CheckJsonExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -81,7 +84,6 @@ import {
   ArrayRemoveExpr,
   ArraySortExpr,
   ArraySumExpr,
-  ArrayUniqueAggExpr,
   Base64DecodeBinaryExpr,
   Base64DecodeStringExpr,
   BitwiseAndExpr,
@@ -264,7 +266,6 @@ import {
   case_,
   cast,
   CastExpr,
-  CheckJsonExpr,
   DataTypeExpr,
   DataTypeExprKind,
   DateAddExpr,
@@ -2877,7 +2878,11 @@ class DuckDBParser extends Parser {
   }
 
   parseShowDuckdb (thisStr: string): ShowExpr {
-    const from = this.match(TokenType.FROM) ? this.parseTable({ schema: true }) : undefined;
+    const from = this.match(TokenType.FROM)
+      ? this.parseTable({
+        schema: true,
+      })
+      : undefined;
 
     return this.expression(ShowExpr, {
       this: thisStr,
@@ -3353,7 +3358,9 @@ class DuckDBGenerator extends Generator {
       ],
       [
         IcebergPropertyExpr,
-        function () { return ''; },
+        function () {
+          return '';
+        },
       ],
       [
         IntDivExpr,
@@ -4844,6 +4851,7 @@ class DuckDBGenerator extends Generator {
 
     if (expression.args.fullMatch) {
       const validatedFlags = this.validateRegexpFlags(flag, 'cims');
+
       flag = validatedFlags ? LiteralExpr.string(validatedFlags) : undefined;
 
       return this.func('REGEXP_FULL_MATCH', [
@@ -4927,10 +4935,15 @@ class DuckDBGenerator extends Generator {
 
     return this.sql(
       new FilterExpr({
-        this: func('LIST', new DistinctExpr({ expressions: [thisExpr] })),
+        this: func('LIST', new DistinctExpr({
+          expressions: [thisExpr],
+        })),
         expression: new WhereExpr({
           this: new NotExpr({
-            this: new IsExpr({ this: thisExpr.copy(), expression: new NullExpr() }),
+            this: new IsExpr({
+              this: thisExpr.copy(),
+              expression: new NullExpr(),
+            }),
           }),
         }),
       }),
@@ -5362,7 +5375,10 @@ class DuckDBGenerator extends Generator {
       case_()
         .when(
           or([
-            new IsExpr({ this: arg, expression: new NullExpr() }),
+            new IsExpr({
+              this: arg,
+              expression: new NullExpr(),
+            }),
             arg.eq(LiteralExpr.string('')),
             func('json_valid', arg),
           ]),
