@@ -301,15 +301,22 @@ export function simplifyParens (expression: Expression, dialect: DialectType): E
   }
 
   if (
+    thisExpr instanceof PredicateExpr
+    && !(
+      parentIsPredicate
+      || parent instanceof NegExpr
+      || (parent instanceof BinaryExpr && !(parent instanceof ConnectorExpr))
+    )
+  ) {
+    return thisExpr ?? expression;
+  }
+
+  if (
     !(parent instanceof ConditionExpr || parent instanceof BinaryExpr)
     || parent instanceof ParenExpr
     || (
       !(thisExpr instanceof BinaryExpr)
       && !((thisExpr instanceof NotExpr || thisExpr instanceof IsExpr) && parentIsPredicate)
-    )
-    || (
-      thisExpr instanceof PredicateExpr
-      && !(parentIsPredicate || parent instanceof NegExpr)
     )
     || (thisExpr instanceof AddExpr && parent instanceof AddExpr)
     || (thisExpr instanceof MulExpr && parent instanceof MulExpr)
