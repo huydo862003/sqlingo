@@ -3091,16 +3091,7 @@ class DuckDBGenerator extends Generator {
         ArraySumExpr,
         renameFunc('LIST_SUM'),
       ],
-      [
-        ArrayUniqueAggExpr,
-        function (this: Generator, e) {
-          return this.func('LIST', [
-            new DistinctExpr({
-              expressions: [e.args.this],
-            }),
-          ]);
-        },
-      ],
+      // ArrayUniqueAggExpr handled by arrayUniqueAggSql method
       [
         Base64DecodeBinaryExpr,
         function (this: Generator, e) {
@@ -4916,6 +4907,21 @@ class DuckDBGenerator extends Generator {
     }
 
     return func;
+  }
+
+  arrayUniqueAggSql (expression: ArrayUniqueAggExpr): string {
+    const thisExpr = expression.args.this as Expression;
+
+    return this.sql(
+      new FilterExpr({
+        this: func('LIST', new DistinctExpr({ expressions: [thisExpr] })),
+        expression: new WhereExpr({
+          this: new NotExpr({
+            this: new IsExpr({ this: thisExpr.copy(), expression: new NullExpr() }),
+          }),
+        }),
+      }),
+    );
   }
 
   arraydistinctSql (expression: ArrayDistinctExpr): string {

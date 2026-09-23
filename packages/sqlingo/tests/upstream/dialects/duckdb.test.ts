@@ -427,9 +427,8 @@ class TestDuckDB extends Validator {
         duckdb: 'SELECT * FROM "x.y"',
       },
     });
-    this.validateAll('SELECT LIST(DISTINCT sample_col) FROM sample_table', {
+    this.validateAll('SELECT LIST(DISTINCT sample_col) FILTER(WHERE NOT sample_col IS NULL) FROM sample_table', {
       read: {
-        duckdb: 'SELECT LIST(DISTINCT sample_col) FROM sample_table',
         spark: 'SELECT COLLECT_SET(sample_col) FROM sample_table',
       },
     });

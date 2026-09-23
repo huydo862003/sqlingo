@@ -624,6 +624,20 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT TO_ARRAY(CAST(x AS ARRAY))');
     this.validateIdentity('SELECT TO_ARRAY(CAST([\'test\'] AS VARIANT))');
     this.validateIdentity('SELECT ARRAY_UNIQUE_AGG(x)');
+    this.validateAll(
+      'SELECT ARRAY_UNIQUE_AGG(col) FROM t',
+      {
+        write: { duckdb: 'SELECT LIST(DISTINCT col) FILTER(WHERE NOT col IS NULL) FROM t' },
+      },
+    );
+    this.validateAll(
+      'SELECT ARRAY_UNIQUE_AGG(col) OVER (PARTITION BY grp) FROM t',
+      {
+        write: {
+          duckdb: 'SELECT LIST(DISTINCT col) FILTER(WHERE NOT col IS NULL) OVER (PARTITION BY grp) FROM t',
+        },
+      },
+    );
     this.validateIdentity('SELECT ARRAY_APPEND([1, 2, 3], 4)');
     this.validateIdentity('SELECT ARRAY_CAT([1, 2], [3, 4])');
     this.validateIdentity('SELECT ARRAY_PREPEND([2, 3, 4], 1)');
