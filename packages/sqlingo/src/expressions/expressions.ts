@@ -7637,6 +7637,7 @@ export type AlterExprArgs = Merge<[
     notValid?: Expression;
     check?: Expression;
     cascade?: Expression;
+    iceberg?: boolean;
   },
 ]>;
 
@@ -7659,6 +7660,7 @@ export class AlterExpr extends Expression {
     'notValid',
     'check',
     'cascade',
+    'iceberg',
   ]);
 
   declare args: AlterExprArgs;

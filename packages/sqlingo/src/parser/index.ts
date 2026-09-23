@@ -15316,9 +15316,15 @@ export class Parser {
   parseAlter (): AlterExpr | CommandExpr {
     const start = this.prev;
 
+    const iceberg = this.matchTextSeq('ICEBERG') || undefined;
+
     const alterToken = (this.matchSet(this._constructor.ALTERABLES) || undefined) && this.prev;
 
     if (!alterToken) {
+      return this.parseAsCommand(start);
+    }
+
+    if (iceberg && alterToken.tokenType !== TokenType.TABLE) {
       return this.parseAsCommand(start);
     }
 
@@ -15376,6 +15382,7 @@ export class Parser {
           notValid,
           check,
           cascade,
+          iceberg,
         });
       }
     }

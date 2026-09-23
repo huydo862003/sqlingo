@@ -7132,6 +7132,7 @@ export class Generator {
       actionsSql = this.formatArgs(actionsList).replace(/^\n+/, '');
     }
 
+    const iceberg = expression.args.iceberg && this._constructor.SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY ? 'ICEBERG ' : '';
     const exists = expression.args.exists ? ' IF EXISTS' : '';
     let onCluster = this.sql(expression, 'cluster');
 
@@ -7152,7 +7153,7 @@ export class Generator {
 
     thisStr = thisStr ? ` ${thisStr}` : '';
 
-    return `ALTER ${kind}${exists}${only}${thisStr}${onCluster}${check}${this.sep()}${actionsSql}${notValid}${options}${cascade}`;
+    return `ALTER ${iceberg}${kind}${exists}${only}${thisStr}${onCluster}${check}${this.sep()}${actionsSql}${notValid}${options}${cascade}`;
   }
 
   alterSessionSql (expression: AlterSessionExpr): string {

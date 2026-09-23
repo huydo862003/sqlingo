@@ -5861,6 +5861,22 @@ MATCH_RECOGNIZE (
     expect(ast3.args.iceberg).toBe(true);
   }
 
+  testAlterIcebergTable () {
+    const ast = this.validateIdentity('ALTER ICEBERG TABLE t RENAME TO x');
+
+    expect(ast.args.iceberg).toBe(true);
+
+    this.validateAll(
+      'ALTER ICEBERG TABLE t RENAME TO x',
+      {
+        write: {
+          snowflake: 'ALTER ICEBERG TABLE t RENAME TO x',
+          duckdb: 'ALTER TABLE t RENAME TO x',
+        },
+      },
+    );
+  }
+
   testDropIcebergTable () {
     const ast = this.validateIdentity('DROP ICEBERG TABLE t');
 
@@ -7965,6 +7981,9 @@ describe('TestSnowflake', () => {
     validator.testShowTables();
   });
 
+  test('test alter iceberg table', () => {
+    validator.testAlterIcebergTable();
+  });
   test('test drop iceberg table', () => {
     validator.testDropIcebergTable();
   });
