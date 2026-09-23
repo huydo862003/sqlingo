@@ -10,6 +10,7 @@ import {
   BinaryExpr,
   CaseExpr,
   ConcatExpr,
+  OrderExpr,
 } from '../../src/expressions';
 import {
   OptimizeError,
@@ -2216,5 +2217,74 @@ describe('TestOptimizer', () => {
         ),
       ).selects[0].type, Expression)?.sql(),
     ).toBe(DataTypeExpr.build('timestamp')?.sql());
+  });
+
+  it('test_order_by_alias_annotation', () => {
+    const schema = {
+      t: { x: 'INT', z: 'TEXT', category: 'TEXT', col: 'INT' },
+      u: { a: 'INT', x: 'INT' },
+    };
+
+    function orderTypes (sql: string): string[] {
+      const query = qualify(parseOne(sql), { schema });
+      const annotated = annotateTypes(query, { schema });
+      const order = annotated.find(OrderExpr);
+
+      expect(order).toBeTruthy();
+
+      return (order!.args.expressions as Expression[]).map(
+        (o) => {
+          const t = (o.args.this as Expression).type;
+
+          return t instanceof Expression ? t.args.this as string : String(t);
+        },
+      );
+    }
+
+    const INT = 'int';
+    const TEXT = 'text';
+    const BIGINT = 'bigint';
+    const VARCHAR = 'varchar';
+
+    // Basic alias resolution
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y')).toEqual([INT]);
+    expect(orderTypes('SELECT x, z FROM t ORDER BY x')).toEqual([INT]);
+    expect(orderTypes('SELECT category, COUNT(*) AS cnt FROM t GROUP BY category ORDER BY cnt')).toEqual([BIGINT]);
+    expect(orderTypes('SELECT CAST(x AS TEXT) AS s FROM t ORDER BY s')).toEqual([TEXT]);
+
+    // Alias shadows column name
+    expect(orderTypes('SELECT z AS x FROM t ORDER BY x')).toEqual([TEXT]);
+
+    // Multiple ORDER BY columns
+    expect(orderTypes('SELECT x + 1 AS y, z AS w FROM t ORDER BY y, w')).toEqual([INT, TEXT]);
+
+    // Sort modifiers
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y DESC')).toEqual([INT]);
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y NULLS FIRST')).toEqual([INT]);
+
+    // Compound expressions using aliases
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y + 1')).toEqual([INT]);
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY ABS(y + 1)')).toEqual([INT]);
+
+    // Non-projected column in ORDER BY
+    expect(orderTypes('SELECT x FROM t ORDER BY z')).toEqual([TEXT]);
+
+    // Mixed alias + expression
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y, x + 2')).toEqual([INT, INT]);
+
+    // Set operations
+    expect(orderTypes('SELECT x AS y FROM t UNION ALL SELECT a FROM u ORDER BY y')).toEqual([INT]);
+
+    // Duplicate alias (last wins)
+    expect(orderTypes('SELECT x AS y, z AS y FROM t ORDER BY y')).toEqual([TEXT]);
+
+    // CAST in ORDER BY using alias
+    expect(orderTypes('SELECT x AS y FROM t ORDER BY CAST(y AS TEXT)')).toEqual([TEXT]);
+
+    // Window function alias
+    expect(orderTypes('SELECT SUM(x) OVER () AS s FROM t ORDER BY s')).toEqual([BIGINT]);
+
+    // Subquery-as-projection alias
+    expect(orderTypes('SELECT (SELECT MAX(a) FROM u) AS m FROM t ORDER BY m')).toEqual([INT]);
   });
 });

@@ -22,6 +22,7 @@ import type {
   ToMapExpr,
 } from '../expressions';
 import {
+  AliasExpr,
   AnonymousExpr,
   ArrayExpr,
   BinaryExpr,
@@ -424,6 +425,7 @@ export class TypeAnnotator {
     }
 
     this.annotateExpression(scope.expression, scope);
+    this.fixupOrderByAliases(scope);
 
     if (this.dialect._constructor.QUERY_RESULTS_ARE_STRUCTS && scope.expression instanceof QueryExpr) {
       const structType = new DataTypeExpr({
@@ -745,6 +747,59 @@ export class TypeAnnotator {
    * If either type is parameterized (e.g., DECIMAL(18, 2)), returns it as-is.
    * Propagates UNKNOWN upward. NULL coerces into the other type
    */
+  fixupOrderByAliases (scope: Scope): void {
+    const query = scope.expression;
+
+    if (!(query instanceof QueryExpr)) {
+      return;
+    }
+
+    const order = query.args.order;
+
+    if (!order) {
+      return;
+    }
+
+    const aliasTypes = new Map<string, DataTypeExpr | DataTypeExprKind>();
+
+    for (const sel of query.selects) {
+      if (
+        sel instanceof AliasExpr
+        && sel.args.this instanceof Expression
+        && (sel.args.this as Expression).type
+        && !isType(sel.args.this as Expression, DataTypeExprKind.UNKNOWN)
+      ) {
+        aliasTypes.set(sel.alias, (sel.args.this as Expression).type as DataTypeExpr | DataTypeExprKind);
+      }
+    }
+
+    if (!aliasTypes.size) {
+      return;
+    }
+
+    for (const ordered of (order as Expression).args.expressions ?? []) {
+      const aliasCols = [...(ordered as Expression).findAll(ColumnExpr)].filter(
+        (c) => !c.table && aliasTypes.has(c.name),
+      );
+
+      for (const col of aliasCols) {
+        this.setType(col, aliasTypes.get(col.name)!);
+      }
+
+      if (aliasCols.length) {
+        for (const node of (ordered as Expression).walk({
+          prune: (n: Expression) => n instanceof SubqueryExpr,
+        })) {
+          if (!(node instanceof ColumnExpr) && !(node instanceof LiteralExpr)) {
+            this.visited.delete(node);
+          }
+        }
+
+        this.annotateExpression(ordered as Expression, scope);
+      }
+    }
+  }
+
   maybeCoerce (
     type1: DataTypeExpr | DataTypeExprKind | ColumnDefExpr | undefined,
     type2: DataTypeExpr | DataTypeExprKind | ColumnDefExpr | undefined,
