@@ -11581,6 +11581,10 @@ export class Parser {
 
     expression = expression ? this.parseSetOperations(expression) : this.parseSelect();
 
+    if (expression instanceof SubqueryExpr && this.match(TokenType.PIPE_GT, { advance: false })) {
+      expression = this.parsePipeSyntaxQuery(expression as unknown as QueryExpr) as unknown as Expression;
+    }
+
     return this.parseQueryModifiers(expression);
   }
 
