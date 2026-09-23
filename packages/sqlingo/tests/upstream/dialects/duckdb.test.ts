@@ -1852,6 +1852,9 @@ class TestDuckDB extends Validator {
 
   testShowTables () {
     this.validateIdentity('SHOW TABLES').assertIs(ShowExpr);
+    this.validateIdentity('SHOW TABLES FROM my_schema').assertIs(ShowExpr);
+    this.validateIdentity('SHOW TABLES FROM my_database').assertIs(ShowExpr);
+    this.validateIdentity('SHOW TABLES FROM my_database.my_schema').assertIs(ShowExpr);
     this.validateIdentity('SHOW ALL TABLES').assertIs(ShowExpr);
   }
 

@@ -2877,8 +2877,11 @@ class DuckDBParser extends Parser {
   }
 
   parseShowDuckdb (thisStr: string): ShowExpr {
+    const from = this.match(TokenType.FROM) ? this.parseTable({ schema: true }) : undefined;
+
     return this.expression(ShowExpr, {
       this: thisStr,
+      from,
     });
   }
 
@@ -4682,7 +4685,10 @@ class DuckDBGenerator extends Generator {
   }
 
   showSql (expression: ShowExpr): string {
-    return `SHOW ${expression.name}`;
+    const from = this.sql(expression, 'from');
+    const fromSql = from ? ` FROM ${from}` : '';
+
+    return `SHOW ${expression.name}${fromSql}`;
   }
 
   installSql (expression: InstallExpr): string {
