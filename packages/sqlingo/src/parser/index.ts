@@ -16978,7 +16978,7 @@ export class Parser {
       const offsetExpr = offset.args.expression;
       const offsetVal: number = typeof offsetExpr === 'number' ? offsetExpr : (assertIsInstanceOf(offsetExpr, Expression), offsetExpr.toValue() as number);
 
-      query.offset(LiteralExpr.number(currOffsetVal + offsetVal));
+      query.offset(LiteralExpr.number(currOffsetVal + offsetVal), { copy: false });
     }
 
     return query;
@@ -17044,7 +17044,7 @@ export class Parser {
           copy: false,
         })
         .groupBy(
-          ...aggregatesOrGroups.map((proj) => proj.args.alias || proj),
+          aggregatesOrGroups.map((proj) => proj.args.alias || proj),
           {
             copy: false,
           },
@@ -17057,7 +17057,7 @@ export class Parser {
     }
 
     if (0 < orders.length) {
-      return query.orderBy(...orders, {
+      return query.orderBy(orders, {
         append: false,
         copy: false,
       });
@@ -17120,17 +17120,17 @@ export class Parser {
     const ctes = with_?.pop();
 
     if (firstSetop instanceof UnionExpr) {
-      query = query.union(...setops, {
+      query = query.union(setops as Expression[], {
         copy: false,
         ...firstSetop.args,
       });
     } else if (firstSetop instanceof ExceptExpr) {
-      query = query.except(...setops, {
+      query = query.except(setops as Expression[], {
         copy: false,
         ...firstSetop.args,
       });
     } else {
-      query = query.intersect(...setops, {
+      query = query.intersect(setops as Expression[], {
         copy: false,
         ...firstSetop.args,
       });

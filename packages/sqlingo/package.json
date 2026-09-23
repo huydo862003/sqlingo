@@ -199,6 +199,8 @@
 	},
 	"keywords": [
 		"sql",
+    "sqlingo",
+    "sqlingo.js",
 		"tokenizer",
 		"parser",
 		"transpiler",

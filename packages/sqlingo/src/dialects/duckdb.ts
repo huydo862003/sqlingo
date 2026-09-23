@@ -2436,7 +2436,6 @@ class DuckDBParser extends Parser {
         ANY_VALUE: (args: Expression[]) => new IgnoreNullsExpr({
           this: AnyValueExpr.fromArgList(args),
         }),
-        APPROX_QUANTILE: (args: unknown[]) => ApproxQuantileExpr.fromArgList(args),
         ARRAY_PREPEND: buildArrayPrepend,
         ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({
           expressions: args as Expression[],
