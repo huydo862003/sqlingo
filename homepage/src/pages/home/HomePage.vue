@@ -288,7 +288,8 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "sqlingo",
-        "description": "sqlingo is a JavaScript/TypeScript port of SQLGlot, a SQL parser, transpiler, and optimizer supporting 32 dialects.",
+        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB.",
+        "alternateName": "sqlingojs",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "All",
         "license": "https://opensource.org/licenses/MIT",
@@ -327,12 +328,12 @@ import {
 const scriptTag = 'script';
 
 useSeoMeta({
-  title: 'Home | sqlingo',
-  ogTitle: 'Home | sqlingo',
+  title: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogTitle: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
   description:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer ported from Python SQLGlot. Parse, convert, and optimize SQL across 32 dialects including BigQuery, Snowflake, Postgres, MySQL, DuckDB, and Spark. Runs in Node.js and the browser.',
   ogDescription:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'TypeScript SQL parser and transpiler supporting 32 dialects. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and more. Open-source port of SQLGlot.',
 });
 
 const installCopied = ref(false);
