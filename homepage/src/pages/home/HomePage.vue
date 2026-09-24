@@ -256,16 +256,17 @@
             Exactly what I needed. Too bad it's Python. Tried Pyodide, too heavy.
           </p>
           <p class="td-prose-body">
-            So I started porting it to JS. Two weeks in,
+            So I started porting it to JavaScript. Two weeks in,
             <a
               href="https://github.com/tobilg/polyglot"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
             >polyglot</a>
-            was announced (if only it were sooner). Kept going anyway; I wanted full
-            control and a way to stay in sync with upstream. sqlingo mirrors SQLGlot file for file.
-            Catching up with upstream is a diff, not a rewrite.
+            was announced. I kept going because I wanted full control over the
+            implementation and a reliable way to stay in sync with upstream.
+            sqlingo mirrors SQLGlot file for file, so catching up with a new
+            release is a diff, not a rewrite.
           </p>
         </div>
       </div>
