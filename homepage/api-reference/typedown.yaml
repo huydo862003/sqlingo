@@ -3,6 +3,7 @@ vault:
   root_dir: "vault"
 repo: "https://github.com/huydo862003/sqlingo"
 site:
+  origin: "https://huydo862003.github.io"
   title: "sqlingo API Reference"
   description: "API reference for sqlingo (sqlingojs), a TypeScript SQL parser, transpiler, and optimizer ported from SQLGlot. Covers 32 SQL dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB."
   author: "Huy-DNA"
