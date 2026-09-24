@@ -6,10 +6,84 @@
   <title>sqlingo: TypeScript SQL Parser, Transpiler & Optimizer | SQLGlot for JS</title>
   <meta name="description" content="sqlingo (sqlingojs) is a TypeScript SQL parser, transpiler, and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB. Works in Node.js and the browser.">
   <meta name="keywords" content="sqlingo, sqlingojs, sql parser, sql transpiler, sql optimizer, typescript sql, javascript sql, sqlglot, sql ast, cross-dialect sql, bigquery, snowflake, postgres, mysql, duckdb, sql converter">
+  <link rel="canonical" href="https://huydo862003.github.io/sqlingo/">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="sqlingo: TypeScript SQL Parser, Transpiler & Optimizer">
+  <meta property="og:description" content="TypeScript SQL parser and transpiler supporting 32 dialects. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and more. Open-source port of SQLGlot.">
+  <meta property="og:url" content="https://huydo862003.github.io/sqlingo/">
+  <meta property="og:image" content="https://huydo862003.github.io/sqlingo/og-image.png">
+  <meta property="og:site_name" content="sqlingo">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="sqlingo: TypeScript SQL Parser & Transpiler">
+  <meta name="twitter:description" content="Parse, transpile, and optimize SQL across 32 dialects in TypeScript. Port of Python SQLGlot.">
+  <meta name="twitter:image" content="https://huydo862003.github.io/sqlingo/og-image.png">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "sqlingo",
+    "alternateName": "sqlingojs",
+    "description": "sqlingo is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "All",
+    "license": "https://opensource.org/licenses/MIT",
+    "url": "https://huydo862003.github.io/sqlingo/",
+    "author": { "@type": "Person", "name": "Huy Do" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
 </head>
 <body>
   <div id="app"></div>
+
+  <!-- Pre-rendered content for crawlers (hidden when JS loads) -->
+  <noscript>
+    <main>
+      <h1>sqlingo: TypeScript SQL Parser, Transpiler & Optimizer</h1>
+      <p>sqlingo is a TypeScript port of <a href="https://github.com/tobymao/sqlglot">SQLGlot</a>, the popular Python SQL parser. Parse, transpile, and optimize SQL across 32 dialects in the browser or Node.js.</p>
+
+      <h2>Install</h2>
+      <pre><code>npm install sqlingo</code></pre>
+
+      <h2>Features</h2>
+      <ul>
+        <li><strong>SQL Parser</strong>: Parse any SQL string into a typed AST (abstract syntax tree)</li>
+        <li><strong>SQL Transpiler</strong>: Convert SQL between 32 dialects (BigQuery, Snowflake, Postgres, MySQL, DuckDB, Spark, and more)</li>
+        <li><strong>Query Optimizer</strong>: Qualify columns, simplify conditions, expand stars</li>
+        <li><strong>SQL Builder</strong>: Construct queries programmatically with a fluent API</li>
+        <li><strong>Column Lineage</strong>: Trace column origins through subqueries and aliases</li>
+      </ul>
+
+      <h2>Supported SQL Dialects</h2>
+      <p>Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, Dune, Exasol, Fabric, Hive, Materialize, MySQL, Oracle, Postgres, Presto, PRQL, Redshift, RisingWave, SingleStore, Snowflake, Solr, Spark, Spark2, SQLite, StarRocks, Tableau, Teradata, Trino, TSQL</p>
+
+      <h2>Example: Transpile MySQL to Postgres</h2>
+      <pre><code>import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
+
+const [sql] = transpile(
+  "SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t",
+  { read: MySQL, write: Postgres },
+);
+// "SELECT d - INTERVAL '1 DAY' FROM t"</code></pre>
+
+      <nav>
+        <a href="/sqlingo/playground/">Try the Playground</a> |
+        <a href="/sqlingo/api-reference/">API Reference</a> |
+        <a href="https://github.com/huydo862003/sqlingo">GitHub</a> |
+        <a href="https://www.npmjs.com/package/sqlingo">npm</a>
+      </nav>
+    </main>
+  </noscript>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
