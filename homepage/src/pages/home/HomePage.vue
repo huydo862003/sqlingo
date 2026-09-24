@@ -1003,6 +1003,7 @@ const shownCount = computed(() =>
 .td-prose-list {
   margin: 0 0 26px;
   padding: 0 0 0 18px;
+  list-style: disc;
   display: flex;
   flex-direction: column;
   gap: 10px;
