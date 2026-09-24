@@ -100,6 +100,9 @@
               </button>
             </div>
             <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder" />
+              </template>
               <GCodeBlock
                 :id="`demo-${name}`"
                 :code="demo.code"
@@ -115,6 +118,9 @@
               <span class="td-demo-bar-label td-demo-bar-label--success">RETURNS</span>
             </div>
             <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder td-code-placeholder--short" />
+              </template>
               <GCodeBlock
                 :id="`demo-result-${name}`"
                 :code="demo.result"
@@ -737,6 +743,15 @@ const shownCount = computed(() =>
 .td-demo-copy:hover {
   background: var(--gui-neutral-bg-active);
   color: var(--gui-neutral-fg);
+}
+
+.td-code-placeholder {
+  min-height: 180px;
+  background: var(--color-neutral-1);
+}
+
+.td-code-placeholder--short {
+  min-height: 100px;
 }
 
 .td-demo-caption {

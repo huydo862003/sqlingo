@@ -79,7 +79,12 @@ import {
   usePlaygroundStore,
 } from '@/stores/playground';
 
-const MonacoEditor = defineAsyncComponent(() => import('./MonacoEditor.vue'));
+const MonacoEditor = defineAsyncComponent({
+  loader: () => import('./MonacoEditor.vue'),
+  loadingComponent: {
+    template: '<div class="h-112 w-full bg-white" />',
+  },
+});
 
 const store = usePlaygroundStore();
 const sqlInput = computed({
