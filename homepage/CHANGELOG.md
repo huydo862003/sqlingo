@@ -1,5 +1,12 @@
 # sqlingo-homepage
 
+## 0.1.19
+
+### Patch Changes
+
+- Updated dependencies [7d3a078]
+  - sqlingo@0.10.1
+
 ## 0.1.18
 
 ### Patch Changes

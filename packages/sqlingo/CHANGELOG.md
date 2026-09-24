@@ -1,5 +1,11 @@
 # sqlingo
 
+## 0.10.1
+
+### Patch Changes
+
+- 7d3a078: Update tracked sqlglot version
+
 ## 0.10.0
 
 ### Minor Changes
