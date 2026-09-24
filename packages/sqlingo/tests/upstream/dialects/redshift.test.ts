@@ -401,6 +401,7 @@ class TestRedshift extends Validator {
       },
     );
     this.validateIdentity('SELECT VERSION()');
+    this.validateIdentity("SELECT TEXTLEN('hello world')", "SELECT LENGTH('hello world')");
   }
 
   testIdentity () {
@@ -419,6 +420,7 @@ class TestRedshift extends Validator {
     this.validateIdentity('CREATE TABLE real1 (realcol REAL)');
     this.validateIdentity('CAST(\'foo\' AS HLLSKETCH)');
     this.validateIdentity('\'abc\' SIMILAR TO \'(b|c)%\'');
+    this.validateIdentity("'%' SIMILAR TO '^%' ESCAPE '^'");
     this.validateIdentity('CREATE TABLE datetable (start_date DATE, end_date DATE)');
     this.validateIdentity('SELECT APPROXIMATE AS y');
     this.validateIdentity('CREATE TABLE t (c BIGINT IDENTITY(0, 1))');

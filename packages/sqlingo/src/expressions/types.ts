@@ -990,6 +990,7 @@ export enum ExpressionKey {
   VARIANCE_POP = 'variancePop',
   VAR_MAP = 'varMap',
   VECTOR_SEARCH = 'vectorSearch',
+  UUID_PROPERTY = 'uuidProperty',
   VERSION = 'version',
   VIEW_ATTRIBUTE_PROPERTY = 'viewAttributeProperty',
   VOLATILE_PROPERTY = 'volatileProperty',

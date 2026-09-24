@@ -288,6 +288,8 @@ import type {
   ExecuteExpr,
 
   AlterModifySqlSecurityExpr,
+
+  UuidPropertyExpr,
 } from './expressions';
 import {
   DistinctExpr,
@@ -974,6 +976,9 @@ export class Generator {
 
   // Whether SELECT *, ... EXCLUDE requires wrapping in a subquery for transpilation
   static STAR_EXCLUDE_REQUIRES_DERIVED_TABLE = true;
+
+  // Whether DROP and ALTER statements against Iceberg tables include 'ICEBERG'
+  static SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY = true;
 
   static AFTER_HAVING_MODIFIER_TRANSFORMS: Map<string, (this: Generator, e: Expression) => string> = new Map([
     [
@@ -3691,12 +3696,14 @@ export class Generator {
     onCluster = onCluster ? ` ${onCluster}` : '';
     const temporary = expression.args.temporary ? ' TEMPORARY' : '';
     const materialized = expression.args.materialized ? ' MATERIALIZED' : '';
+    const iceberg = expression.args.iceberg && this._constructor.SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY ? ' ICEBERG' : '';
     const cascade = expression.args.cascade ? ' CASCADE' : '';
+    const restrict = expression.args.restrict ? ' RESTRICT' : '';
     const constraints = expression.args.constraints ? ' CONSTRAINTS' : '';
     const purge = expression.args.purge ? ' PURGE' : '';
     const sync = expression.args.sync ? ' SYNC' : '';
 
-    return `DROP${temporary}${materialized} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${constraints}${purge}${sync}`;
+    return `DROP${temporary}${materialized}${iceberg} ${kindStr}${concurrentlySql}${existsSql}${thisStr}${onCluster}${expressions}${cascade}${restrict}${constraints}${purge}${sync}`;
   }
 
   setOperation (expression: SetOperationExpr): string {
@@ -4138,6 +4145,10 @@ export class Generator {
     return `${propertyName}=${this.sql(expression, 'this')}`;
   }
 
+  uuidPropertySql (expression: UuidPropertyExpr): string {
+    return `UUID ${this.sql(expression, 'this')}`;
+  }
+
   likePropertySql (expression: LikePropertyExpr): string {
     if (this._constructor.SUPPORTS_CREATE_TABLE_LIKE) {
       const options = (expression.args.expressions || [])
@@ -4145,10 +4156,23 @@ export class Generator {
         .join(' ');
       const optionsStr = options ? ` ${options}` : '';
 
-      return `LIKE ${this.sql(expression, 'this')}${optionsStr}`;
+      const like = `LIKE ${this.sql(expression, 'this')}${optionsStr}`;
+
+      if (this._constructor.LIKE_PROPERTY_INSIDE_SCHEMA && !(expression.parent instanceof SchemaExpr)) {
+        return `(${like})`;
+      }
+
+      return like;
     }
 
-    return this.propertySql(expression);
+    if (expression.args.expressions?.length) {
+      this.unsupported('Transpilation of LIKE property options is unsupported');
+    }
+
+    const selectExpr = select('*').from(expression.args.this as Expression)
+      .limit(0);
+
+    return `AS ${this.sql(selectExpr)}`;
   }
 
   fallbackPropertySql (expression: FallbackPropertyExpr): string {
@@ -5477,6 +5501,14 @@ export class Generator {
 
       if (window instanceof WindowExpr) {
         windowThis = window.args.this;
+
+        if ((windowThis as Expression)?.constructor && (
+          ((windowThis as Expression).constructor as typeof Expression).key === 'ignoreNulls'
+          || ((windowThis as Expression).constructor as typeof Expression).key === 'respectNulls'
+        )) {
+          windowThis = (windowThis as Expression).args.this as Expression | undefined;
+        }
+
         spec = window.args.spec;
       }
 
@@ -6074,12 +6106,15 @@ export class Generator {
       indexOffset?: number;
     } = {},
   ): Expression[] {
+    if (expression.args.jsonAccess) {
+      return expression.args.expressions || [];
+    }
+
     const {
       indexOffset,
     } = options;
 
     const offset = (indexOffset !== undefined ? indexOffset : this.dialect._constructor.INDEX_OFFSET) - (expression.args.offset || 0);
-    // Call apply_index_offset helper (assumed to exist)
     const bracketThis = expression.args.this instanceof Expression ? expression.args.this : new Expression({});
 
     return applyIndexOffset(bracketThis, expression.args.expressions || [], offset, {
@@ -7117,6 +7152,7 @@ export class Generator {
       actionsSql = this.formatArgs(actionsList).replace(/^\n+/, '');
     }
 
+    const iceberg = expression.args.iceberg && this._constructor.SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY ? 'ICEBERG ' : '';
     const exists = expression.args.exists ? ' IF EXISTS' : '';
     let onCluster = this.sql(expression, 'cluster');
 
@@ -7137,7 +7173,7 @@ export class Generator {
 
     thisStr = thisStr ? ` ${thisStr}` : '';
 
-    return `ALTER ${kind}${exists}${only}${thisStr}${onCluster}${check}${this.sep()}${actionsSql}${notValid}${options}${cascade}`;
+    return `ALTER ${iceberg}${kind}${exists}${only}${thisStr}${onCluster}${check}${this.sep()}${actionsSql}${notValid}${options}${cascade}`;
   }
 
   alterSessionSql (expression: AlterSessionExpr): string {
@@ -7324,6 +7360,16 @@ export class Generator {
   }
 
   escapeSql (expression: EscapeExpr): string {
+    const thisExpr = expression.args.this;
+
+    if (
+      (thisExpr instanceof LikeExpr || thisExpr instanceof ILikeExpr)
+      && (thisExpr.args.expression instanceof AllExpr || thisExpr.args.expression instanceof AnyExpr)
+      && !this._constructor.SUPPORTS_LIKE_QUANTIFIERS
+    ) {
+      return this.likeSql(thisExpr, expression);
+    }
+
     return this.binary(expression, 'ESCAPE');
   }
 
@@ -7357,7 +7403,7 @@ export class Generator {
     return this.likeSql(expression);
   }
 
-  likeSql (expression: LikeExpr | ILikeExpr): string {
+  likeSql (expression: LikeExpr | ILikeExpr, escape?: EscapeExpr): string {
     const thisExpr = expression.args.this;
     const rhs = expression.args.expression;
 
@@ -7387,26 +7433,34 @@ export class Generator {
 
       const connective = rhs instanceof AnyExpr ? or : and;
 
-      // Build the expanded expression: (this LIKE expr1 OR this LIKE expr2...)
-      let likeExpr: Expression = new expClass({
-        this: thisExpr,
-        expression: exprs?.[0],
-      });
+      const makeLike = (expr: ExpressionValue): Expression => {
+        let like: Expression = new expClass({
+          this: thisExpr,
+          expression: expr,
+        });
+
+        if (escape) {
+          like = new (escape.constructor as typeof Expression)({
+            this: like,
+            expression: (escape.args.expression as Expression).copy(),
+          });
+        }
+
+        return like;
+      };
+
+      let likeExpr: Expression = makeLike(exprs![0]);
 
       for (let i = 1; i < (exprs?.length || 0); i++) {
         likeExpr = connective([
           likeExpr,
-          new expClass({
-            this: thisExpr,
-            expression: exprs?.[i] || 0,
-          }),
+          makeLike(exprs![i] || 0),
         ]);
       }
 
-      const parent = expression.parent;
+      const parent = escape ? escape.parent : expression.parent;
 
-      // Wrap in parentheses if the expansion happens within another condition to maintain precedence
-      if (parent instanceof ConditionExpr && !(parent instanceof likeExpr._constructor)) {
+      if (parent instanceof ConditionExpr && !(parent instanceof ParenExpr) && !(parent instanceof likeExpr._constructor)) {
         likeExpr = paren(likeExpr, {
           copy: false,
         });
@@ -8389,7 +8443,7 @@ export class Generator {
     }
 
     // SQLGlot's executor supports ARRAY_ANY, so we don't wanna warn for the SQLGlot dialect
-    if (!(this.dialect._constructor !== Dialect)) {
+    if (this.dialect._constructor !== Dialect) {
       this.unsupported('ARRAY_ANY is unsupported');
     }
 

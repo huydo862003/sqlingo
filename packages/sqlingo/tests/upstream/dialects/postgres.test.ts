@@ -47,6 +47,7 @@ class TestPostgres extends Validator {
       pretty: true,
     });
 
+    this.validateIdentity("SELECT '%' SIMILAR TO '^%' ESCAPE '^'");
     this.validateIdentity('SELECT GET_BIT(CAST(44 AS BIT(10)), 6)');
     this.validateIdentity('SELECT * FROM t GROUP BY ROLLUP (a || \'^\' || b)');
     this.validateIdentity('SELECT COSH(1.5)');

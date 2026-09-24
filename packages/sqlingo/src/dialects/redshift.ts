@@ -37,6 +37,7 @@ import {
   JsonExtractExpr,
   JsonExtractScalarExpr,
   LastDayExpr,
+  LengthExpr,
   LiteralExpr,
   ParseJsonExpr,
   PivotExpr,
@@ -151,7 +152,7 @@ function buildDateDelta<T extends Expression> (ExprClass: new (args: any) => T) 
     });
 
     if (ExprClass === TsOrDsAddExpr as unknown) {
-      expr.setArgKey('returnType', DataTypeExpr.build('TIMESTAMP'));
+      expr.setArgKey('returnType', DataTypeExpr.build(DataTypeExprKind.TIMESTAMP));
     }
 
     return expr;
@@ -214,7 +215,7 @@ class RedshiftParser extends Postgres.Parser {
             this: seqGet(args, 0),
             expression: seqGet(args, 1),
             unit: var_('MONTH'),
-            returnType: DataTypeExpr.build('TIMESTAMP'),
+            returnType: DataTypeExpr.build(DataTypeExprKind.TIMESTAMP),
           }),
         CONVERT_TIMEZONE: (args: Expression[]) => buildConvertTimezone(args, {
           defaultSourceTz: 'UTC',
@@ -239,6 +240,7 @@ class RedshiftParser extends Postgres.Parser {
             expression: seqGet(args, 1) || LiteralExpr.string(','),
           }),
         STRTOL: (args: unknown[]) => FromBaseExpr.fromArgList(args),
+        TEXTLEN: (args: unknown[]) => LengthExpr.fromArgList(args),
       };
 
       delete functions['GET_BIT'];

@@ -107,6 +107,7 @@ import {
   CurrentSchemaExpr,
   BitwiseNotExpr,
   IntervalExpr,
+  MulExpr,
   ArrayOverlapsExpr,
   ExplodingGenerateSeriesExpr,
   AutoIncrementColumnConstraintExpr,
@@ -234,7 +235,16 @@ function dateAddSql (kind: string) {
     } else if (e && e.isNumber) {
       e = LiteralExpr.string(e.toValue()!);
     } else {
-      this.unsupported('Cannot add non-literal');
+      const one = LiteralExpr.number(1);
+      const intervalTimesValue = new MulExpr({
+        this: new IntervalExpr({
+          this: one,
+          unit,
+        }),
+        expression: e!,
+      });
+
+      return `${thisSql} ${kind} ${this.sql(intervalTimesValue)}`;
     }
 
     return `${thisSql} ${kind} ${this.sql(new IntervalExpr({
@@ -698,7 +708,7 @@ class PostgresParser extends Parser {
       DATE_TRUNC: buildTimestampTrunc,
       DIV: (args: Expression[]) => new CastExpr({
         this: binaryFromFunction(IntDivExpr)(args),
-        to: DataTypeExpr.build('decimal'),
+        to: DataTypeExpr.build(DataTypeExprKind.DECIMAL),
       }),
       GENERATE_SERIES: buildGenerateSeries,
       GET_BIT: (args: Expression[]) => new GetbitExpr({

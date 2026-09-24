@@ -10,6 +10,7 @@ import {
   BinaryExpr,
   CaseExpr,
   ConcatExpr,
+  OrderExpr,
 } from '../../src/expressions';
 import {
   OptimizeError,
@@ -766,6 +767,16 @@ describe('TestOptimizer', () => {
         dialect: 'bigquery',
       }),
     ).toBe('SELECT (SELECT `col_st`.`value` AS `value` FROM UNNEST(`b`.`col_st`) AS `col_st`) AS `vcol1` FROM `t` AS `b`');
+
+    expect(
+      qualify(
+        parseOne('SELECT * FROM t'),
+        {
+          schema: { t: { end: 'text' } },
+          quoteIdentifiers: false,
+        },
+      ).sql(),
+    ).toBe('SELECT t.end AS end FROM t AS t');
   });
 
   it('test_validate_columns', () => {
@@ -1306,6 +1317,30 @@ describe('TestOptimizer', () => {
       'a1',
       'a2',
     ]));
+
+    // Correlated subquery must be detected even when the outer table name collides with a CTE name
+    const correlatedSql = "WITH x AS (SELECT 1 AS id) SELECT x.id, (SELECT MAX(x2.id) FROM x AS x2 WHERE x2.id = x.id) AS mx FROM x";
+    const correlatedScopes = traverseScope(parseOne(correlatedSql));
+    const subqueryScope = correlatedScopes.find((s) => s.isSubquery);
+
+    expect(subqueryScope?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope?.externalColumns.map((c) => c.sql())).toContain('x.id');
+
+    // Correlated subquery referencing a CTE defined in the same WITH clause as another CTE used in the outer query
+    const correlatedSql2 = "WITH x AS (SELECT 1 AS id), y AS (SELECT 2 AS id) SELECT (SELECT y.id FROM y WHERE y.id = x.id) FROM x";
+    const correlatedScopes2 = traverseScope(parseOne(correlatedSql2));
+    const subqueryScope2 = correlatedScopes2.find((s) => s.isSubquery);
+
+    expect(subqueryScope2?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope2?.externalColumns.map((c) => c.sql())).toContain('x.id');
+
+    // Correlated subquery referencing outer CTE through a derived table
+    const correlatedSql3 = "WITH x AS (SELECT 1 AS id) SELECT (SELECT x.id FROM (SELECT * FROM x) AS sub) FROM x";
+    const correlatedScopes3 = traverseScope(parseOne(correlatedSql3));
+    const subqueryScope3 = correlatedScopes3.find((s) => s.isSubquery);
+
+    expect(subqueryScope3?.isCorrelatedSubquery).toBe(true);
+    expect(subqueryScope3?.externalColumns.map((c) => c.sql())).toContain('x.id');
   });
 
   it('test_annotate_types', () => {
@@ -2198,5 +2233,74 @@ describe('TestOptimizer', () => {
         ),
       ).selects[0].type, Expression)?.sql(),
     ).toBe(DataTypeExpr.build('timestamp')?.sql());
+  });
+
+  it('test_order_by_alias_annotation', () => {
+    const schema = {
+      t: { x: 'INT', z: 'TEXT', category: 'TEXT', col: 'INT' },
+      u: { a: 'INT', x: 'INT' },
+    };
+
+    function orderTypes (sql: string): string[] {
+      const query = qualify(parseOne(sql), { schema });
+      const annotated = annotateTypes(query, { schema });
+      const order = annotated.find(OrderExpr);
+
+      expect(order).toBeTruthy();
+
+      return (order!.args.expressions as Expression[]).map(
+        (o) => {
+          const t = (o.args.this as Expression).type;
+
+          return t instanceof Expression ? t.args.this as string : String(t);
+        },
+      );
+    }
+
+    const INT = 'int';
+    const TEXT = 'text';
+    const BIGINT = 'bigint';
+    const VARCHAR = 'varchar';
+
+    // Basic alias resolution
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y')).toEqual([INT]);
+    expect(orderTypes('SELECT x, z FROM t ORDER BY x')).toEqual([INT]);
+    expect(orderTypes('SELECT category, COUNT(*) AS cnt FROM t GROUP BY category ORDER BY cnt')).toEqual([BIGINT]);
+    expect(orderTypes('SELECT CAST(x AS TEXT) AS s FROM t ORDER BY s')).toEqual([TEXT]);
+
+    // Alias shadows column name
+    expect(orderTypes('SELECT z AS x FROM t ORDER BY x')).toEqual([TEXT]);
+
+    // Multiple ORDER BY columns
+    expect(orderTypes('SELECT x + 1 AS y, z AS w FROM t ORDER BY y, w')).toEqual([INT, TEXT]);
+
+    // Sort modifiers
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y DESC')).toEqual([INT]);
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y NULLS FIRST')).toEqual([INT]);
+
+    // Compound expressions using aliases
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y + 1')).toEqual([INT]);
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY ABS(y + 1)')).toEqual([INT]);
+
+    // Non-projected column in ORDER BY
+    expect(orderTypes('SELECT x FROM t ORDER BY z')).toEqual([TEXT]);
+
+    // Mixed alias + expression
+    expect(orderTypes('SELECT x + 1 AS y FROM t ORDER BY y, x + 2')).toEqual([INT, INT]);
+
+    // Set operations
+    expect(orderTypes('SELECT x AS y FROM t UNION ALL SELECT a FROM u ORDER BY y')).toEqual([INT]);
+
+    // Duplicate alias (last wins)
+    expect(orderTypes('SELECT x AS y, z AS y FROM t ORDER BY y')).toEqual([TEXT]);
+
+    // CAST in ORDER BY using alias
+    expect(orderTypes('SELECT x AS y FROM t ORDER BY CAST(y AS TEXT)')).toEqual([TEXT]);
+
+    // Window function alias
+    expect(orderTypes('SELECT SUM(x) OVER () AS s FROM t ORDER BY s')).toEqual([BIGINT]);
+
+    // Subquery-as-projection alias
+    expect(orderTypes('SELECT (SELECT MAX(a) FROM u) AS m FROM t ORDER BY m')).toEqual([INT]);
   });
 });

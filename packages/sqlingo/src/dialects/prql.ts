@@ -147,7 +147,7 @@ class PRQLParser extends Parser {
       },
       AGGREGATE: function (this: Parser, query) {
         return (this as PRQLParser).parseSelection(query, {
-          parseMethod: (this as PRQLParser).parseAggregate,
+          parseMethod: (this as PRQLParser).parseAggregate.bind(this),
           append: false,
         });
       },
@@ -163,8 +163,7 @@ class PRQLParser extends Parser {
       AVERAGE: (args: unknown[]) => AvgExpr.fromArgList(args),
       SUM: (args: Expression[]) => func('COALESCE', new SumExpr({
         this: seqGet(args, 0),
-        expression: 0,
-      })),
+      }), 0),
     };
   }
 
@@ -291,7 +290,7 @@ class PRQLParser extends Parser {
       });
     }) as Expression[];
 
-    return select(...transformedSelects, {
+    return (query as SelectExpr).select(transformedSelects, {
       append,
       copy: false,
     });
@@ -341,9 +340,11 @@ class PRQLParser extends Parser {
   }
 
   parseAggregate (): Expression | undefined {
+    if (!this.curr) return undefined;
+
     let alias: string | undefined = undefined;
 
-    if (this.next && this.next.tokenType === TokenType.ALIAS) {
+    if (this.next?.tokenType === TokenType.ALIAS) {
       alias = this.parseIdVar({
         anyToken: true,
       })?.name;
@@ -380,7 +381,7 @@ class PRQLParser extends Parser {
   }
 
   parseExpression (): Expression | undefined {
-    if (this.next && this.next.tokenType === TokenType.ALIAS) {
+    if (this.next?.tokenType === TokenType.ALIAS) {
       const alias = this.parseIdVar({
         anyToken: true,
       })?.name;

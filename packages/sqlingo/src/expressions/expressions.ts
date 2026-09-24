@@ -3329,6 +3329,7 @@ export type ShowExprArgs = Merge<[
     forRole?: Expression;
     intoOutfile?: Expression;
     json?: Expression;
+    iceberg?: boolean;
     this?: Expression;
   },
 ]>;
@@ -3367,6 +3368,7 @@ export class ShowExpr extends Expression {
     'forRole',
     'intoOutfile',
     'json',
+    'iceberg',
   ]);
 
   declare args: ShowExprArgs;
@@ -4330,12 +4332,14 @@ export type DropExprArgs = Merge<[
     exists?: boolean;
     temporary?: boolean;
     materialized?: boolean;
-    cascade?: Expression;
+    cascade?: boolean | Expression;
+    restrict?: boolean;
     constraints?: Expression[];
     purge?: Expression;
     cluster?: Expression;
     concurrently?: Expression;
     sync?: boolean;
+    iceberg?: boolean;
     this?: Expression;
     expressions?: Expression[];
   },
@@ -4354,11 +4358,13 @@ export class DropExpr extends Expression {
     'temporary',
     'materialized',
     'cascade',
+    'restrict',
     'constraints',
     'purge',
     'cluster',
     'concurrently',
     'sync',
+    'iceberg',
   ]);
 
   declare args: DropExprArgs;
@@ -7631,6 +7637,7 @@ export type AlterExprArgs = Merge<[
     notValid?: Expression;
     check?: Expression;
     cascade?: Expression;
+    iceberg?: boolean;
   },
 ]>;
 
@@ -7653,6 +7660,7 @@ export class AlterExpr extends Expression {
     'notValid',
     'check',
     'cascade',
+    'iceberg',
   ]);
 
   declare args: AlterExprArgs;
@@ -10926,6 +10934,23 @@ export class EnginePropertyExpr extends PropertyExpr {
   declare args: EnginePropertyExprArgs;
 
   constructor (args: EnginePropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
+export type UuidPropertyExprArgs = Merge<[
+  PropertyExprArgs,
+]>;
+
+export class UuidPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.UUID_PROPERTY;
+
+  static requiredArgs = new Set(['this']);
+  static availableArgs = new Set(['this']);
+
+  declare args: UuidPropertyExprArgs;
+
+  constructor (args: UuidPropertyExprArgs = {}) {
     super(args);
   }
 }
@@ -14592,6 +14617,7 @@ export type BracketExprArgs = Merge<[
     offset?: number;
     safe?: boolean;
     returnsListForMaps?: Expression[];
+    jsonAccess?: boolean;
   },
 ]>;
 
@@ -14609,6 +14635,7 @@ export class BracketExpr extends ConditionExpr {
     'offset',
     'safe',
     'returnsListForMaps',
+    'jsonAccess',
   ]);
 
   declare args: BracketExprArgs;
@@ -21538,6 +21565,13 @@ export type WeekOfYearExprArgs = Merge<[
 export class WeekOfYearExpr extends FuncExpr {
   static key = ExpressionKey.WEEK_OF_YEAR;
 
+  static override sqlNames (): string[] {
+    return [
+      'WEEK_OF_YEAR',
+      'WEEKOFYEAR',
+    ];
+  }
+
   static argOrder = ['this'];
 
   declare args: WeekOfYearExprArgs;
@@ -22084,6 +22118,13 @@ export type TimestampDiffExprArgs = Merge<[
 export class TimestampDiffExpr extends multiInherit(FuncExpr, TimeUnitExpr) {
   static key = ExpressionKey.TIMESTAMP_DIFF;
 
+  static override sqlNames (): string[] {
+    return [
+      'TIMESTAMPDIFF',
+      'TIMESTAMP_DIFF',
+    ];
+  }
+
   static argOrder = [
     'this',
     'expression',
@@ -22424,6 +22465,13 @@ export type TimeFromPartsExprArgs = Merge<[
 
 export class TimeFromPartsExpr extends FuncExpr {
   static key = ExpressionKey.TIME_FROM_PARTS;
+
+  static override sqlNames (): string[] {
+    return [
+      'TIME_FROM_PARTS',
+      'TIMEFROMPARTS',
+    ];
+  }
 
   static requiredArgs = new Set([
     'hour',
@@ -23643,6 +23691,13 @@ export type GetbitExprArgs = Merge<[
 
 export class GetbitExpr extends FuncExpr {
   static key = ExpressionKey.GETBIT;
+
+  static override sqlNames (): string[] {
+    return [
+      'GETBIT',
+      'GET_BIT',
+    ];
+  }
 
   static requiredArgs = new Set([
     'this',
@@ -28974,8 +29029,8 @@ export class StrToUnixExpr extends FuncExpr {
   ]);
 
   static argOrder = [
-    'format',
     'this',
+    'format',
   ];
 
   declare args: StrToUnixExprArgs;
@@ -29872,8 +29927,8 @@ export class UnixToStrExpr extends FuncExpr {
   ]);
 
   static argOrder = [
-    'format',
     'this',
+    'format',
   ];
 
   declare args: UnixToStrExprArgs;

@@ -959,6 +959,15 @@ class TestMySQL extends Validator {
     }
 
     this.validateAll(
+      "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t",
+      {
+        write: {
+          mysql: "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT DATE_ADD(col, INTERVAL num_days DAY) FROM t",
+          postgres: "WITH t AS (SELECT CAST('2020-01-10' AS DATE) AS col, 5 AS num_days) SELECT col + INTERVAL '1 DAY' * num_days FROM t",
+        },
+      },
+    );
+    this.validateAll(
       'CURDATE()',
       {
         write: {
@@ -1832,6 +1841,71 @@ COMMENT='\u5BA2\u6237\u8D26\u6237\u8868'`,
       { checkCommandWarning: true },
     );
   }
+
+  testIgnoreRespectNulls () {
+    this.validateAll(
+      'SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+      {
+        read: {
+          snowflake: 'SELECT FIRST_VALUE(col1) IGNORE NULLS OVER (ORDER BY col2) FROM table1',
+        },
+        write: {
+          mysql: 'SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+          oracle: 'SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+          postgres: 'SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1',
+      {
+        write: {
+          mysql: 'SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2) FROM table1',
+          oracle: 'SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1',
+          postgres: 'SELECT FIRST_VALUE(col1) OVER (ORDER BY col2 NULLS FIRST) FROM table1',
+          snowflake: 'SELECT FIRST_VALUE(col1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAST_VALUE(col1) OVER (PARTITION BY col3 ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+      {
+        read: {
+          snowflake: 'SELECT LAST_VALUE(col1) IGNORE NULLS OVER (PARTITION BY col3 ORDER BY col2) FROM table1',
+        },
+        write: {
+          mysql: 'SELECT LAST_VALUE(col1) OVER (PARTITION BY col3 ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+          oracle: 'SELECT LAST_VALUE(col1) OVER (PARTITION BY col3 ORDER BY col2 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM table1',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAG(col1) OVER (ORDER BY CASE WHEN col2 IS NULL THEN 1 ELSE 0 END, col2) FROM table1',
+      {
+        read: {
+          snowflake: 'SELECT LAG(col1) IGNORE NULLS OVER (ORDER BY col2) FROM table1',
+        },
+        write: {
+          mysql: 'SELECT LAG(col1) OVER (ORDER BY CASE WHEN col2 IS NULL THEN 1 ELSE 0 END, col2) FROM table1',
+          oracle: 'SELECT LAG(col1) OVER (ORDER BY CASE WHEN col2 IS NULL THEN 1 ELSE 0 END NULLS FIRST, col2 NULLS FIRST) FROM table1',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2) FROM table1',
+      {
+        write: {
+          mysql: 'SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2) FROM table1',
+          oracle: 'SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1',
+          snowflake: 'SELECT LEAD(col1, 1) RESPECT NULLS OVER (ORDER BY col2 NULLS FIRST) FROM table1',
+        },
+      },
+    );
+  }
 }
 
 const t = new TestMySQL();
@@ -1884,4 +1958,5 @@ describe('TestMySQL', () => {
   test('testNumericTrunc', () => t.testNumericTrunc());
   test('testValidIntervalUnits', () => t.testValidIntervalUnits());
   test('testCreateTrigger', () => t.testCreateTrigger());
+  test('testIgnoreRespectNulls', () => t.testIgnoreRespectNulls());
 });

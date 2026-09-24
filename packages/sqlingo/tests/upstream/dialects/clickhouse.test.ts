@@ -248,6 +248,9 @@ class TestClickHouse extends Validator {
       'CREATE TABLE test (id UInt8) ENGINE=AggregatingMergeTree() ORDER BY tuple()',
     );
     this.validateIdentity(
+      "CREATE TABLE test UUID '28f1c61c-2970-457a-bffe-454156ddcfef' (n UInt64) ENGINE=MergeTree",
+    );
+    this.validateIdentity(
       'CREATE TABLE test ON CLUSTER default (id UInt8) ENGINE=AggregatingMergeTree() ORDER BY tuple()',
     );
     this.validateIdentity(

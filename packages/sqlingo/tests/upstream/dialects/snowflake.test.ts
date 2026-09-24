@@ -151,6 +151,16 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT NVL2(col1, col2, col3)');
     this.validateIdentity('SELECT NVL(col1, col2)', 'SELECT COALESCE(col1, col2)');
     this.validateIdentity('SELECT CHR(8364)');
+    this.validateAll(
+      'SELECT CHECK_JSON(x)',
+      {
+        read: { snowflake: 'SELECT CHECK_JSON(x)' },
+        write: {
+          snowflake: 'SELECT CHECK_JSON(x)',
+          duckdb: "SELECT CASE WHEN x IS NULL OR x = '' OR JSON_VALID(x) THEN NULL ELSE 'Invalid JSON' END",
+        },
+      },
+    );
     this.validateIdentity('SELECT CHECK_JSON(\'{"key": "value"}\')');
     this.validateIdentity(
       'SELECT CHECK_XML(\'<root><key attribute="attr">value</key></root>\')',
@@ -614,6 +624,20 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT TO_ARRAY(CAST(x AS ARRAY))');
     this.validateIdentity('SELECT TO_ARRAY(CAST([\'test\'] AS VARIANT))');
     this.validateIdentity('SELECT ARRAY_UNIQUE_AGG(x)');
+    this.validateAll(
+      'SELECT ARRAY_UNIQUE_AGG(col) FROM t',
+      {
+        write: { duckdb: 'SELECT LIST(DISTINCT col) FILTER(WHERE NOT col IS NULL) FROM t' },
+      },
+    );
+    this.validateAll(
+      'SELECT ARRAY_UNIQUE_AGG(col) OVER (PARTITION BY grp) FROM t',
+      {
+        write: {
+          duckdb: 'SELECT LIST(DISTINCT col) FILTER(WHERE NOT col IS NULL) OVER (PARTITION BY grp) FROM t',
+        },
+      },
+    );
     this.validateIdentity('SELECT ARRAY_APPEND([1, 2, 3], 4)');
     this.validateIdentity('SELECT ARRAY_CAT([1, 2], [3, 4])');
     this.validateIdentity('SELECT ARRAY_PREPEND([2, 3, 4], 1)');
@@ -643,6 +667,51 @@ class TestSnowflake extends Validator {
         duckdb: "SELECT 1 WHERE 'abc' LIKE '%a%'",
       },
     });
+    this.validateAll(
+      "SELECT 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' LIKE 'he#%lo' ESCAPE '#' OR 'he%lo' LIKE 'hello' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' LIKE 'he#%lo' ESCAPE '#' AND 'he%lo' LIKE 'he#%lo2' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 'he%lo' ILIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+      {
+        write: {
+          snowflake: "SELECT 'he%lo' ILIKE ANY ('he#%lo', 'hello') ESCAPE '#'",
+          duckdb: "SELECT 'he%lo' ILIKE 'he#%lo' ESCAPE '#' OR 'he%lo' ILIKE 'hello' ESCAPE '#'",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 1 WHERE 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#' AND x = 1",
+      {
+        write: {
+          snowflake: "SELECT 1 WHERE 'he%lo' LIKE ANY ('he#%lo', 'hello') ESCAPE '#' AND x = 1",
+          duckdb: "SELECT 1 WHERE ('he%lo' LIKE 'he#%lo' ESCAPE '#' OR 'he%lo' LIKE 'hello' ESCAPE '#') AND x = 1",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT 1 WHERE 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#' OR x = 1",
+      {
+        write: {
+          snowflake: "SELECT 1 WHERE 'he%lo' LIKE ALL ('he#%lo', 'he#%lo2') ESCAPE '#' OR x = 1",
+          duckdb: "SELECT 1 WHERE ('he%lo' LIKE 'he#%lo' ESCAPE '#' AND 'he%lo' LIKE 'he#%lo2' ESCAPE '#') OR x = 1",
+        },
+      },
+    );
 
     this.validateIdentity('SELECT CURRENT_SCHEMAS()');
     this.validateIdentity('SELECT CURRENT_SECONDARY_ROLES()');
@@ -2121,9 +2190,10 @@ class TestSnowflake extends Validator {
             },
           );
           this.validateAll(
-            'SELECT RLIKE(a, b)',
+            'SELECT a RLIKE b',
             {
               write: {
+                'duckdb': 'SELECT REGEXP_FULL_MATCH(a, b)',
                 'hive': 'SELECT a RLIKE b',
                 'snowflake': 'SELECT REGEXP_LIKE(a, b)',
                 'spark': 'SELECT a RLIKE b',
@@ -2131,9 +2201,41 @@ class TestSnowflake extends Validator {
             },
           );
           this.validateAll(
+            'SELECT a NOT RLIKE b',
+            {
+              write: {
+                'duckdb': 'SELECT NOT REGEXP_FULL_MATCH(a, b)',
+                'hive': 'SELECT NOT a RLIKE b',
+                'snowflake': 'SELECT NOT REGEXP_LIKE(a, b)',
+                'spark': 'SELECT NOT a RLIKE b',
+              },
+            },
+          );
+          this.validateAll(
+            'SELECT RLIKE(a, b)',
+            {
+              write: {
+                'duckdb': "SELECT REGEXP_FULL_MATCH(a, b)",
+                'hive': 'SELECT a RLIKE b',
+                'snowflake': 'SELECT REGEXP_LIKE(a, b)',
+                'spark': 'SELECT a RLIKE b',
+              },
+            },
+          );
+          this.validateAll(
+            "SELECT RLIKE(a, b, 'i')",
+            {
+              write: {
+                'duckdb': "SELECT REGEXP_FULL_MATCH(a, b, 'i')",
+                'snowflake': "SELECT REGEXP_LIKE(a, b, 'i')",
+              },
+            },
+          );
+          this.validateAll(
             '\'foo\' REGEXP \'bar\'',
             {
               write: {
+                'duckdb': "REGEXP_FULL_MATCH('foo', 'bar')",
                 'snowflake': 'REGEXP_LIKE(\'foo\', \'bar\')',
                 'postgres': '\'foo\' ~ \'bar\'',
                 'mysql': 'REGEXP_LIKE(\'foo\', \'bar\')',
@@ -2145,6 +2247,7 @@ class TestSnowflake extends Validator {
             '\'foo\' NOT REGEXP \'bar\'',
             {
               write: {
+                'duckdb': "NOT REGEXP_FULL_MATCH('foo', 'bar')",
                 'snowflake': 'NOT REGEXP_LIKE(\'foo\', \'bar\')',
                 'postgres': 'NOT \'foo\' ~ \'bar\'',
                 'mysql': 'NOT REGEXP_LIKE(\'foo\', \'bar\')',
@@ -5773,6 +5876,15 @@ MATCH_RECOGNIZE (
       'SHOW TERSE TABLES IN SCHEMA db1.schema1 STARTS WITH \'a\' LIMIT 10 FROM \'b\'',
     );
 
+    this.validateIdentity(
+      'SHOW ICEBERG TABLES IN db1.schema1',
+      'SHOW ICEBERG TABLES IN SCHEMA db1.schema1',
+    );
+    this.validateIdentity(
+      'SHOW TERSE ICEBERG TABLES IN db1.schema1',
+      'SHOW TERSE ICEBERG TABLES IN SCHEMA db1.schema1',
+    );
+
     const ast = parseOne('SHOW TABLES IN db1.schema1', {
       read: 'snowflake',
     });
@@ -5780,6 +5892,45 @@ MATCH_RECOGNIZE (
     expect(ast.find(TableExpr)?.sql({
       dialect: 'snowflake',
     })).toBe('db1.schema1');
+    expect(ast.args.iceberg).toBeFalsy();
+
+    const ast2 = parseOne('SHOW ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
+
+    expect(ast2.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
+    expect(ast2.args.iceberg).toBe(true);
+
+    const ast3 = parseOne('SHOW TERSE ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
+
+    expect(ast3.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
+    expect(ast3.args.terse).toBe(true);
+    expect(ast3.args.iceberg).toBe(true);
+  }
+
+  testAlterIcebergTable () {
+    const ast = this.validateIdentity('ALTER ICEBERG TABLE t RENAME TO x');
+
+    expect(ast.args.iceberg).toBe(true);
+
+    this.validateAll(
+      'ALTER ICEBERG TABLE t RENAME TO x',
+      {
+        write: {
+          snowflake: 'ALTER ICEBERG TABLE t RENAME TO x',
+          duckdb: 'ALTER TABLE t RENAME TO x',
+        },
+      },
+    );
+  }
+
+  testDropIcebergTable () {
+    const ast = this.validateIdentity('DROP ICEBERG TABLE t');
+
+    expect(ast.args.iceberg).toBe(true);
+    this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t');
+    const ast2 = this.validateIdentity('DROP ICEBERG TABLE t RESTRICT');
+
+    expect(ast2.args.restrict).toBe(true);
+    this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t RESTRICT');
   }
 
   testShowPrimaryKeys () {
@@ -7875,6 +8026,12 @@ describe('TestSnowflake', () => {
     validator.testShowTables();
   });
 
+  test('test alter iceberg table', () => {
+    validator.testAlterIcebergTable();
+  });
+  test('test drop iceberg table', () => {
+    validator.testDropIcebergTable();
+  });
   test('test show primary keys', () => {
     validator.testShowPrimaryKeys();
   });

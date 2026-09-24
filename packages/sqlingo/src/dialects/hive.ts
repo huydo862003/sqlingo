@@ -826,7 +826,7 @@ class HiveParser extends Parser {
           'char',
           'varchar',
         ])) {
-          return node.replace(DataTypeExpr.build('text')) as Expression | undefined;
+          return node.replace(DataTypeExpr.build(DataTypeExprKind.TEXT)) as Expression | undefined;
         }
 
         return node;
@@ -1641,7 +1641,7 @@ class HiveGenerator extends Generator {
       expression.isType(Generator.PARAMETERIZABLE_TEXT_TYPES)
       && (!expression.args.expressions || (expression.args.expressions[0] as IdentifierExpr).name === 'MAX')
     ) {
-      expression = DataTypeExpr.build('text') ?? expression;
+      expression = DataTypeExpr.build(DataTypeExprKind.TEXT) ?? expression;
     } else if (expression.isType(DataTypeExprKind.TEXT) && expression.args.expressions) {
       expression.setArgKey('this', DataTypeExprKind.VARCHAR);
     } else if (expression.isType(DataTypeExpr.TEMPORAL_TYPES)) {
@@ -1652,7 +1652,7 @@ class HiveGenerator extends Generator {
       if (sizeExpression instanceof DataTypeParamExpr) {
         const size = parseInt(sizeExpression.args.this?.args.this?.toString() ?? '0');
 
-        expression = (size <= 32 ? DataTypeExpr.build('float') : DataTypeExpr.build('double')) ?? expression;
+        expression = (size <= 32 ? DataTypeExpr.build(DataTypeExprKind.FLOAT) : DataTypeExpr.build(DataTypeExprKind.DOUBLE)) ?? expression;
       }
     }
 

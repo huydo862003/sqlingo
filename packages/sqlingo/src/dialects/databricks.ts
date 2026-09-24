@@ -352,7 +352,7 @@ class DatabricksGenerator extends Spark.Generator {
       && DataTypeExpr.INTEGER_TYPES.has(kind.args.this as DataTypeExprKind)
     ) {
       // only BIGINT generated identity constraints are supported
-      expression.setArgKey('kind', DataTypeExpr.build('bigint'));
+      expression.setArgKey('kind', DataTypeExpr.build(DataTypeExprKind.BIGINT));
     }
 
     return super.columnDefSql(expression, {

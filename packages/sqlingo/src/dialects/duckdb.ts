@@ -61,6 +61,9 @@ import type {
   SplitPartExpr,
   StrPositionExpr,
   StrtokExpr,
+
+  ArrayUniqueAggExpr,
+  CheckJsonExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -81,7 +84,6 @@ import {
   ArrayRemoveExpr,
   ArraySortExpr,
   ArraySumExpr,
-  ArrayUniqueAggExpr,
   Base64DecodeBinaryExpr,
   Base64DecodeStringExpr,
   BitwiseAndExpr,
@@ -136,6 +138,7 @@ import {
   toIdentifier,
   TableFromRowsExpr,
   InitcapExpr,
+  IcebergPropertyExpr,
   IntDivExpr,
   IsArrayExpr,
   IsInfExpr,
@@ -722,9 +725,9 @@ function toBooleanSql (this: Generator, expression: ToBooleanExpr): string {
   let caseExpr: CaseExpr;
 
   if (isSafe) {
-    caseExpr = baseCaseExpr.else(func('TRY_CAST', arg!, DataTypeExpr.build('BOOLEAN')!));
+    caseExpr = baseCaseExpr.else(func('TRY_CAST', arg!, DataTypeExpr.build(DataTypeExprKind.BOOLEAN)!));
   } else {
-    const castToReal = func('TRY_CAST', arg!, DataTypeExpr.build('REAL')!);
+    const castToReal = func('TRY_CAST', arg!, DataTypeExpr.build(DataTypeExprKind.FLOAT)!);
     const nanInfCheck = new OrExpr({
       this: func('ISNAN', castToReal),
       expression: func('ISINF', castToReal),
@@ -2030,7 +2033,7 @@ function regrValSql (this: Generator, expression: RegrValxExpr | RegrValyExpr): 
 
   // Default to DOUBLE for regression if still unknown
   if (!resultType || typeof resultType === 'string' || resultType.args.this === DataTypeExprKind.UNKNOWN) {
-    resultType = DataTypeExpr.build('DOUBLE');
+    resultType = DataTypeExpr.build(DataTypeExprKind.DOUBLE);
   }
 
   const typedNull = new CastExpr({
@@ -2433,7 +2436,6 @@ class DuckDBParser extends Parser {
         ANY_VALUE: (args: Expression[]) => new IgnoreNullsExpr({
           this: AnyValueExpr.fromArgList(args),
         }),
-        APPROX_QUANTILE: (args: unknown[]) => ApproxQuantileExpr.fromArgList(args),
         ARRAY_PREPEND: buildArrayPrepend,
         ARRAY_INTERSECT: (args: unknown[]) => new ArrayIntersectExpr({
           expressions: args as Expression[],
@@ -2626,7 +2628,7 @@ class DuckDBParser extends Parser {
   static get TYPE_CONVERTERS () {
     return {
       [DataTypeExprKind.DECIMAL]: buildDefaultDecimalType(18, 3),
-      [DataTypeExprKind.TEXT]: () => DataTypeExpr.build('TEXT') ?? new DataTypeExpr({
+      [DataTypeExprKind.TEXT]: () => DataTypeExpr.build(DataTypeExprKind.TEXT) ?? new DataTypeExpr({
         this: DataTypeExprKind.TEXT,
       }),
     };
@@ -2875,8 +2877,15 @@ class DuckDBParser extends Parser {
   }
 
   parseShowDuckdb (thisStr: string): ShowExpr {
+    const from = this.match(TokenType.FROM)
+      ? this.parseTable({
+        schema: true,
+      })
+      : undefined;
+
     return this.expression(ShowExpr, {
       this: thisStr,
+      from,
     });
   }
 
@@ -2973,6 +2982,7 @@ class DuckDBGenerator extends Generator {
   static IGNORE_NULLS_IN_FUNC = true;
   static IGNORE_NULLS_BEFORE_ORDER = false;
   static JSON_PATH_BRACKETED_KEY_SUPPORTED = false;
+  static SUPPORTS_DROP_ALTER_ICEBERG_PROPERTY = false;
   static SUPPORTS_CREATE_TABLE_LIKE = false;
   static MULTI_ARG_DISTINCT = false;
   static CAN_IMPLEMENT_ARRAY_ANY = true;
@@ -3090,16 +3100,7 @@ class DuckDBGenerator extends Generator {
         ArraySumExpr,
         renameFunc('LIST_SUM'),
       ],
-      [
-        ArrayUniqueAggExpr,
-        function (this: Generator, e) {
-          return this.func('LIST', [
-            new DistinctExpr({
-              expressions: [e.args.this],
-            }),
-          ]);
-        },
-      ],
+      // ArrayUniqueAggExpr handled by arrayUniqueAggSql method
       [
         Base64DecodeBinaryExpr,
         function (this: Generator, e) {
@@ -3353,6 +3354,12 @@ class DuckDBGenerator extends Generator {
       [
         ExplodeExpr,
         renameFunc('UNNEST'),
+      ],
+      [
+        IcebergPropertyExpr,
+        function () {
+          return '';
+        },
       ],
       [
         IntDivExpr,
@@ -4138,6 +4145,7 @@ class DuckDBGenerator extends Generator {
     locations.set(TemporaryPropertyExpr, PropertiesLocation.POST_CREATE);
     locations.set(ReturnsPropertyExpr, PropertiesLocation.POST_ALIAS);
     locations.set(SequencePropertiesExpr, PropertiesLocation.POST_EXPRESSION);
+    locations.set(IcebergPropertyExpr, PropertiesLocation.POST_CREATE);
 
     return locations;
   }
@@ -4684,7 +4692,10 @@ class DuckDBGenerator extends Generator {
   }
 
   showSql (expression: ShowExpr): string {
-    return `SHOW ${expression.name}`;
+    const from = this.sql(expression, 'from');
+    const fromSql = from ? ` FROM ${from}` : '';
+
+    return `SHOW ${expression.name}${fromSql}`;
   }
 
   installSql (expression: InstallExpr): string {
@@ -4777,7 +4788,7 @@ class DuckDBGenerator extends Generator {
     const thisNode = expression.args.this;
     const timeFormat = this.formatTime(expression);
     const safe = expression.args.safe;
-    const timeType = DataTypeExpr.build('TIME', {
+    const timeType = DataTypeExpr.build(DataTypeExprKind.TIME, {
       dialect: 'duckdb',
     });
     const CastClass = safe ? TryCastExpr : CastExpr;
@@ -4837,33 +4848,21 @@ class DuckDBGenerator extends Generator {
     const pattern = expression.args.expression;
     let flag = expression.args.flag;
 
-    if (!expression.args.fullMatch) {
-      return this.func('REGEXP_MATCHES', [
+    if (expression.args.fullMatch) {
+      const validatedFlags = this.validateRegexpFlags(flag, 'cims');
+
+      flag = validatedFlags ? LiteralExpr.string(validatedFlags) : undefined;
+
+      return this.func('REGEXP_FULL_MATCH', [
         thisExpr,
         pattern,
         flag,
       ] as Expression[]);
     }
 
-    const validatedFlags = this.validateRegexpFlags(flag, 'cims');
-
-    const anchoredPattern = new ConcatExpr({
-      expressions: [
-        LiteralExpr.string('^('),
-        new ParenExpr({
-          this: pattern,
-        }),
-        LiteralExpr.string(')$'),
-      ],
-    });
-
-    if (validatedFlags) {
-      flag = LiteralExpr.string(validatedFlags);
-    }
-
     return this.func('REGEXP_MATCHES', [
       thisExpr,
-      anchoredPattern,
+      pattern,
       flag,
     ] as Expression[]);
   }
@@ -4928,6 +4927,26 @@ class DuckDBGenerator extends Generator {
     }
 
     return func;
+  }
+
+  arrayUniqueAggSql (expression: ArrayUniqueAggExpr): string {
+    const thisExpr = expression.args.this as Expression;
+
+    return this.sql(
+      new FilterExpr({
+        this: func('LIST', new DistinctExpr({
+          expressions: [thisExpr],
+        })),
+        expression: new WhereExpr({
+          this: new NotExpr({
+            this: new IsExpr({
+              this: thisExpr.copy(),
+              expression: new NullExpr(),
+            }),
+          }),
+        }),
+      }),
+    );
   }
 
   arraydistinctSql (expression: ArrayDistinctExpr): string {
@@ -5348,6 +5367,26 @@ class DuckDBGenerator extends Generator {
     return this.sql(expr);
   }
 
+  checkJsonSql (expression: CheckJsonExpr): string {
+    const arg = expression.args.this as Expression;
+
+    return this.sql(
+      case_()
+        .when(
+          or([
+            new IsExpr({
+              this: arg,
+              expression: new NullExpr(),
+            }),
+            arg.eq(LiteralExpr.string('')),
+            func('json_valid', arg),
+          ]),
+          null_(),
+        )
+        .else(LiteralExpr.string('Invalid JSON')),
+    );
+  }
+
   parseJsonSql (expression: ParseJsonExpr): string {
     const arg = expression.args.this;
 
@@ -5504,7 +5543,7 @@ class DuckDBGenerator extends Generator {
         new AddExpr({
           this: new CastExpr({
             this: LiteralExpr.string('00:00:00'),
-            to: DataTypeExpr.build('TIME'),
+            to: DataTypeExpr.build(DataTypeExprKind.TIME),
           }),
           expression: new IntervalExpr({
             this: totalSeconds,
@@ -5620,7 +5659,7 @@ class DuckDBGenerator extends Generator {
       if (partName === 'EPOCH_SECOND') {
         result = new CastExpr({
           this: result,
-          to: DataTypeExpr.build('BIGINT', {
+          to: DataTypeExpr.build(DataTypeExprKind.BIGINT, {
             dialect: 'duckdb',
           }),
         });

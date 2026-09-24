@@ -183,7 +183,7 @@ function dateTypeHandler (args: Expression[], {
       ],
       coalesce: resolvedDialect._constructor.CONCAT_COALESCE,
     }),
-    to: DataTypeExpr.build('DATE'),
+    to: DataTypeExpr.build(DataTypeExprKind.DATE),
   });
 }
 
@@ -272,7 +272,7 @@ class DremioParser extends Parser {
         this: new CurrentTimestampExpr({}),
         zone: LiteralExpr.string('UTC'),
       }),
-      to: DataTypeExpr.build('DATE'),
+      to: DataTypeExpr.build(DataTypeExprKind.DATE),
     });
   }
 
