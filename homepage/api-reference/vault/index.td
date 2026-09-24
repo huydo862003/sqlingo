@@ -1,9 +1,9 @@
 ---
 _icon: icon.book
-description: "API reference for sqlingo: a JavaScript/TypeScript SQL parser, transpiler, and optimizer supporting 32 dialects."
+description: "API reference for sqlingo (sqlingojs): a TypeScript SQL parser, transpiler, and query optimizer supporting 32 dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB."
 ---
 
-A JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot), the popular Python SQL parser. Parse, transpile, optimize, and build SQL across 32 dialects, in the browser or Node.js.
+A TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot), the popular Python SQL parser. Parse, transpile, optimize, and build SQL across 32 dialects, in the browser or Node.js.
 
 sqlingo reads SQL in one dialect, builds an abstract syntax tree (AST), and writes it back in another dialect. This means `DATE_SUB(d, INTERVAL 1 DAY)` in MySQL becomes `d - INTERVAL '1 DAY'` in Postgres, without string manipulation.
 

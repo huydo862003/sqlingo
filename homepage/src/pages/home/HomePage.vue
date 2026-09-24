@@ -21,11 +21,10 @@
         </div>
 
         <h1 class="td-hero-title">
-          A TypeScript port of <span class="td-hero-accent">SQLGlot</span>.
+          TypeScript <span class="td-hero-accent">SQL parser</span> and transpiler.
         </h1>
         <p class="td-hero-desc">
-          Parse, transpile, and optimize SQL across 32 dialects, in the
-          browser or in Node.js.
+          sqlingo is a port of <a href="https://github.com/tobymao/sqlglot" target="_blank" rel="noopener noreferrer" class="td-link">SQLGlot</a>. Parse, transpile, and optimize SQL across 32 dialects, in the browser or Node.js.
         </p>
 
         <div class="td-hero-actions">
@@ -330,6 +329,9 @@ const scriptTag = 'script';
 useSeoMeta({
   title: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
   ogTitle: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogType: 'website',
+  ogUrl: 'https://huydo862003.github.io/sqlingo/',
+  ogImage: 'https://huydo862003.github.io/sqlingo/og-image.png',
   description:
     'sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer ported from Python SQLGlot. Parse, convert, and optimize SQL across 32 dialects including BigQuery, Snowflake, Postgres, MySQL, DuckDB, and Spark. Runs in Node.js and the browser.',
   ogDescription:

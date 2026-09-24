@@ -62,8 +62,12 @@ import {
 useSeoMeta({
   title: 'SQL Transpiler Playground | sqlingo - Convert SQL Between Dialects',
   ogTitle: 'SQL Transpiler Playground | sqlingo',
+  ogType: 'website',
+  ogUrl: 'https://huydo862003.github.io/sqlingo/playground/',
+  ogImage: 'https://huydo862003.github.io/sqlingo/og-image.png',
   description: 'Online SQL transpiler playground. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and 27 more dialects. Also converts SQL to DBML. Runs entirely in the browser.',
   ogDescription: 'Online SQL transpiler playground. Convert SQL between 32 dialects and SQL to DBML. Runs in the browser.',
+  keywords: 'sql transpiler online, sql converter, convert sql between dialects, sql playground, bigquery to postgres, mysql to snowflake, sqlingo, sqlingojs, sql to dbml',
 });
 
 const store = usePlaygroundStore();
