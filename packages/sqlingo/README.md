@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo/blob/master/LICENSE)
-![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.0.0-blue)
+![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.1.0-blue)
 <a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
 
 A JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot) which is compatible with browser and Node runtimes.
