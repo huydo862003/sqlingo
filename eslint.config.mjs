@@ -7,6 +7,14 @@ export default [
   ...vueConfig.map((config) => ({
     files: ['./homepage/**/*.vue'],
     ...config,
+    ...(config.plugins?.vue ? {
+      rules: {
+        ...config.rules,
+        'vue/no-undef-components': ['error', {
+          ignorePatterns: ['ClientOnly'],
+        }],
+      },
+    } : {}),
   })),
   ...tailwindConfig('./homepage/src/style.css').map((config) => ({
     files: ['./homepage/**/*.vue'],

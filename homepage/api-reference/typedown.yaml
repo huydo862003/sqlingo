@@ -4,7 +4,7 @@ vault:
 repo: "https://github.com/huydo862003/sqlingo"
 site:
   title: "sqlingo API Reference"
-  description: "API reference for sqlingo - a SQL parser, transpiler, and optimizer for JavaScript/TypeScript"
+  description: "API reference for sqlingo (sqlingojs), a TypeScript SQL parser, transpiler, and optimizer ported from SQLGlot. Covers 32 SQL dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB."
   author: "Huy-DNA"
   license: "MIT License"
   base_path: "/sqlingo/api-reference"

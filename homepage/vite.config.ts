@@ -1,6 +1,4 @@
-import path, {
-  resolve,
-} from 'node:path';
+import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import {
@@ -23,10 +21,6 @@ export default defineConfig({
     outDir: '../doc',
     emptyOutDir: false,
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        playground: resolve(__dirname, 'playground/index.html'),
-      },
       output: {
         manualChunks (id) {
           if (id.includes('node_modules/vue/')) return 'vue';
@@ -34,6 +28,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  ssgOptions: {
+    script: 'async',
+    formatting: 'minify',
   },
   plugins: [
     vue(),

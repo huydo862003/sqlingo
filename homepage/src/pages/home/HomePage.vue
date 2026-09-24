@@ -21,11 +21,15 @@
         </div>
 
         <h1 class="td-hero-title">
-          A TypeScript port of <span class="td-hero-accent">SQLGlot</span>.
+          TypeScript <span class="td-hero-accent">SQL parser</span> and transpiler.
         </h1>
         <p class="td-hero-desc">
-          Parse, transpile, and optimize SQL across 32 dialects, in the
-          browser or in Node.js.
+          sqlingo is a port of <a
+            href="https://github.com/tobymao/sqlglot"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="td-link"
+          >SQLGlot</a>. Parse, transpile, and optimize SQL across 32 dialects, in the browser or Node.js.
         </p>
 
         <div class="td-hero-actions">
@@ -95,28 +99,32 @@
                 {{ codeCopied ? 'copied' : 'copy' }}
               </button>
             </div>
-            <GCodeBlock
-              :id="`demo-${name}`"
-              :code="demo.code"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <GCodeBlock
+                :id="`demo-${name}`"
+                :code="demo.code"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-bar td-demo-bar--returns">
               <span class="td-demo-dot td-demo-dot--success" />
               <span class="td-demo-bar-label td-demo-bar-label--success">RETURNS</span>
             </div>
-            <GCodeBlock
-              :id="`demo-result-${name}`"
-              :code="demo.result"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <GCodeBlock
+                :id="`demo-result-${name}`"
+                :code="demo.result"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-caption">
               {{ demo.note }}
             </div>
@@ -288,7 +296,9 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "sqlingo",
-        "description": "sqlingo is a JavaScript/TypeScript port of SQLGlot, a SQL parser, transpiler, and optimizer supporting 32 dialects.",
+        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler,"
+          + " and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.",
+        "alternateName": "sqlingojs",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "All",
         "license": "https://opensource.org/licenses/MIT",
@@ -327,12 +337,15 @@ import {
 const scriptTag = 'script';
 
 useSeoMeta({
-  title: 'Home | sqlingo',
-  ogTitle: 'Home | sqlingo',
+  title: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogTitle: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogType: 'website',
+  ogUrl: 'https://huydo862003.github.io/sqlingo/',
+  ogImage: 'https://huydo862003.github.io/sqlingo/og-image.png',
   description:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer ported from Python SQLGlot. Parse, convert, and optimize SQL across 32 dialects including BigQuery, Snowflake, Postgres, MySQL, DuckDB, and Spark. Runs in Node.js and the browser.',
   ogDescription:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'TypeScript SQL parser and transpiler supporting 32 dialects. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and more. Open-source port of SQLGlot.',
 });
 
 const installCopied = ref(false);
