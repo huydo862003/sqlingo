@@ -1,25 +1,28 @@
 import {
-  createApp,
-} from 'vue';
+  ViteSSG,
+} from 'vite-ssg';
 import {
   createPinia,
 } from 'pinia';
-import {
-  createHead,
-} from '@unhead/vue/client';
 import App from './App.vue';
 import {
-  router,
+  routes,
 } from './router';
 import './style.css';
 
-const app = createApp(App);
+export const createApp = ViteSSG(
+  App,
+  {
+    routes,
+    base: import.meta.env.BASE_URL,
+  },
+  ({
+    app, isClient,
+  }) => {
+    app.use(createPinia());
 
-app.use(createPinia());
-app.use(createHead());
-app.use(router);
-
-app.mount('#app');
-
-// Force light theme
-document.documentElement.classList.remove('dark');
+    if (isClient) {
+      document.documentElement.classList.remove('dark');
+    }
+  },
+);

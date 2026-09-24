@@ -32,12 +32,14 @@
         </div>
       </div>
 
-      <div v-if="tab === Tab.Transpile">
-        <SqlTranspile />
-      </div>
-      <div v-else>
-        <SqlToDbml />
-      </div>
+      <ClientOnly>
+        <div v-if="tab === Tab.Transpile">
+          <SqlTranspile />
+        </div>
+        <div v-else>
+          <SqlToDbml />
+        </div>
+      </ClientOnly>
 
       <div class="mt-12" />
     </main>

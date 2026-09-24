@@ -43,47 +43,6 @@
 <body>
   <div id="app"></div>
 
-  <!-- Pre-rendered content for crawlers (hidden when JS loads) -->
-  <noscript>
-    <main>
-      <h1>sqlingo: TypeScript SQL Parser, Transpiler & Optimizer</h1>
-      <p>sqlingo is a TypeScript port of <a href="https://github.com/tobymao/sqlglot">SQLGlot</a>, the popular Python SQL parser. Parse, transpile, and optimize SQL across 32 dialects in the browser or Node.js.</p>
-
-      <h2>Install</h2>
-      <pre><code>npm install sqlingo</code></pre>
-
-      <h2>Features</h2>
-      <ul>
-        <li><strong>SQL Parser</strong>: Parse any SQL string into a typed AST (abstract syntax tree)</li>
-        <li><strong>SQL Transpiler</strong>: Convert SQL between 32 dialects (BigQuery, Snowflake, Postgres, MySQL, DuckDB, Spark, and more)</li>
-        <li><strong>Query Optimizer</strong>: Qualify columns, simplify conditions, expand stars</li>
-        <li><strong>SQL Builder</strong>: Construct queries programmatically with a fluent API</li>
-        <li><strong>Column Lineage</strong>: Trace column origins through subqueries and aliases</li>
-      </ul>
-
-      <h2>Supported SQL Dialects</h2>
-      <p>Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, Dune, Exasol, Fabric, Hive, Materialize, MySQL, Oracle, Postgres, Presto, PRQL, Redshift, RisingWave, SingleStore, Snowflake, Solr, Spark, Spark2, SQLite, StarRocks, Tableau, Teradata, Trino, TSQL</p>
-
-      <h2>Example: Transpile MySQL to Postgres</h2>
-      <pre><code>import { transpile } from "sqlingo";
-import { MySQL } from "sqlingo/mysql";
-import { Postgres } from "sqlingo/postgres";
-
-const [sql] = transpile(
-  "SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t",
-  { read: MySQL, write: Postgres },
-);
-// "SELECT d - INTERVAL '1 DAY' FROM t"</code></pre>
-
-      <nav>
-        <a href="/sqlingo/playground/">Try the Playground</a> |
-        <a href="/sqlingo/api-reference/">API Reference</a> |
-        <a href="https://github.com/huydo862003/sqlingo">GitHub</a> |
-        <a href="https://www.npmjs.com/package/sqlingo">npm</a>
-      </nav>
-    </main>
-  </noscript>
-
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

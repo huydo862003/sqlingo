@@ -24,7 +24,12 @@
           TypeScript <span class="td-hero-accent">SQL parser</span> and transpiler.
         </h1>
         <p class="td-hero-desc">
-          sqlingo is a port of <a href="https://github.com/tobymao/sqlglot" target="_blank" rel="noopener noreferrer" class="td-link">SQLGlot</a>. Parse, transpile, and optimize SQL across 32 dialects, in the browser or Node.js.
+          sqlingo is a port of <a
+            href="https://github.com/tobymao/sqlglot"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="td-link"
+          >SQLGlot</a>. Parse, transpile, and optimize SQL across 32 dialects, in the browser or Node.js.
         </p>
 
         <div class="td-hero-actions">
@@ -94,28 +99,32 @@
                 {{ codeCopied ? 'copied' : 'copy' }}
               </button>
             </div>
-            <GCodeBlock
-              :id="`demo-${name}`"
-              :code="demo.code"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <GCodeBlock
+                :id="`demo-${name}`"
+                :code="demo.code"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-bar td-demo-bar--returns">
               <span class="td-demo-dot td-demo-dot--success" />
               <span class="td-demo-bar-label td-demo-bar-label--success">RETURNS</span>
             </div>
-            <GCodeBlock
-              :id="`demo-result-${name}`"
-              :code="demo.result"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <GCodeBlock
+                :id="`demo-result-${name}`"
+                :code="demo.result"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-caption">
               {{ demo.note }}
             </div>
@@ -287,7 +296,8 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "sqlingo",
-        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects including BigQuery, Snowflake, Postgres, MySQL, and DuckDB.",
+        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler,"
+          + " and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.",
         "alternateName": "sqlingojs",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "All",
