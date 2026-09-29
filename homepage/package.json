@@ -27,7 +27,7 @@
   "devDependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^25.9.5",
+    "@types/node": "^26.6.3",
     "@unhead/vue": "^3.4.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "tailwindcss": "^4.3.3",
