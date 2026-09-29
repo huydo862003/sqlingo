@@ -100,6 +100,9 @@
               </button>
             </div>
             <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder" />
+              </template>
               <GCodeBlock
                 :id="`demo-${name}`"
                 :code="demo.code"
@@ -115,6 +118,9 @@
               <span class="td-demo-bar-label td-demo-bar-label--success">RETURNS</span>
             </div>
             <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder td-code-placeholder--short" />
+              </template>
               <GCodeBlock
                 :id="`demo-result-${name}`"
                 :code="demo.result"
@@ -224,42 +230,44 @@
         </div>
         <div class="td-prose">
           <p class="td-prose-lead">
-            I maintain
+            At work I maintain
             <a
               href="https://github.com/holistics/dbml"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
-            >@dbml/core</a>
-            at work. It converts between DBML and SQL using ANTLR, and honestly it's been a mess:
+            >@dbml/core</a>, a library that converts between DBML and SQL.
+            Under the hood it uses ANTLR, and it has not aged well:
           </p>
           <ul class="td-prose-list">
-            <li><code>@dbml/core</code> is 33 MB. It broke our CI with OOM errors.</li>
-            <li>Can't add more dialects without making the bundle even larger.</li>
-            <li>The parser is incomplete and spits out <code>No viable alternative at....</code></li>
-            <li>After all that, we only support 5 dialects.</li>
+            <li>The package is 33 MB. It actually broke our CI with out-of-memory errors.</li>
+            <li>Adding a new dialect means making the bundle even larger.</li>
+            <li>The parser is incomplete, with error messages like <code>No viable alternative at....</code></li>
+            <li>After all of that, we still only support 5 dialects.</li>
           </ul>
           <p class="td-prose-body">
-            At a hackathon I found
+            At a hackathon I stumbled on
             <a
               href="https://github.com/tobymao/sqlglot"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
-            >SQLGlot</a>.
-            Exactly what I needed. Too bad it's Python. Tried Pyodide, too heavy.
+            >SQLGlot</a>,
+            which does exactly what I needed. The catch: it's Python.
+            I tried running it via Pyodide, but the runtime is too heavy to ship.
           </p>
           <p class="td-prose-body">
-            So I started porting it to JS. Two weeks in,
+            So I started porting it to JavaScript. Two weeks in,
             <a
               href="https://github.com/tobilg/polyglot"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
             >polyglot</a>
-            was announced (if only it were sooner). Kept going anyway; I wanted full
-            control and a way to stay in sync with upstream. sqlingo mirrors SQLGlot file for file.
-            Catching up with upstream is a diff, not a rewrite.
+            was announced. I kept going because I wanted full control over the
+            implementation and a reliable way to stay in sync with upstream.
+            sqlingo mirrors SQLGlot file for file, so catching up with a new
+            release is a diff, not a rewrite.
           </p>
         </div>
       </div>
@@ -739,6 +747,15 @@ const shownCount = computed(() =>
   color: var(--gui-neutral-fg);
 }
 
+.td-code-placeholder {
+  min-height: 180px;
+  background: var(--color-neutral-1);
+}
+
+.td-code-placeholder--short {
+  min-height: 100px;
+}
+
 .td-demo-caption {
   padding: 16px 20px;
   background: var(--gui-neutral-bg-subtle);
@@ -986,6 +1003,7 @@ const shownCount = computed(() =>
 .td-prose-list {
   margin: 0 0 26px;
   padding: 0 0 0 18px;
+  list-style: disc;
   display: flex;
   flex-direction: column;
   gap: 10px;
