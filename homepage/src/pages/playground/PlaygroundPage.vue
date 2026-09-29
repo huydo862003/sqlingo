@@ -32,12 +32,14 @@
         </div>
       </div>
 
-      <div v-if="tab === Tab.Transpile">
-        <SqlTranspile />
-      </div>
-      <div v-else>
-        <SqlToDbml />
-      </div>
+      <ClientOnly>
+        <div v-if="tab === Tab.Transpile">
+          <SqlTranspile />
+        </div>
+        <div v-else>
+          <SqlToDbml />
+        </div>
+      </ClientOnly>
 
       <div class="mt-12" />
     </main>
@@ -60,10 +62,13 @@ import {
 } from '@/stores/playground';
 
 useSeoMeta({
-  title: 'Playground: SQL Transpiler & SQL to DBML | sqlingo',
-  ogTitle: 'Playground: SQL Transpiler & SQL to DBML | sqlingo',
-  description: 'Try sqlingo in your browser. Convert between SQL dialects and DBML.',
-  ogDescription: 'Try sqlingo in your browser. Convert between SQL dialects and DBML.',
+  title: 'SQL Transpiler Playground | sqlingo - Convert SQL Between Dialects',
+  ogTitle: 'SQL Transpiler Playground | sqlingo',
+  ogType: 'website',
+  ogUrl: 'https://huydo862003.github.io/sqlingo/playground/',
+  ogImage: 'https://huydo862003.github.io/sqlingo/og-image.png',
+  description: 'Online SQL transpiler playground. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and 27 more dialects. Also converts SQL to DBML. Runs entirely in the browser.',
+  ogDescription: 'Online SQL transpiler playground. Convert SQL between 32 dialects and SQL to DBML. Runs in the browser.',
 });
 
 const store = usePlaygroundStore();

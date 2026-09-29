@@ -73,13 +73,13 @@
 <script setup lang="ts">
 import {
   ref, computed, watch, onMounted,
+  defineAsyncComponent,
 } from 'vue';
 import {
   GSelect, GSelectOption, GSelectSize, GSelectVariant,
   GButton, GButtonProminence, GButtonSize,
   GIcon, GIconName,
 } from '@hdnax/genuix';
-import MonacoEditor from './MonacoEditor.vue';
 import {
   transpile,
 } from '@/services/transpile';
@@ -89,6 +89,13 @@ import {
 import {
   usePlaygroundStore,
 } from '@/stores/playground';
+
+const MonacoEditor = defineAsyncComponent({
+  loader: () => import('./MonacoEditor.vue'),
+  loadingComponent: {
+    template: '<div class="h-112 w-full bg-white" />',
+  },
+});
 
 const store = usePlaygroundStore();
 const fromDialect = computed({

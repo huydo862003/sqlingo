@@ -1,14 +1,10 @@
 <template>
-  <div
-    ref="containerElement"
-    class="h-112 w-full"
-  />
+  <div ref="containerElement" class="h-112 w-full" />
 </template>
 
 <script setup lang="ts">
 import {
-  onMounted, onBeforeUnmount, watch,
-  useTemplateRef,
+  onMounted, onBeforeUnmount, watch, useTemplateRef,
 } from 'vue';
 // eslint-disable-next-line import/no-namespace
 import * as monaco from 'monaco-editor';
@@ -17,11 +13,12 @@ import {
   dbmlMonarchTokensProvider,
 } from '@dbml/parse';
 
-const content = defineModel<string | undefined>();
+const content = defineModel<string | undefined>({
+  default: undefined,
+});
 
 const {
-  language = 'sql',
-  readOnly = false,
+  language = 'sql', readOnly = false,
 } = defineProps<{
   /** Language mode for syntax highlighting */
   language?: string;
@@ -36,10 +33,14 @@ self.MonacoEnvironment = {
 monaco.languages.register({
   id: 'dbml',
 });
-monaco.languages.setMonarchTokensProvider('dbml', dbmlMonarchTokensProvider as monaco.languages.IMonarchLanguage);
+monaco.languages.setMonarchTokensProvider(
+  'dbml',
+  dbmlMonarchTokensProvider as monaco.languages.IMonarchLanguage,
+);
 
 function resolveToken (token: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(token)
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
     .trim();
 }
 
@@ -102,11 +103,14 @@ watch(content, (newValue) => {
   if (editor && editor.getValue() !== newValue) editor.setValue(newValue ?? '');
 });
 
-watch(() => language, (newLanguage) => {
-  const model = editor?.getModel();
+watch(
+  () => language,
+  (newLanguage) => {
+    const model = editor?.getModel();
 
-  if (model) monaco.editor.setModelLanguage(model, newLanguage);
-});
+    if (model) monaco.editor.setModelLanguage(model, newLanguage);
+  },
+);
 
 onBeforeUnmount(() => {
   editor?.dispose();

@@ -21,11 +21,15 @@
         </div>
 
         <h1 class="td-hero-title">
-          A TypeScript port of <span class="td-hero-accent">SQLGlot</span>.
+          TypeScript <span class="td-hero-accent">SQL parser</span> and transpiler.
         </h1>
         <p class="td-hero-desc">
-          Parse, transpile, and optimize SQL across 32 dialects, in the
-          browser or in Node.js.
+          sqlingo is a port of <a
+            href="https://github.com/tobymao/sqlglot"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="td-link"
+          >SQLGlot</a>. Parse, transpile, and optimize SQL across 32 dialects, in the browser or Node.js.
         </p>
 
         <div class="td-hero-actions">
@@ -95,28 +99,38 @@
                 {{ codeCopied ? 'copied' : 'copy' }}
               </button>
             </div>
-            <GCodeBlock
-              :id="`demo-${name}`"
-              :code="demo.code"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder" />
+              </template>
+              <GCodeBlock
+                :id="`demo-${name}`"
+                :code="demo.code"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-bar td-demo-bar--returns">
               <span class="td-demo-dot td-demo-dot--success" />
               <span class="td-demo-bar-label td-demo-bar-label--success">RETURNS</span>
             </div>
-            <GCodeBlock
-              :id="`demo-result-${name}`"
-              :code="demo.result"
-              :language="GCodeLanguage.Typescript"
-              :highlight-theme="GHighlightTheme.AtomOne"
-              show-line-numbers
-              hide-header
-              class="border-none bg-white py-3"
-            />
+            <ClientOnly>
+              <template #fallback>
+                <div class="td-code-placeholder td-code-placeholder--short" />
+              </template>
+              <GCodeBlock
+                :id="`demo-result-${name}`"
+                :code="demo.result"
+                :language="GCodeLanguage.Typescript"
+                :highlight-theme="GHighlightTheme.AtomOne"
+                show-line-numbers
+                hide-header
+                class="border-none bg-white py-3"
+              />
+            </ClientOnly>
             <div class="td-demo-caption">
               {{ demo.note }}
             </div>
@@ -216,42 +230,44 @@
         </div>
         <div class="td-prose">
           <p class="td-prose-lead">
-            I maintain
+            At work I maintain
             <a
               href="https://github.com/holistics/dbml"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
-            >@dbml/core</a>
-            at work. It converts between DBML and SQL using ANTLR, and honestly it's been a mess:
+            >@dbml/core</a>, a library that converts between DBML and SQL.
+            Under the hood it uses ANTLR, and it has not aged well:
           </p>
           <ul class="td-prose-list">
-            <li><code>@dbml/core</code> is 33 MB. It broke our CI with OOM errors.</li>
-            <li>Can't add more dialects without making the bundle even larger.</li>
-            <li>The parser is incomplete and spits out <code>No viable alternative at....</code></li>
-            <li>After all that, we only support 5 dialects.</li>
+            <li>The package is 33 MB. It actually broke our CI with out-of-memory errors.</li>
+            <li>Adding a new dialect means making the bundle even larger.</li>
+            <li>The parser is incomplete, with error messages like <code>No viable alternative at....</code></li>
+            <li>After all of that, we still only support 5 dialects.</li>
           </ul>
           <p class="td-prose-body">
-            At a hackathon I found
+            At a hackathon I stumbled on
             <a
               href="https://github.com/tobymao/sqlglot"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
-            >SQLGlot</a>.
-            Exactly what I needed. Too bad it's Python. Tried Pyodide, too heavy.
+            >SQLGlot</a>,
+            which does exactly what I needed. The catch: it's Python.
+            I tried running it via Pyodide, but the runtime is too heavy to ship.
           </p>
           <p class="td-prose-body">
-            So I started porting it to JS. Two weeks in,
+            So I started porting it to JavaScript. Two weeks in,
             <a
               href="https://github.com/tobilg/polyglot"
               target="_blank"
               rel="noopener noreferrer"
               class="td-link"
             >polyglot</a>
-            was announced (if only it were sooner). Kept going anyway; I wanted full
-            control and a way to stay in sync with upstream. sqlingo mirrors SQLGlot file for file.
-            Catching up with upstream is a diff, not a rewrite.
+            was announced. I kept going because I wanted full control over the
+            implementation and a reliable way to stay in sync with upstream.
+            sqlingo mirrors SQLGlot file for file, so catching up with a new
+            release is a diff, not a rewrite.
           </p>
         </div>
       </div>
@@ -288,7 +304,9 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "sqlingo",
-        "description": "sqlingo is a JavaScript/TypeScript port of SQLGlot, a SQL parser, transpiler, and optimizer supporting 32 dialects.",
+        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler,"
+          + " and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.",
+        "alternateName": "sqlingojs",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "All",
         "license": "https://opensource.org/licenses/MIT",
@@ -327,12 +345,15 @@ import {
 const scriptTag = 'script';
 
 useSeoMeta({
-  title: 'Home | sqlingo',
-  ogTitle: 'Home | sqlingo',
+  title: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogTitle: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
+  ogType: 'website',
+  ogUrl: 'https://huydo862003.github.io/sqlingo/',
+  ogImage: 'https://huydo862003.github.io/sqlingo/og-image.png',
   description:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler, and query optimizer ported from Python SQLGlot. Parse, convert, and optimize SQL across 32 dialects including BigQuery, Snowflake, Postgres, MySQL, DuckDB, and Spark. Runs in Node.js and the browser.',
   ogDescription:
-    'sqlingo is the JavaScript/TypeScript port of SQLGlot. It is a SQL parser, transpiler, and optimizer supporting 32 dialects including BigQuery, Snowflake, and Postgres.',
+    'TypeScript SQL parser and transpiler supporting 32 dialects. Convert SQL between BigQuery, Snowflake, Postgres, MySQL, DuckDB, and more. Open-source port of SQLGlot.',
 });
 
 const installCopied = ref(false);
@@ -726,6 +747,15 @@ const shownCount = computed(() =>
   color: var(--gui-neutral-fg);
 }
 
+.td-code-placeholder {
+  min-height: 180px;
+  background: var(--color-neutral-1);
+}
+
+.td-code-placeholder--short {
+  min-height: 100px;
+}
+
 .td-demo-caption {
   padding: 16px 20px;
   background: var(--gui-neutral-bg-subtle);
@@ -973,6 +1003,7 @@ const shownCount = computed(() =>
 .td-prose-list {
   margin: 0 0 26px;
   padding: 0 0 0 18px;
+  list-style: disc;
   display: flex;
   flex-direction: column;
   gap: 10px;
