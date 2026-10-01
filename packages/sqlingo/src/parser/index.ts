@@ -4720,7 +4720,9 @@ export class Parser {
           this: DataTypeExprKind.ENUM,
           expressions: this.parseWrappedCsv(this.parseString.bind(this)),
         });
-      } else if (this.match(TokenType.L_PAREN, { advance: false })) {
+      } else if (this.match(TokenType.L_PAREN, {
+        advance: false,
+      })) {
         expression = this.parseSchema();
       } else {
         return this.parseAsCommand(start);
