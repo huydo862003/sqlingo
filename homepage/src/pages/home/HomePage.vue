@@ -848,6 +848,7 @@ const shownCount = computed(() =>
 }
 
 .td-dialect-chip {
+  cursor: pointer;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--gui-neutral-fg);
