@@ -3700,6 +3700,23 @@ export class AlterColumnExpr extends Expression {
   }
 }
 
+export type ModifyColumnExprArgs = Merge<[
+  BaseExpressionArgs,
+  {
+    this?: Expression;
+  },
+]>;
+
+export class ModifyColumnExpr extends Expression {
+  static key = ExpressionKey.MODIFY_COLUMN;
+
+  declare args: ModifyColumnExprArgs;
+
+  constructor (args: ModifyColumnExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type AlterIndexExprArgs = Merge<[
   BaseExpressionArgs,
   {

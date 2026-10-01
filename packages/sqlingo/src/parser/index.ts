@@ -1607,6 +1607,7 @@ export class Parser {
       TokenType.INDEX,
       TokenType.PROCEDURE,
       TokenType.TRIGGER,
+      TokenType.TYPE,
       ...Parser.DB_CREATABLES,
     ]);
   }
@@ -4705,6 +4706,25 @@ export class Parser {
         index,
         anonymous,
       });
+    } else if (createToken.tokenType === TokenType.TYPE) {
+      thisExpr = this.parseTableParts({
+        schema: true,
+      });
+
+      if (!thisExpr || !this.match(TokenType.ALIAS)) {
+        return this.parseAsCommand(start);
+      }
+
+      if (this.match(TokenType.ENUM)) {
+        expression = new DataTypeExpr({
+          this: DataTypeExprKind.ENUM,
+          expressions: this.parseWrappedCsv(this.parseString.bind(this)),
+        });
+      } else if (this.match(TokenType.L_PAREN, { advance: false })) {
+        expression = this.parseSchema();
+      } else {
+        return this.parseAsCommand(start);
+      }
     } else if (this._constructor.DB_CREATABLES.has(createToken.tokenType)) {
       const tableParts = this.parseTableParts({
         schema: true,
@@ -14707,10 +14727,25 @@ export class Parser {
       return thisResult as Expression | undefined;
     }
 
+    let position: ColumnPositionExpr | undefined;
+
+    if (this.matchTexts([
+      'FIRST',
+      'AFTER',
+    ])) {
+      const pos = this.prev?.text ?? '';
+
+      position = this.expression(ColumnPositionExpr, {
+        this: this.parseColumn(),
+        position: pos,
+      });
+    }
+
     return this.expression(ColumnDefExpr, {
       this: thisResult,
       kind,
       constraints,
+      position,
     });
   }
 
@@ -16173,26 +16208,7 @@ export class Parser {
       return undefined;
     }
 
-    const expression = this.parseColumnDefWithExists();
-
-    if (!expression) {
-      return undefined;
-    }
-
-    if (this.matchTexts([
-      'FIRST',
-      'AFTER',
-    ])) {
-      const position = this.prev?.text ?? '';
-      const columnPosition = this.expression(ColumnPositionExpr, {
-        this: this.parseColumn(),
-        position,
-      });
-
-      expression.setArgKey('position', columnPosition);
-    }
-
-    return expression;
+    return this.parseColumnDefWithExists() ?? undefined;
   }
 
   parseDropColumn (): DropExpr | CommandExpr | undefined {

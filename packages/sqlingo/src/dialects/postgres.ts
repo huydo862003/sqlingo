@@ -609,6 +609,7 @@ export class PostgresTokenizer extends Tokenizer {
       'SERIAL': TokenType.SERIAL,
       'SMALLSERIAL': TokenType.SMALLSERIAL,
       'TEMP': TokenType.TEMPORARY,
+      'TYPE': TokenType.TYPE,
       'REGCLASS': TokenType.OBJECT_IDENTIFIER,
       'REGCOLLATION': TokenType.OBJECT_IDENTIFIER,
       'REGCONFIG': TokenType.OBJECT_IDENTIFIER,
@@ -1761,6 +1762,12 @@ class PostgresGenerator extends Generator {
       }
 
       return 'ARRAY';
+    }
+
+    if (expression.isType(DataTypeExprKind.ENUM)) {
+      return `ENUM (${this.expressions(expression, {
+        flat: true,
+      })})`;
     }
 
     if (

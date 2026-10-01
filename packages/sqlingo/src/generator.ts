@@ -162,6 +162,7 @@ import type {
   MergeTreeTtlActionExpr,
   ModExpr,
   ModelAttributeExpr,
+  ModifyColumnExpr,
   NeqExpr,
   NationalExpr,
   NextValueForExpr,
@@ -846,6 +847,9 @@ export class Generator {
 
   // Whether the CREATE TABLE LIKE statement is supported
   static SUPPORTS_CREATE_TABLE_LIKE = true;
+
+  // Whether ALTER TABLE ... MODIFY COLUMN column-redefinition syntax is supported
+  static SUPPORTS_MODIFY_COLUMN = false;
 
   // Whether the LikeProperty needs to be specified inside of the schema clause
   static LIKE_PROPERTY_INSIDE_SCHEMA = false;
@@ -7042,6 +7046,14 @@ export class Generator {
     }
 
     return `ALTER COLUMN ${thisStr} DROP DEFAULT`;
+  }
+
+  modifyColumnSql (expression: ModifyColumnExpr): string {
+    if (!this._constructor.SUPPORTS_MODIFY_COLUMN) {
+      this.unsupported('MODIFY COLUMN is not supported in this dialect');
+    }
+
+    return `MODIFY COLUMN ${this.sql(expression, 'this')}`;
   }
 
   alterIndexSql (expression: AlterIndexExpr): string {

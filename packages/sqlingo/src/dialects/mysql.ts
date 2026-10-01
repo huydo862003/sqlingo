@@ -21,7 +21,7 @@ import type {
   PropertiesExpr,
 } from '../expressions';
 import {
-  AlterIndexExpr, ColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr,
+  AlterIndexExpr, AutoIncrementPropertyExpr, ColumnDefExpr, ColumnExpr, ModifyColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr, SchemaCommentPropertyExpr,
   BitwiseAndAggExpr,
   BitwiseCountExpr,
   BitwiseOrAggExpr,
@@ -932,7 +932,13 @@ class MySQLParser extends Parser {
     return {
       ...Parser.ALTER_PARSERS,
       MODIFY: function (this: Parser) {
-        return this.parseAlterTableAlter();
+        return (this as MySQLParser).parseAlterTableModify();
+      },
+      AUTO_INCREMENT: function (this: Parser) {
+        return this.parsePropertyAssignment(AutoIncrementPropertyExpr);
+      },
+      COMMENT: function (this: Parser) {
+        return this.parsePropertyAssignment(SchemaCommentPropertyExpr);
       },
     };
   }
@@ -1378,6 +1384,28 @@ class MySQLParser extends Parser {
     });
   }
 
+  protected parseAlterTableModify (): Expression | undefined {
+    this.match(TokenType.COLUMN);
+
+    const column = this.parseField({
+      anyToken: true,
+    });
+
+    if (!column) {
+      return undefined;
+    }
+
+    const columnDef = this.parseColumnDef(column);
+
+    if (!(columnDef instanceof ColumnDefExpr)) {
+      return undefined;
+    }
+
+    return this.expression(ModifyColumnExpr, {
+      this: columnDef,
+    });
+  }
+
   /**
    * Parses MySQL partitioning properties for RANGE and LIST schemes
    */
@@ -1520,6 +1548,7 @@ class MySQLGenerator extends Generator {
   static SUPPORTS_UESCAPE = false;
   static INTERVAL_ALLOWS_PLURAL_FORM: boolean = false;
   static LOCKING_READS_SUPPORTED: boolean = true;
+  static SUPPORTS_MODIFY_COLUMN = true;
 
   @cache
   static get NULL_ORDERING_SUPPORTED () {

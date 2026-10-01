@@ -609,6 +609,7 @@ export enum ExpressionKey {
   MOD = 'mod',
   MODE = 'mode',
   MODEL_ATTRIBUTE = 'modelAttribute',
+  MODIFY_COLUMN = 'modifyColumn',
   MONTH = 'month',
   MONTHNAME = 'monthname',
   MONTHS_BETWEEN = 'monthsBetween',
