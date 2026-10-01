@@ -1,5 +1,8 @@
 <template>
-  <div ref="containerElement" class="h-112 w-full" />
+  <div
+    ref="containerElement"
+    class="h-112 w-full"
+  />
 </template>
 
 <script setup lang="ts">
@@ -8,7 +11,7 @@ import {
 } from 'vue';
 // eslint-disable-next-line import/no-namespace
 import * as monaco from 'monaco-editor';
-import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import {
   dbmlMonarchTokensProvider,
 } from '@dbml/parse';
