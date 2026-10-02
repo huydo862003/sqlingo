@@ -11631,7 +11631,14 @@ export class Parser {
       if (this.index < this.tokens.length) {
         if (this._newlineDelimited) {
           while (this.curr) {
+            const before = this.index;
+
             expressions.push(parseMethod(this));
+
+            if (this.index === before) {
+              // No progress, skip token to avoid infinite loop
+              this.advance();
+            }
           }
         } else {
           this.raiseError('Invalid expression / Unexpected token');
