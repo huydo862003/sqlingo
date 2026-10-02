@@ -1,5 +1,11 @@
 # sqlingo
 
+## 0.12.1
+
+### Patch Changes
+
+- 85fe775: Avoid infinite loop in parseNewlineDelimited when encountering syntax errors
+
 ## 0.12.0
 
 ### Minor Changes
