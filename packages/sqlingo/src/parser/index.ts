@@ -535,6 +535,17 @@ export function parse<IntoT extends typeof Expression = typeof Expression> (
 }
 
 /**
+ * Like parse(), but handles multiple statements without semicolons
+ * When a statement parser returns with leftover tokens, the leftovers are re-parsed as the next statement instead of raising an error
+ */
+export function parseNewlineDelimited<IntoT extends typeof Expression = typeof Expression> (
+  sql: string,
+  opts?: ParseOptions<IntoT>,
+): (InstanceType<IntoT> | undefined)[] {
+  return Dialect.getOrRaise(opts?.read ?? opts?.dialect).parseNewlineDelimited(sql, opts) as (InstanceType<IntoT> | undefined)[];
+}
+
+/**
  * Parses the given SQL string and returns a syntax tree for the first parsed SQL statement.
  *
  * @param sql - The SQL code string to parse
@@ -2268,6 +2279,12 @@ export class Parser {
         });
       },
     };
+  }
+
+  // FIXME: not in upstream sqlglot, used by parseAsCommand in newline-delimited mode
+  @cache
+  static get NEWLINE_BOUNDARY_TOKENS (): Set<TokenType> {
+    return new Set(Object.keys(this.STATEMENT_PARSERS) as TokenType[]);
   }
 
   @cache
@@ -4129,6 +4146,8 @@ export class Parser {
   protected pipeCteCounter: number;
   protected _chunks: Token[][];
   protected _chunkIndex: number;
+  // FIXME: not in upstream sqlglot, enables newline-delimited statement splitting
+  protected _newlineDelimited: boolean;
 
   constructor (options: ParseOptions = {}) {
     const {
@@ -4152,6 +4171,7 @@ export class Parser {
     this.pipeCteCounter = 0;
     this._chunks = [];
     this._chunkIndex = 0;
+    this._newlineDelimited = false;
     this.reset();
   }
 
@@ -4167,6 +4187,7 @@ export class Parser {
     this.pipeCteCounter = 0;
     this._chunks = [];
     this._chunkIndex = 0;
+    this._newlineDelimited = false;
   }
 
   /**
@@ -4187,17 +4208,37 @@ export class Parser {
     });
   }
 
+  // FIXME: not in upstream sqlglot, custom feature for delimiter-free SQL dumps
+  parseNewlineDelimited (rawTokens: Token[], sql?: string): (Expression | undefined)[] {
+    try {
+      const result = this._parse({
+        parseMethod: function (this: Parser) {
+          return this.parseStatement();
+        },
+        rawTokens,
+        sql,
+        newlineDelimited: true,
+      });
+
+      return result;
+    } finally {
+      this._newlineDelimited = false;
+    }
+  }
+
   protected _parse (options: {
     parseMethod: (this: Parser) => Expression | undefined;
     rawTokens: Token[];
     sql?: string;
+    newlineDelimited?: boolean;
   }): (Expression | undefined)[] {
     const {
-      parseMethod, rawTokens, sql,
+      parseMethod, rawTokens, sql, newlineDelimited = false,
     } = options;
 
     this.reset();
     this.sql = sql || '';
+    this._newlineDelimited = newlineDelimited;
 
     const total = rawTokens.length;
     const chunks: Token[][] = [[]];
@@ -4856,8 +4897,10 @@ export class Parser {
       }
     }
 
+    // FIXME: _newlineDelimited skips this guard, upstream always falls to CommandExpr
     if (
       this.curr
+      && !this._newlineDelimited
       && !this.matchSet(new Set([
         TokenType.R_PAREN,
         TokenType.COMMA,
@@ -11584,8 +11627,15 @@ export class Parser {
 
       expressions.push(parseMethod(this));
 
+      // FIXME: _newlineDelimited loops on leftover tokens, upstream always raises
       if (this.index < this.tokens.length) {
-        this.raiseError('Invalid expression / Unexpected token');
+        if (this._newlineDelimited) {
+          while (this.curr) {
+            expressions.push(parseMethod(this));
+          }
+        } else {
+          this.raiseError('Invalid expression / Unexpected token');
+        }
       }
 
       this.checkErrors();
@@ -15458,7 +15508,8 @@ export class Parser {
         this._dialectConstructor.ALTER_TABLE_SUPPORTS_CASCADE
         && this.matchTextSeq('CASCADE');
 
-      if (!this.curr && actions) {
+      // FIXME: _newlineDelimited also accepts leftover tokens, upstream requires !this.curr
+      if ((!this.curr || this._newlineDelimited) && actions) {
         return this.expression(AlterExpr, {
           this: thisExpr,
           kind: enumFromString(AlterExprKind, alterToken.text) ?? alterToken.text.toUpperCase(),
@@ -16666,9 +16717,32 @@ export class Parser {
   }
 
   parseAsCommand (start?: Token): CommandExpr {
+    // FIXME: _newlineDelimited diverges from upstream, scopes to newline boundaries at depth 0
+    const statementTokens = this._newlineDelimited
+      ? this._constructor.NEWLINE_BOUNDARY_TOKENS
+      : undefined;
+    let depth = 0;
+
     while (this.curr) {
+      if (this.curr.tokenType === TokenType.L_PAREN) {
+        depth++;
+      } else if (this.curr.tokenType === TokenType.R_PAREN) {
+        depth = Math.max(0, depth - 1);
+      }
+
+      if (
+        statementTokens
+        && depth === 0
+        && statementTokens.has(this.curr.tokenType)
+        && this.prev
+        && this.prev.line < this.curr.line
+      ) {
+        break;
+      }
+
       this.advance();
     }
+
     const text = this.findSql(start, this.prev);
     const size = start?.text.length || 0;
 

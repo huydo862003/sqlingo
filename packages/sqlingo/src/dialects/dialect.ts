@@ -1498,6 +1498,10 @@ export class Dialect {
     return this.parser(opts).parse(this.tokenize(sql), sql);
   }
 
+  parseNewlineDelimited (sql: string, opts?: ParseOptions): (Expression | undefined)[] {
+    return this.parser(opts).parseNewlineDelimited(this.tokenize(sql), sql);
+  }
+
   parser (opts?: ParseOptions): Parser {
     return new this._constructor.parserClass({
       dialect: this,

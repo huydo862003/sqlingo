@@ -5,7 +5,7 @@ import {
   parseOne, transpile,
 } from '../../src/index';
 import {
-  AddConstraintExpr, AlterExpr, CreateExpr, CommandExpr, ForeignKeyExpr,
+  AlterExpr, CreateExpr, CommandExpr, ForeignKeyExpr,
 } from '../../src/expressions';
 
 describe('MySQL custom fixes', () => {
@@ -223,7 +223,9 @@ describe('MySQL custom fixes', () => {
     test('CONSTRAINT pk PRIMARY KEY key_name USING HASH (a)', () => {
       const result = parseOne(
         'CREATE TABLE t (a INT, CONSTRAINT pk PRIMARY KEY key_name USING HASH (a))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
@@ -233,7 +235,9 @@ describe('MySQL custom fixes', () => {
     test('PRIMARY KEY USING BTREE (a)', () => {
       const result = parseOne(
         'CREATE TABLE t (a INT, PRIMARY KEY USING BTREE (a))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
@@ -243,7 +247,9 @@ describe('MySQL custom fixes', () => {
     test('PRIMARY KEY (a) still works', () => {
       const result = parseOne(
         'CREATE TABLE t (a INT, PRIMARY KEY (a))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
@@ -252,7 +258,9 @@ describe('MySQL custom fixes', () => {
     test('inline column PRIMARY KEY still works', () => {
       const result = parseOne(
         'CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(100))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
