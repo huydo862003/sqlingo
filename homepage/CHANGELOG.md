@@ -1,5 +1,16 @@
 # sqlingo-homepage
 
+## 0.3.0
+
+### Minor Changes
+
+- cfab273: Experimental: Allows parsing newline delimited statements
+
+### Patch Changes
+
+- Updated dependencies [cfab273]
+  - sqlingo@0.12.0
+
 ## 0.2.2
 
 ### Patch Changes

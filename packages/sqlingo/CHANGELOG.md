@@ -1,5 +1,11 @@
 # sqlingo
 
+## 0.12.0
+
+### Minor Changes
+
+- cfab273: Experimental: Allows parsing newline delimited statements
+
 ## 0.11.2
 
 ### Patch Changes
