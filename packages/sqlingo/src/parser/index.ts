@@ -14298,6 +14298,16 @@ export class Parser {
   }
 
   parseForeignKey (): ForeignKeyExpr {
+    // FIXME: upstream sqlglot doesn't handle MySQL FOREIGN KEY index_name (cols) syntax
+    // Remove this if sqlglot adds support upstream
+    if (
+      this.curr
+      && this.curr.tokenType !== TokenType.L_PAREN
+      && this.curr.tokenType !== TokenType.REFERENCES
+    ) {
+      this.advance(); // skip optional index name
+    }
+
     const expressions = !this.match(TokenType.REFERENCES, {
       advance: false,
     })

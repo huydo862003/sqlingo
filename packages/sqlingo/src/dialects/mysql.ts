@@ -476,6 +476,7 @@ class MySQLTokenizer extends Tokenizer {
       'TIMESTAMP': TokenType.TIMESTAMPTZ,
       'TINYBLOB': TokenType.TINYBLOB,
       'TINYTEXT': TokenType.TINYTEXT,
+      'TYPE': TokenType.TYPE, // FIXME: enables CREATE TYPE AS ENUM parsing, remove if sqlglot adds MySQL support upstream
       'UNLOCK TABLES': TokenType.COMMAND,
       'UNSIGNED': TokenType.UBIGINT,
       'UNSIGNED INTEGER': TokenType.UBIGINT,
