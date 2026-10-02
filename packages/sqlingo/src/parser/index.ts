@@ -16395,6 +16395,29 @@ export class Parser {
       ];
     }
 
+    // FIXME: upstream sqlglot doesn't handle TSQL ADD [CONSTRAINT name] DEFAULT expr FOR col
+    // Remove this if sqlglot adds support upstream
+    if (this.matchTexts(['DEFAULT'], { advance: false })) {
+      return this.parseAlterTableAddDefault();
+    }
+
+    if (
+      this.curr?.tokenType === TokenType.CONSTRAINT
+      && this.next
+      && this.next.tokenType !== TokenType.L_PAREN
+    ) {
+      // Peek: CONSTRAINT <name> DEFAULT?
+      const savedIndex = this.index;
+
+      this.advance(); // CONSTRAINT
+      this.advance(); // name
+      if (this.matchTexts(['DEFAULT'], { advance: false })) {
+        return this.parseAlterTableAddDefault();
+      }
+
+      this.retreat(savedIndex);
+    }
+
     if (
       !this.matchSet(this._constructor.ADD_CONSTRAINT_TOKENS, {
         advance: false,
@@ -16410,6 +16433,27 @@ export class Parser {
     }
 
     return this.parseCsv(parseAddAlteration);
+  }
+
+  // FIXME: not in upstream sqlglot, handles TSQL ADD DEFAULT expr FOR col
+  protected parseAlterTableAddDefault (): Expression[] {
+    this.advance(); // consume DEFAULT
+    const defaultExpr = this.curr?.tokenType === TokenType.L_PAREN
+      ? this.parseWrapped(() => this.parseExpression())
+      : this.parseExpression();
+
+    if (this.matchTextSeq('FOR')) {
+      const column = this.parseField({ anyToken: true });
+
+      if (column) {
+        return [this.expression(AlterColumnExpr, {
+          this: column,
+          default: defaultExpr,
+        })];
+      }
+    }
+
+    return [];
   }
 
   parseAlterTableAlter (): Expression | undefined {
