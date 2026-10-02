@@ -108,34 +108,43 @@ describe('MySQL custom fixes', () => {
     test('FOREIGN KEY index_name (cols) REFERENCES', () => {
       const result = parseOne(
         'ALTER TABLE t ADD FOREIGN KEY idx_name (col1) REFERENCES other(id)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
       const fk = result.find(ForeignKeyExpr);
+
       expect(fk).toBeTruthy();
     });
 
     test('FOREIGN KEY without index name still works', () => {
       const result = parseOne(
         'ALTER TABLE t ADD FOREIGN KEY (col1) REFERENCES other(id)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
       const fk = result.find(ForeignKeyExpr);
+
       expect(fk).toBeTruthy();
     });
 
     test('CONSTRAINT name FOREIGN KEY still works', () => {
       const result = parseOne(
         'ALTER TABLE t ADD CONSTRAINT fk_name FOREIGN KEY (col1) REFERENCES other(id)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
       const fk = result.find(ForeignKeyExpr);
+
       expect(fk).toBeTruthy();
     });
   });
@@ -144,7 +153,7 @@ describe('MySQL custom fixes', () => {
   // Remove these tests if sqlglot adds support upstream
   describe('CREATE TYPE AS ENUM (MySQL)', () => {
     test('basic enum type', () => {
-      const result = parseOne("CREATE TYPE mood AS ENUM ('happy', 'sad')", {
+      const result = parseOne('CREATE TYPE mood AS ENUM (\'happy\', \'sad\')', {
         dialect: 'mysql',
       });
 

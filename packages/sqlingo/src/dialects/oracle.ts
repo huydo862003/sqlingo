@@ -174,7 +174,12 @@ export class OracleTokenizer extends Tokenizer {
 export class OracleParser extends Parser {
   // FIXME: upstream sqlglot doesn't handle Oracle ENABLE/DISABLE/VALIDATE/NOVALIDATE constraint modifiers
   // Remove this override if sqlglot adds support upstream
-  static CONSTRAINT_STATE_KEYWORDS = ['ENABLE', 'DISABLE', 'VALIDATE', 'NOVALIDATE'];
+  static CONSTRAINT_STATE_KEYWORDS = [
+    'ENABLE',
+    'DISABLE',
+    'VALIDATE',
+    'NOVALIDATE',
+  ];
 
   override parseNotConstraint (): Expression | undefined {
     const result = super.parseNotConstraint();
@@ -203,17 +208,23 @@ export class OracleParser extends Parser {
 
   protected parseAlterTableModify (): Expression | Expression[] | undefined {
     // Oracle MODIFY supports both:
-    //   ALTER TABLE t MODIFY col ...
+    //   ALTER TABLE t MODIFY col
     //   ALTER TABLE t MODIFY (col ..., col2 ...)
     const wrapped = this.match(TokenType.L_PAREN);
     const results: Expression[] = [];
 
     do {
-      const column = this.parseField({ anyToken: true });
+      const column = this.parseField({
+        anyToken: true,
+      });
+
       if (!column) break;
       const columnDef = this.parseColumnDef(column);
+
       if (columnDef instanceof ColumnDefExpr) {
-        results.push(this.expression(ModifyColumnExpr, { this: columnDef }));
+        results.push(this.expression(ModifyColumnExpr, {
+          this: columnDef,
+        }));
       }
     } while (wrapped && this.match(TokenType.COMMA));
 

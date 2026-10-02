@@ -4524,7 +4524,12 @@ export class Parser {
     // FIXME: upstream sqlglot doesn't handle FULLTEXT/BITMAP/SPATIAL index qualifiers in CREATE INDEX
     // Remove this if sqlglot adds support upstream
     let indexPrefix: string | undefined;
-    if (this.matchTexts(['FULLTEXT', 'BITMAP', 'SPATIAL'])) {
+
+    if (this.matchTexts([
+      'FULLTEXT',
+      'BITMAP',
+      'SPATIAL',
+    ])) {
       indexPrefix = this.prev?.text.toUpperCase();
     }
 
@@ -7760,7 +7765,9 @@ export class Parser {
     // FIXME: upstream sqlglot doesn't handle USING after column list (e.g. CREATE INDEX idx ON t (a) USING BTREE)
     // Remove this if sqlglot adds support upstream
     if (!using && this.match(TokenType.USING)) {
-      using = this.parseVar({ anyToken: true });
+      using = this.parseVar({
+        anyToken: true,
+      });
     }
 
     // FIXME: upstream sqlglot doesn't handle Oracle REVERSE index keyword
@@ -15413,8 +15420,14 @@ export class Parser {
       });
       // FIXME: upstream sqlglot doesn't handle WITH NOCHECK (TSQL)
       // Remove this if sqlglot adds support upstream
-      check = this.matchTextSeq(['WITH', 'CHECK'])
-        || this.matchTextSeq(['WITH', 'NOCHECK'])
+      check = this.matchTextSeq([
+        'WITH',
+        'CHECK',
+      ])
+        || this.matchTextSeq([
+          'WITH',
+          'NOCHECK',
+        ])
         || undefined;
       cluster = this.match(TokenType.ON) ? this.parseOnProperty() : undefined;
 
@@ -16307,10 +16320,14 @@ export class Parser {
 
     // FIXME: upstream sqlglot doesn't handle unnamed CHECK in ALTER TABLE ADD
     // Remove this if sqlglot adds support upstream
-    if (this.matchTexts(['CHECK'], { advance: false })) {
-      return [this.expression(AddConstraintExpr, {
-        expressions: this.parseCsv(this.parseConstraint.bind(this)),
-      })];
+    if (this.matchTexts(['CHECK'], {
+      advance: false,
+    })) {
+      return [
+        this.expression(AddConstraintExpr, {
+          expressions: this.parseCsv(this.parseConstraint.bind(this)),
+        }),
+      ];
     }
 
     if (

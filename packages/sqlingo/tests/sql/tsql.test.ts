@@ -15,7 +15,9 @@ describe('TSQL custom fixes', () => {
     test('WITH NOCHECK ADD CONSTRAINT FK', () => {
       const result = parseOne(
         'ALTER TABLE t WITH NOCHECK ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES b(id)',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
@@ -26,7 +28,9 @@ describe('TSQL custom fixes', () => {
     test('WITH CHECK ADD CONSTRAINT FK still works', () => {
       const result = parseOne(
         'ALTER TABLE t WITH CHECK ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES b(id)',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
@@ -36,7 +40,9 @@ describe('TSQL custom fixes', () => {
     test('plain ADD CONSTRAINT FK still works', () => {
       const result = parseOne(
         'ALTER TABLE t ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES b(id)',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);

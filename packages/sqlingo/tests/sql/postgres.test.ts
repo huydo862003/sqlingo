@@ -44,13 +44,14 @@ describe('Postgres custom fixes', () => {
 
       expect(result).toBeInstanceOf(AlterExpr);
       const fk = result.find(ForeignKeyExpr);
+
       expect(fk).toBeTruthy();
     });
   });
 
   describe('CREATE TYPE AS ENUM still works', () => {
     test('basic enum', () => {
-      const result = parseOne("CREATE TYPE mood AS ENUM ('happy', 'sad')", {
+      const result = parseOne('CREATE TYPE mood AS ENUM (\'happy\', \'sad\')', {
         dialect: 'postgres',
       });
 

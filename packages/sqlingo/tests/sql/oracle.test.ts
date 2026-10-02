@@ -55,7 +55,9 @@ describe('Oracle custom fixes', () => {
     test('multiple columns with ENABLE/DISABLE', () => {
       const result = parseOne(
         'CREATE TABLE t (level NUMBER(2) NOT NULL ENABLE, rating NUMBER(2) NOT NULL DISABLE)',
-        { dialect: 'oracle' },
+        {
+          dialect: 'oracle',
+        },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
