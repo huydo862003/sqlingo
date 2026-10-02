@@ -16397,7 +16397,9 @@ export class Parser {
 
     // FIXME: upstream sqlglot doesn't handle TSQL ADD [CONSTRAINT name] DEFAULT expr FOR col
     // Remove this if sqlglot adds support upstream
-    if (this.matchTexts(['DEFAULT'], { advance: false })) {
+    if (this.matchTexts(['DEFAULT'], {
+      advance: false,
+    })) {
       return this.parseAlterTableAddDefault();
     }
 
@@ -16411,7 +16413,9 @@ export class Parser {
 
       this.advance(); // CONSTRAINT
       this.advance(); // name
-      if (this.matchTexts(['DEFAULT'], { advance: false })) {
+      if (this.matchTexts(['DEFAULT'], {
+        advance: false,
+      })) {
         return this.parseAlterTableAddDefault();
       }
 
@@ -16443,13 +16447,17 @@ export class Parser {
       : this.parseExpression();
 
     if (this.matchTextSeq('FOR')) {
-      const column = this.parseField({ anyToken: true });
+      const column = this.parseField({
+        anyToken: true,
+      });
 
       if (column) {
-        return [this.expression(AlterColumnExpr, {
-          this: column,
-          default: defaultExpr,
-        })];
+        return [
+          this.expression(AlterColumnExpr, {
+            this: column,
+            default: defaultExpr,
+          }),
+        ];
       }
     }
 
