@@ -173,12 +173,7 @@ export class OracleTokenizer extends Tokenizer {
 export class OracleParser extends Parser {
   // FIXME: upstream sqlglot doesn't handle Oracle ENABLE/DISABLE/VALIDATE/NOVALIDATE constraint modifiers
   // Remove this override if sqlglot adds support upstream
-  static CONSTRAINT_STATE_KEYWORDS = [
-    'ENABLE',
-    'DISABLE',
-    'VALIDATE',
-    'NOVALIDATE',
-  ];
+  static CONSTRAINT_STATE_KEYWORDS = ['ENABLE', 'DISABLE', 'VALIDATE', 'NOVALIDATE'];
 
   override parseNotConstraint (): Expression | undefined {
     const result = super.parseNotConstraint();

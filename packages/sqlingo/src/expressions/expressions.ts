@@ -2674,6 +2674,7 @@ export type CreateExprArgs = Merge<[
     replace?: boolean;
     refresh?: Expression;
     unique?: boolean;
+    indexPrefix?: string; // FIXME: custom field for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
     indexes?: Expression[];
     noSchemaBinding?: Expression;
     begin?: Expression;

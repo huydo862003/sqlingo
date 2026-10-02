@@ -3165,7 +3165,9 @@ export class Generator {
       );
     }
 
-    const modifiers = `${clusteredSql}${replace}${refresh}${unique}${postcreatePropsSql}`;
+    // FIXME: custom indexPrefix for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
+    const indexPrefixSql = expression.args.indexPrefix ? ` ${expression.args.indexPrefix}` : '';
+    const modifiers = `${clusteredSql}${replace}${refresh}${unique}${indexPrefixSql}${postcreatePropsSql}`;
 
     let postexpressionPropsSql = '';
     const postExpression = propertiesLocs.get(PropertiesLocation.POST_EXPRESSION);

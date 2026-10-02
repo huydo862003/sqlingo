@@ -5,7 +5,7 @@ import {
   parseOne,
 } from '../../src/index';
 import {
-  CreateExpr,
+  CreateExpr, CommandExpr,
 } from '../../src/expressions';
 
 describe('Oracle custom fixes', () => {
@@ -61,6 +61,19 @@ describe('Oracle custom fixes', () => {
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // FIXME: upstream sqlglot doesn't handle CREATE BITMAP INDEX
+  // Remove these tests if sqlglot adds support upstream
+  describe('CREATE BITMAP INDEX', () => {
+    test('basic bitmap index', () => {
+      const result = parseOne('CREATE BITMAP INDEX idx ON t (col)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
     });
   });
 });

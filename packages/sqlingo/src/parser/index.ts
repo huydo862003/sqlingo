@@ -4521,6 +4521,13 @@ export class Parser {
 
     const unique = this.match(TokenType.UNIQUE) || undefined;
 
+    // FIXME: upstream sqlglot doesn't handle FULLTEXT/BITMAP/SPATIAL index qualifiers in CREATE INDEX
+    // Remove this if sqlglot adds support upstream
+    let indexPrefix: string | undefined;
+    if (this.matchTexts(['FULLTEXT', 'BITMAP', 'SPATIAL'])) {
+      indexPrefix = this.prev?.text.toUpperCase();
+    }
+
     let clustered: boolean | undefined;
 
     if (this.matchTextSeq([
@@ -4865,6 +4872,7 @@ export class Parser {
       replace,
       refresh,
       unique,
+      indexPrefix,
       expression,
       exists,
       properties,
@@ -16274,6 +16282,14 @@ export class Parser {
 
       return undefined;
     };
+
+    // FIXME: upstream sqlglot doesn't handle unnamed CHECK in ALTER TABLE ADD
+    // Remove this if sqlglot adds support upstream
+    if (this.matchTexts(['CHECK'], { advance: false })) {
+      return [this.expression(AddConstraintExpr, {
+        expressions: this.parseCsv(this.parseConstraint.bind(this)),
+      })];
+    }
 
     if (
       !this.matchSet(this._constructor.ADD_CONSTRAINT_TOKENS, {
