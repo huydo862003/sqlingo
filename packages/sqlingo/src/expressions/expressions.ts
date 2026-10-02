@@ -257,6 +257,9 @@ export class Expression implements
     if (typeof field === 'string') {
       return field;
     }
+    if (typeof field === 'boolean' || typeof field === 'number') {
+      return String(field);
+    }
     if (field instanceof IdentifierExpr || field instanceof LiteralExpr || field instanceof VarExpr) {
       return field.args.this?.toString() ?? '';
     }
@@ -4977,7 +4980,7 @@ export class IndexExpr extends Expression {
 export type IndexParametersExprArgs = Merge<[
   BaseExpressionArgs,
   {
-    using?: string;
+    using?: Expression;
     include?: Expression;
     columns?: Expression[];
     withStorage?: Expression;

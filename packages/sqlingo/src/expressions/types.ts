@@ -1090,9 +1090,9 @@ export enum ColumnDefExprKind {
 }
 
 export enum CommentExprKind {
-  TABLE = 'table',
-  COLUMN = 'column',
-  VIEW = 'view',
+  TABLE = 'TABLE',
+  COLUMN = 'COLUMN',
+  VIEW = 'VIEW',
 }
 
 export enum ColumnConstraintExprKind {
