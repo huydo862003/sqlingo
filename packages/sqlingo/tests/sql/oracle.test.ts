@@ -2,10 +2,10 @@ import {
   describe, test, expect,
 } from 'vitest';
 import {
-  parseOne,
+  parseOne, transpile,
 } from '../../src/index';
 import {
-  CreateExpr, CommandExpr,
+  CreateExpr, CommandExpr, AlterExpr, ModifyColumnExpr,
 } from '../../src/expressions';
 
 describe('Oracle custom fixes', () => {
@@ -55,9 +55,7 @@ describe('Oracle custom fixes', () => {
     test('multiple columns with ENABLE/DISABLE', () => {
       const result = parseOne(
         'CREATE TABLE t (level NUMBER(2) NOT NULL ENABLE, rating NUMBER(2) NOT NULL DISABLE)',
-        {
-          dialect: 'oracle',
-        },
+        { dialect: 'oracle' },
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
@@ -74,6 +72,128 @@ describe('Oracle custom fixes', () => {
 
       expect(result).toBeInstanceOf(CreateExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('plain CREATE INDEX still works', () => {
+      const result = parseOne('CREATE INDEX idx ON t (a)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('CREATE UNIQUE INDEX still works', () => {
+      const result = parseOne('CREATE UNIQUE INDEX idx ON t (a)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // FIXME: upstream sqlglot doesn't handle Oracle CREATE INDEX REVERSE
+  // Remove these tests if sqlglot adds support upstream
+  describe('CREATE INDEX ... REVERSE', () => {
+    test('basic reverse index', () => {
+      const result = parseOne('CREATE INDEX idx ON t (a) REVERSE', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('roundtrip', () => {
+      const [sql] = transpile('CREATE INDEX idx ON t (a) REVERSE', {
+        read: 'oracle',
+        write: 'oracle',
+      });
+
+      expect(sql).toContain('REVERSE');
+    });
+  });
+
+  // FIXME: upstream sqlglot doesn't handle Oracle ALTER TABLE MODIFY
+  // Remove these tests if sqlglot adds support upstream
+  describe('ALTER TABLE MODIFY', () => {
+    test('MODIFY col NOT NULL', () => {
+      const result = parseOne('ALTER TABLE t MODIFY c NOT NULL', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+      expect(result.find(ModifyColumnExpr)).toBeTruthy();
+    });
+
+    test('MODIFY col DEFAULT 0', () => {
+      const result = parseOne('ALTER TABLE t MODIFY c DEFAULT 0', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('MODIFY col NULL', () => {
+      const result = parseOne('ALTER TABLE t MODIFY c NULL', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('MODIFY col with type', () => {
+      const result = parseOne('ALTER TABLE t MODIFY c VARCHAR2(200)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('MODIFY with parens (multiple columns)', () => {
+      const result = parseOne('ALTER TABLE t MODIFY (c NOT NULL)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('roundtrip uses MODIFY (not MODIFY COLUMN)', () => {
+      const [sql] = transpile('ALTER TABLE t MODIFY c NOT NULL', {
+        read: 'oracle',
+        write: 'oracle',
+      });
+
+      expect(sql).toContain('MODIFY');
+      expect(sql).not.toContain('MODIFY COLUMN');
+    });
+
+    test('ALTER TABLE ADD COLUMN still works', () => {
+      const result = parseOne('ALTER TABLE t ADD (c INT)', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+    });
+
+    test('ALTER TABLE DROP CONSTRAINT still works', () => {
+      const result = parseOne('ALTER TABLE t DROP CONSTRAINT chk', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
+    });
+
+    test('ALTER TABLE RENAME COLUMN still works', () => {
+      const result = parseOne('ALTER TABLE t RENAME COLUMN a TO b', {
+        dialect: 'oracle',
+      });
+
+      expect(result).toBeInstanceOf(AlterExpr);
     });
   });
 });

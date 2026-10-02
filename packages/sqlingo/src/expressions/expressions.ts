@@ -4985,6 +4985,7 @@ export type IndexParametersExprArgs = Merge<[
     tablespace?: Expression;
     where?: Expression;
     on?: Expression;
+    reverse?: boolean; // FIXME: custom field for Oracle REVERSE index, remove if sqlglot adds support upstream
   },
 ]>;
 

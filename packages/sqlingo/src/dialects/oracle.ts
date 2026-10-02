@@ -15,7 +15,6 @@ import {
 } from '../tokens';
 import type {
   Expression,
-  ColumnDefExpr,
   IntervalExpr,
   CoalesceExpr,
   HintExpr,
@@ -23,6 +22,8 @@ import type {
   OffsetExpr,
 } from '../expressions';
 import {
+  ColumnDefExpr,
+  ModifyColumnExpr,
   IdentifierExpr,
   JsonExistsExpr,
   TimeToStrExpr,
@@ -186,6 +187,39 @@ export class OracleParser extends Parser {
     }
 
     return result;
+  }
+
+  // FIXME: upstream sqlglot doesn't handle Oracle ALTER TABLE MODIFY
+  // Remove this if sqlglot adds support upstream
+  @cache
+  static get ALTER_PARSERS () {
+    return {
+      ...Parser.ALTER_PARSERS,
+      MODIFY: function (this: Parser) {
+        return (this as OracleParser).parseAlterTableModify();
+      },
+    };
+  }
+
+  protected parseAlterTableModify (): Expression | Expression[] | undefined {
+    // Oracle MODIFY supports both:
+    //   ALTER TABLE t MODIFY col ...
+    //   ALTER TABLE t MODIFY (col ..., col2 ...)
+    const wrapped = this.match(TokenType.L_PAREN);
+    const results: Expression[] = [];
+
+    do {
+      const column = this.parseField({ anyToken: true });
+      if (!column) break;
+      const columnDef = this.parseColumnDef(column);
+      if (columnDef instanceof ColumnDefExpr) {
+        results.push(this.expression(ModifyColumnExpr, { this: columnDef }));
+      }
+    } while (wrapped && this.match(TokenType.COMMA));
+
+    if (wrapped) this.match(TokenType.R_PAREN);
+
+    return results.length ? results : undefined;
   }
 
   @cache
@@ -599,6 +633,7 @@ export class OracleParser extends Parser {
 }
 export class OracleGenerator extends Generator {
   static ON_CONDITION_EMPTY_BEFORE_ERROR = false;
+  static SUPPORTS_MODIFY_COLUMN = true; // FIXME: custom Oracle MODIFY support, remove if sqlglot adds upstream
 
   @cache
   static get AFTER_HAVING_MODIFIER_TRANSFORMS () {
@@ -753,6 +788,11 @@ export class OracleGenerator extends Generator {
     m.set(VolatilePropertyExpr, PropertiesLocation.UNSUPPORTED);
 
     return m;
+  }
+
+  // FIXME: Oracle uses MODIFY (not MODIFY COLUMN), remove if sqlglot adds upstream
+  public modifyColumnSql (expression: ModifyColumnExpr): string {
+    return `MODIFY ${this.sql(expression, 'this')}`;
   }
 
   public currentTimestampSql (expression: CurrentTimestampExpr): string {

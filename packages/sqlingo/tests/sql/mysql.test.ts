@@ -168,4 +168,43 @@ describe('MySQL custom fixes', () => {
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });
+
+  // FIXME: upstream sqlglot doesn't handle USING after column list in CREATE INDEX
+  // Remove these tests if sqlglot adds support upstream
+  describe('CREATE INDEX ... (cols) USING BTREE/HASH', () => {
+    test('USING BTREE after columns', () => {
+      const result = parseOne('CREATE INDEX idx ON t (a) USING BTREE', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('USING HASH after columns', () => {
+      const result = parseOne('CREATE INDEX idx ON t (a) USING HASH', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('UNIQUE INDEX with USING after columns', () => {
+      const result = parseOne('CREATE UNIQUE INDEX idx ON t (a) USING BTREE', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('USING before columns still works', () => {
+      const result = parseOne('CREATE INDEX idx ON t USING BTREE (a)', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
 });

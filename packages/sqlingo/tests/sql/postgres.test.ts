@@ -58,4 +58,25 @@ describe('Postgres custom fixes', () => {
       expect(result).not.toBeInstanceOf(CommandExpr);
     });
   });
+
+  // FIXME: upstream sqlglot doesn't handle USING after column list in CREATE INDEX
+  // Remove these tests if sqlglot adds support upstream
+  describe('CREATE INDEX ... (cols) USING btree', () => {
+    test('USING btree after columns', () => {
+      const result = parseOne('CREATE INDEX idx ON t (a) USING btree', {
+        dialect: 'postgres',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('USING before columns still works', () => {
+      const result = parseOne('CREATE INDEX idx ON t USING gin (a)', {
+        dialect: 'postgres',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
 });

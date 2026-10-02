@@ -3916,7 +3916,10 @@ export class Generator {
     const onRaw = this.sql(expression, 'on');
     const on = onRaw ? ` ON ${onRaw}` : '';
 
-    return `${using}${columnsStr}${include}${withStorage}${tablespace}${partitionBy}${where}${on}`;
+    // FIXME: custom reverse for Oracle REVERSE index, remove if sqlglot adds support upstream
+    const reverse = expression.args.reverse ? ' REVERSE' : '';
+
+    return `${using}${columnsStr}${reverse}${include}${withStorage}${tablespace}${partitionBy}${where}${on}`;
   }
 
   indexSql (expression: IndexExpr): string {

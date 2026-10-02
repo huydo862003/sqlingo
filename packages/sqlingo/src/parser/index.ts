@@ -7745,7 +7745,7 @@ export class Parser {
   }
 
   parseIndexParams (): IndexParametersExpr {
-    const using = this.match(TokenType.USING)
+    let using = this.match(TokenType.USING)
       ? this.parseVar({
         anyToken: true,
       })
@@ -7756,6 +7756,16 @@ export class Parser {
     })
       ? this.parseWrappedCsv(() => this.parseWithOperator())
       : undefined;
+
+    // FIXME: upstream sqlglot doesn't handle USING after column list (e.g. CREATE INDEX idx ON t (a) USING BTREE)
+    // Remove this if sqlglot adds support upstream
+    if (!using && this.match(TokenType.USING)) {
+      using = this.parseVar({ anyToken: true });
+    }
+
+    // FIXME: upstream sqlglot doesn't handle Oracle REVERSE index keyword
+    // Remove this if sqlglot adds support upstream
+    const reverse = this.matchTextSeq('REVERSE') || undefined;
 
     const include = this.matchTextSeq('INCLUDE')
       ? this.parseWrappedIdVars()
@@ -7787,6 +7797,7 @@ export class Parser {
         withStorage,
         tablespace,
         on,
+        reverse,
       },
     );
   }
@@ -15400,10 +15411,11 @@ export class Parser {
         schema: true,
         parsePartition: this._constructor.ALTER_TABLE_PARTITIONS,
       });
-      check = this.matchTextSeq([
-        'WITH',
-        'CHECK',
-      ]) || undefined;
+      // FIXME: upstream sqlglot doesn't handle WITH NOCHECK (TSQL)
+      // Remove this if sqlglot adds support upstream
+      check = this.matchTextSeq(['WITH', 'CHECK'])
+        || this.matchTextSeq(['WITH', 'NOCHECK'])
+        || undefined;
       cluster = this.match(TokenType.ON) ? this.parseOnProperty() : undefined;
 
       if (this.next) {
