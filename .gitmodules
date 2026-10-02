@@ -1,3 +1,6 @@
 [submodule "upstream/sqlglot"]
 	path = packages/sqlingo/upstream/sqlglot
 	url = https://github.com/tobymao/sqlglot
+[submodule "packages/sqlingo/upstream/sqlfluff"]
+	path = packages/sqlingo/upstream/sqlfluff
+	url = https://github.com/sqlfluff/sqlfluff.git
