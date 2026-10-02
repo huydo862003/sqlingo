@@ -216,4 +216,46 @@ describe('MySQL custom fixes', () => {
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });
+
+  // FIXME: upstream sqlglot doesn't handle PRIMARY KEY key_name USING HASH (cols)
+  // Remove these tests if sqlglot adds support upstream
+  describe('PRIMARY KEY key_name USING HASH (cols)', () => {
+    test('CONSTRAINT pk PRIMARY KEY key_name USING HASH (a)', () => {
+      const result = parseOne(
+        'CREATE TABLE t (a INT, CONSTRAINT pk PRIMARY KEY key_name USING HASH (a))',
+        { dialect: 'mysql' },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('PRIMARY KEY USING BTREE (a)', () => {
+      const result = parseOne(
+        'CREATE TABLE t (a INT, PRIMARY KEY USING BTREE (a))',
+        { dialect: 'mysql' },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('PRIMARY KEY (a) still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (a INT, PRIMARY KEY (a))',
+        { dialect: 'mysql' },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('inline column PRIMARY KEY still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(100))',
+        { dialect: 'mysql' },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
 });

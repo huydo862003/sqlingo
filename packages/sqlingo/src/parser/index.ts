@@ -14151,13 +14151,20 @@ export class Parser {
 
     let thisExpr: Expression | undefined;
 
+    // FIXME: upstream sqlglot only checks next === L_PAREN for namedPrimaryKey
+    // We also accept next === USING to handle MySQL PRIMARY KEY key_name USING HASH (cols)
+    // Remove this if sqlglot adds support upstream
     if (
       namedPrimaryKey
       && !((this.curr?.text.toUpperCase() || '') in this._constructor.CONSTRAINT_PARSERS)
       && this.next
-      && this.next.tokenType === TokenType.L_PAREN
+      && (this.next.tokenType === TokenType.L_PAREN || this.next.tokenType === TokenType.USING)
     ) {
       thisExpr = this.parseIdVar();
+    }
+    // Consume optional USING BTREE/HASH before column list (MySQL syntax)
+    if (!inProps && this.match(TokenType.USING)) {
+      this.advance();
     }
 
     if (!inProps && !this.match(TokenType.L_PAREN, {

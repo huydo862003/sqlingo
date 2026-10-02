@@ -1502,7 +1502,9 @@ class MySQLParser extends Parser {
     });
   }
 
-  public parsePrimaryKey (
+  // FIXME: upstream sqlglot doesn't handle MySQL PRIMARY KEY [key_name] [USING method] (cols)
+  // Remove this override if sqlglot adds support upstream
+  public override parsePrimaryKey (
     options: {
       wrappedOptional?: boolean;
       inProps?: boolean;
@@ -1512,10 +1514,8 @@ class MySQLParser extends Parser {
     const {
       wrappedOptional = false,
       inProps = false,
-      namedPrimaryKey: _namedPrimaryKey = false,
     } = options;
 
-    // MySQL always supports named primary keys in this context
     return super.parsePrimaryKey({
       wrappedOptional,
       inProps,
