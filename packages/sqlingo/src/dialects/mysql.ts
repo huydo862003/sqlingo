@@ -931,21 +931,31 @@ class MySQLParser extends Parser {
       // MySQL: COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}
       COLUMN_FORMAT: function (this: Parser) {
         this.parseIdVar();
-        return this.expression(VarExpr, { this: 'COLUMN_FORMAT' });
+
+        return this.expression(VarExpr, {
+          this: 'COLUMN_FORMAT',
+        });
       },
       // FIXME: not in upstream sqlglot
       // MySQL: STORAGE {DISK | MEMORY | DEFAULT}
       STORAGE: function (this: Parser) {
         this.parseIdVar();
-        return this.expression(VarExpr, { this: 'STORAGE' });
+
+        return this.expression(VarExpr, {
+          this: 'STORAGE',
+        });
       },
       // FIXME: not in upstream sqlglot
       // MySQL 8.0+: INVISIBLE | VISIBLE
       INVISIBLE: function (this: Parser) {
-        return this.expression(VarExpr, { this: 'INVISIBLE' });
+        return this.expression(VarExpr, {
+          this: 'INVISIBLE',
+        });
       },
       VISIBLE: function (this: Parser) {
-        return this.expression(VarExpr, { this: 'VISIBLE' });
+        return this.expression(VarExpr, {
+          this: 'VISIBLE',
+        });
       },
     };
   }
@@ -1091,11 +1101,16 @@ class MySQLParser extends Parser {
   // MySQL: UNIQUE [INDEX | KEY] [name] [index_type] (key_part,...) [index_option]
   // key_part supports ((expr)) for expression indexes
   override parseUnique (): UniqueColumnConstraintExpr {
-    this.matchTexts(['KEY', 'INDEX']);
+    this.matchTexts([
+      'KEY',
+      'INDEX',
+    ]);
     const thisExpr = this.parseUniqueKey();
     const indexType = (this.match(TokenType.USING) || undefined) && this.advanceAny() && this.prev?.text;
 
-    if (!this.match(TokenType.L_PAREN, { advance: false })) {
+    if (!this.match(TokenType.L_PAREN, {
+      advance: false,
+    })) {
       return this.expression(UniqueColumnConstraintExpr, {
         this: thisExpr,
         indexType,
@@ -1105,7 +1120,10 @@ class MySQLParser extends Parser {
     const expressions = this.parseWrappedCsv(this.parseOrdered.bind(this));
 
     return this.expression(UniqueColumnConstraintExpr, {
-      this: this.expression(SchemaExpr, { this: thisExpr, expressions }),
+      this: this.expression(SchemaExpr, {
+        this: thisExpr,
+        expressions,
+      }),
       indexType: indexType || ((this.match(TokenType.USING) || undefined) && this.advanceAny() && this.prev?.text),
       options: this.parseKeyConstraintOptions(),
     });

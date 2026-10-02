@@ -154,8 +154,11 @@ describe('MySQL custom fixes', () => {
     test('UNIQUE INDEX with double-paren expression', () => {
       const result = parseOne(
         'CREATE TABLE t (id INT, UNIQUE INDEX uk ((LOWER(email))))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
     });
@@ -163,24 +166,33 @@ describe('MySQL custom fixes', () => {
     test('INDEX with double-paren expression still works', () => {
       const result = parseOne(
         'CREATE TABLE t (d INT, INDEX k ((d + 1)))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('UNIQUE INDEX with simple column still works', () => {
       const result = parseOne(
         'CREATE TABLE t (a INT, UNIQUE INDEX uk (a))',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('inline column UNIQUE still works', () => {
       const result = parseOne(
         'CREATE TABLE t (a INT UNIQUE)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });
@@ -191,8 +203,11 @@ describe('MySQL custom fixes', () => {
     test('COLUMN_FORMAT FIXED', () => {
       const result = parseOne(
         'CREATE TABLE t (id INT, col VARCHAR(100) COLUMN_FORMAT FIXED)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
     });
@@ -200,24 +215,33 @@ describe('MySQL custom fixes', () => {
     test('COLUMN_FORMAT DYNAMIC', () => {
       const result = parseOne(
         'CREATE TABLE t (col TEXT COLUMN_FORMAT DYNAMIC)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('COLUMN_FORMAT DEFAULT', () => {
       const result = parseOne(
         'CREATE TABLE t (col VARCHAR(100) COLUMN_FORMAT DEFAULT)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('COLUMN_FORMAT with other constraints', () => {
       const result = parseOne(
         'CREATE TABLE t (col VARCHAR(50) COLUMN_FORMAT FIXED NOT NULL DEFAULT "x")',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });
@@ -228,24 +252,33 @@ describe('MySQL custom fixes', () => {
     test('STORAGE DISK', () => {
       const result = parseOne(
         'CREATE TABLE t (col INT STORAGE DISK)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('STORAGE MEMORY', () => {
       const result = parseOne(
         'CREATE TABLE t (col INT STORAGE MEMORY)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('STORAGE DEFAULT', () => {
       const result = parseOne(
         'CREATE TABLE t (col INT STORAGE DEFAULT)',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });

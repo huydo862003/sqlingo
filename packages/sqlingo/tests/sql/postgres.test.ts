@@ -61,13 +61,16 @@ describe('Postgres custom fixes', () => {
   });
 
   // FIXME: not in upstream sqlglot
-  // PostgreSQL: CREATE [LOCAL | GLOBAL] {TEMP | TEMPORARY} TABLE ...
+  // PostgreSQL: CREATE [LOCAL | GLOBAL] {TEMP | TEMPORARY} TABLE
   describe('CREATE LOCAL TEMP TABLE', () => {
     test('LOCAL TEMP TABLE', () => {
       const result = parseOne(
         'CREATE LOCAL TEMP TABLE t (id INT)',
-        { dialect: 'postgres' },
+        {
+          dialect: 'postgres',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
     });
@@ -75,24 +78,33 @@ describe('Postgres custom fixes', () => {
     test('LOCAL TEMPORARY TABLE IF NOT EXISTS', () => {
       const result = parseOne(
         'CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS t (id INT)',
-        { dialect: 'postgres' },
+        {
+          dialect: 'postgres',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('GLOBAL TEMPORARY TABLE still works', () => {
       const result = parseOne(
         'CREATE GLOBAL TEMPORARY TABLE t (id INT)',
-        { dialect: 'postgres' },
+        {
+          dialect: 'postgres',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
 
     test('plain TEMP TABLE still works', () => {
       const result = parseOne(
         'CREATE TEMP TABLE t (id INT)',
-        { dialect: 'postgres' },
+        {
+          dialect: 'postgres',
+        },
       );
+
       expect(result).toBeInstanceOf(CreateExpr);
     });
   });
