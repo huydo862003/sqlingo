@@ -64,6 +64,94 @@ describe('Oracle custom fixes', () => {
     });
   });
 
+  // FIXME: not in upstream sqlglot
+  // Oracle: constraint_def [ENABLE|DISABLE] [VALIDATE|NOVALIDATE] [RELY|NORELY]
+  describe('constraint state after PRIMARY KEY / UNIQUE / CHECK', () => {
+    test('PRIMARY KEY ENABLE', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id NUMBER CONSTRAINT pk PRIMARY KEY ENABLE)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('UNIQUE DISABLE NOVALIDATE', () => {
+      const result = parseOne(
+        'CREATE TABLE t (email VARCHAR2(100) UNIQUE DISABLE NOVALIDATE)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('NOT NULL RELY', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id NUMBER NOT NULL RELY)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('CHECK ENABLE VALIDATE', () => {
+      const result = parseOne(
+        'CREATE TABLE t (age NUMBER CHECK (age > 0) ENABLE VALIDATE)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('DEFERRABLE INITIALLY DEFERRED', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id NUMBER CONSTRAINT pk PRIMARY KEY DEFERRABLE INITIALLY DEFERRED)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('NOT DEFERRABLE', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id NUMBER NOT NULL NOT DEFERRABLE)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // FIXME: not in upstream sqlglot
+  // Oracle 12c+: DEFAULT [ON NULL] <expr>
+  describe('DEFAULT ON NULL', () => {
+    test('DEFAULT ON NULL literal', () => {
+      const result = parseOne(
+        "CREATE TABLE t (email VARCHAR2(100) DEFAULT ON NULL 'noemail@example.com')",
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('DEFAULT ON NULL number', () => {
+      const result = parseOne(
+        'CREATE TABLE t (qty NUMBER DEFAULT ON NULL 0)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('DEFAULT ON NULL with NOT NULL', () => {
+      const result = parseOne(
+        'CREATE TABLE t (qty NUMBER DEFAULT ON NULL 0 NOT NULL)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('regular DEFAULT still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (qty NUMBER DEFAULT 0 NOT NULL)',
+        { dialect: 'oracle' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
   // FIXME: upstream sqlglot doesn't handle CREATE BITMAP INDEX
   // Remove these tests if sqlglot adds support upstream
   describe('CREATE BITMAP INDEX', () => {

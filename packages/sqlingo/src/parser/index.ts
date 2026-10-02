@@ -2761,6 +2761,11 @@ export class Parser {
       'GLOBAL': function (this: Parser) {
         return this.expression(GlobalPropertyExpr, {});
       },
+      // FIXME: not in upstream sqlglot, but PostgreSQL supports CREATE LOCAL TEMP TABLE
+      // LOCAL <TEMPORARY | TEMP> TABLE ...
+      'LOCAL': function (this: Parser) {
+        return this.expression(TemporaryPropertyExpr, {});
+      },
       'HEAP': function (this: Parser) {
         return this.expression(HeapPropertyExpr, {});
       },

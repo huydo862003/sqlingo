@@ -60,6 +60,43 @@ describe('Postgres custom fixes', () => {
     });
   });
 
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: CREATE [LOCAL | GLOBAL] {TEMP | TEMPORARY} TABLE ...
+  describe('CREATE LOCAL TEMP TABLE', () => {
+    test('LOCAL TEMP TABLE', () => {
+      const result = parseOne(
+        'CREATE LOCAL TEMP TABLE t (id INT)',
+        { dialect: 'postgres' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('LOCAL TEMPORARY TABLE IF NOT EXISTS', () => {
+      const result = parseOne(
+        'CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS t (id INT)',
+        { dialect: 'postgres' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('GLOBAL TEMPORARY TABLE still works', () => {
+      const result = parseOne(
+        'CREATE GLOBAL TEMPORARY TABLE t (id INT)',
+        { dialect: 'postgres' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('plain TEMP TABLE still works', () => {
+      const result = parseOne(
+        'CREATE TEMP TABLE t (id INT)',
+        { dialect: 'postgres' },
+      );
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
   // FIXME: upstream sqlglot doesn't handle USING after column list in CREATE INDEX
   // Remove these tests if sqlglot adds support upstream
   describe('CREATE INDEX ... (cols) USING btree', () => {
