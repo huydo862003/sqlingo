@@ -4948,7 +4948,7 @@ export type IndexExprArgs = Merge<[
     unique?: boolean;
     primary?: boolean;
     amp?: Expression;
-    params?: Expression[];
+    params?: Expression;
     this?: Expression;
   },
 ]>;
@@ -6373,7 +6373,7 @@ export type ReferenceExprArgs = Merge<[
   {
     this?: Expression;
     expressions?: Expression[];
-    options?: Expression[];
+    options?: (Expression | string)[];
   },
 ]>;
 
