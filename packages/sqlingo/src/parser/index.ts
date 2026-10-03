@@ -10915,8 +10915,8 @@ export class Parser {
         break;
       }
 
-      // INT ARRAY (no brackets): wrap immediately without consuming further tokens.
-      // Calling parseCsv here would steal the column-separator comma.
+      // INT ARRAY (no brackets): wrap immediately without consuming further tokens
+      // Calling parseCsv here would steal the column-separator comma
       if (!matchedLBracket && matchedArray) {
         matchedArray = false;
         thisExpr = new DataTypeExpr({
@@ -14350,10 +14350,22 @@ export class Parser {
   // SQL standard: [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
   // Used by both PostgreSQL and Oracle dialects
   protected consumeDeferrable (): void {
+    // NOT DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
     if (this.matchTextSeq([
       'NOT',
       'DEFERRABLE',
-    ])) return;
+    ])) {
+      this.matchTextSeq([
+        'INITIALLY',
+        'DEFERRED',
+      ]) || this.matchTextSeq([
+        'INITIALLY',
+        'IMMEDIATE',
+      ]);
+
+      return;
+    }
+    // DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
     if (this.matchTexts(['DEFERRABLE'])) {
       this.matchTextSeq([
         'INITIALLY',

@@ -1105,6 +1105,27 @@ class PostgresParser extends Parser {
 
     return result;
   }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL PARTITION BY RANGE/LIST/HASH (col [COLLATE coll] [opclass], ...)
+  // Partition columns may include an optional collation and opclass after the column name
+  // The base parsePartitionedBy uses a function-call parse path that cannot consume the opclass identifier after COLLATE
+  override parsePartitionedBy (): PartitionedByPropertyExpr {
+    this.match(TokenType.EQ);
+
+    // optional RANGE / LIST / HASH keyword before '('
+    const methodIdent = this.parseIdVar();
+    const columns = this.match(TokenType.L_PAREN, {
+      advance: false,
+    })
+      ? this.parseWrappedCsv(() => this.parseWithOperator())
+      : undefined;
+
+    return this.expression(PartitionedByPropertyExpr, {
+      this: methodIdent,
+      expressions: columns,
+    });
+  }
 }
 class PostgresGenerator extends Generator {
   // port from _Dialect metaclass logic
