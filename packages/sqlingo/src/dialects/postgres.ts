@@ -1057,24 +1057,6 @@ class PostgresParser extends Parser {
     ]);
   }
 
-  // FIXME: not in upstream sqlglot
-  // PostgreSQL: constraint ... [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
-  private consumeDeferrable (): void {
-    if (this.matchTextSeq([
-      'NOT',
-      'DEFERRABLE',
-    ])) return;
-    if (this.matchTexts(['DEFERRABLE'])) {
-      this.matchTextSeq([
-        'INITIALLY',
-        'DEFERRED',
-      ]) || this.matchTextSeq([
-        'INITIALLY',
-        'IMMEDIATE',
-      ]);
-    }
-  }
-
   override parseColumnConstraint (): Expression | undefined {
     const result = super.parseColumnConstraint();
 

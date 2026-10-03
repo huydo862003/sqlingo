@@ -189,43 +189,20 @@ export class OracleParser extends Parser {
   ];
 
   // FIXME: not in upstream sqlglot, used to skip unsupported Oracle clauses with nested parens
+  // Consumes next keyword (e.g. HEAP, INDEX, EXTERNAL) then an optional balanced paren block
   consumeBalancedParens (): void {
-    this.parseIdVar(); // consume keyword after property name (e.g. EXTERNAL, INDEX, HEAP)
-    if (this.curr?.tokenType === TokenType.L_PAREN) {
-      let depth = 0;
-
-      while (this.curr) {
-        if (this.curr.tokenType === TokenType.L_PAREN) depth++;
-        else if (this.curr.tokenType === TokenType.R_PAREN) {
-          depth--;
-          if (depth === 0) {
-            this.advance(); break;
-          }
-        }
-        this.advance();
-      }
-    }
+    this.parseIdVar();
+    this.skipBalancedParens();
   }
 
   private consumeConstraintState (): void {
     while (true) {
       if (this.matchTexts(OracleParser.CONSTRAINT_STATE_KEYWORDS)) continue;
-      // NOT DEFERRABLE
-      if (this.matchTextSeq([
-        'NOT',
-        'DEFERRABLE',
-      ])) continue;
-      // DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
-      if (this.matchTexts(['DEFERRABLE'])) {
-        this.matchTextSeq([
-          'INITIALLY',
-          'DEFERRED',
-        ]) || this.matchTextSeq([
-          'INITIALLY',
-          'IMMEDIATE',
-        ]);
-        continue;
-      }
+      // [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+      const before = this.index;
+
+      this.consumeDeferrable();
+      if (this.index !== before) continue;
       break;
     }
   }
@@ -369,22 +346,7 @@ export class OracleParser extends Parser {
     const result = super.parsePartitionedBy();
 
     // Consume Oracle partition definitions: (PARTITION name VALUES ...)
-    if (this.match(TokenType.L_PAREN, {
-      advance: false,
-    })) {
-      let depth = 0;
-
-      while (this.curr) {
-        if (this.curr.tokenType === TokenType.L_PAREN) depth++;
-        else if (this.curr.tokenType === TokenType.R_PAREN) {
-          depth--;
-          if (depth === 0) {
-            this.advance(); break;
-          }
-        }
-        this.advance();
-      }
-    }
+    this.skipBalancedParens();
 
     return result;
   }

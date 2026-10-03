@@ -14334,6 +14334,43 @@ export class Parser {
     );
   }
 
+  // FIXME: not in upstream sqlglot
+  // SQL standard: [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+  // Used by both PostgreSQL and Oracle dialects
+  protected consumeDeferrable (): void {
+    if (this.matchTextSeq([
+      'NOT',
+      'DEFERRABLE',
+    ])) return;
+    if (this.matchTexts(['DEFERRABLE'])) {
+      this.matchTextSeq([
+        'INITIALLY',
+        'DEFERRED',
+      ]) || this.matchTextSeq([
+        'INITIALLY',
+        'IMMEDIATE',
+      ]);
+    }
+  }
+
+  // FIXME: not in upstream sqlglot
+  // Skips a balanced paren block starting at the current token
+  protected skipBalancedParens (): void {
+    if (this.curr?.tokenType !== TokenType.L_PAREN) return;
+    let depth = 0;
+
+    while (this.curr) {
+      if (this.curr.tokenType === TokenType.L_PAREN) depth++;
+      else if (this.curr.tokenType === TokenType.R_PAREN) {
+        depth--;
+        if (depth === 0) {
+          this.advance(); break;
+        }
+      }
+      this.advance();
+    }
+  }
+
   parseKeyConstraintOptions (): string[] {
     const options: string[] = [];
 
