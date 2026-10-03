@@ -11829,6 +11829,7 @@ export type PartitionedByPropertyExprArgs = Merge<[
   PropertyExprArgs,
   {
     this?: Expression;
+    expressions?: ExpressionValue[];
   },
 ]>;
 

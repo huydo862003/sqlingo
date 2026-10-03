@@ -1456,6 +1456,7 @@ class PostgresGenerator extends Generator {
         function (this: Generator, e: PartitionedByPropertyExpr) {
           const method = this.sql(e, 'this');
           const cols = (e.args.expressions ?? []).map((col) => this.sql(col)).join(', ');
+
           return cols ? `PARTITION BY ${method}(${cols})` : `PARTITION BY ${method}`;
         },
       ],
