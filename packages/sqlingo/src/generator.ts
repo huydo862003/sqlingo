@@ -162,6 +162,7 @@ import type {
   MergeTreeTtlActionExpr,
   ModExpr,
   ModelAttributeExpr,
+  ModifyColumnExpr,
   NeqExpr,
   NationalExpr,
   NextValueForExpr,
@@ -846,6 +847,9 @@ export class Generator {
 
   // Whether the CREATE TABLE LIKE statement is supported
   static SUPPORTS_CREATE_TABLE_LIKE = true;
+
+  // Whether ALTER TABLE ... MODIFY COLUMN column-redefinition syntax is supported
+  static SUPPORTS_MODIFY_COLUMN = false;
 
   // Whether the LikeProperty needs to be specified inside of the schema clause
   static LIKE_PROPERTY_INSIDE_SCHEMA = false;
@@ -3161,7 +3165,9 @@ export class Generator {
       );
     }
 
-    const modifiers = `${clusteredSql}${replace}${refresh}${unique}${postcreatePropsSql}`;
+    // FIXME: custom indexPrefix for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
+    const indexPrefixSql = expression.args.indexPrefix ? ` ${expression.args.indexPrefix}` : '';
+    const modifiers = `${clusteredSql}${replace}${refresh}${unique}${indexPrefixSql}${postcreatePropsSql}`;
 
     let postexpressionPropsSql = '';
     const postExpression = propertiesLocs.get(PropertiesLocation.POST_EXPRESSION);
@@ -3910,7 +3916,10 @@ export class Generator {
     const onRaw = this.sql(expression, 'on');
     const on = onRaw ? ` ON ${onRaw}` : '';
 
-    return `${using}${columnsStr}${include}${withStorage}${tablespace}${partitionBy}${where}${on}`;
+    // FIXME: custom reverse for Oracle REVERSE index, remove if sqlglot adds support upstream
+    const reverse = expression.args.reverse ? ' REVERSE' : '';
+
+    return `${using}${columnsStr}${reverse}${include}${withStorage}${tablespace}${partitionBy}${where}${on}`;
   }
 
   indexSql (expression: IndexExpr): string {
@@ -7042,6 +7051,14 @@ export class Generator {
     }
 
     return `ALTER COLUMN ${thisStr} DROP DEFAULT`;
+  }
+
+  modifyColumnSql (expression: ModifyColumnExpr): string {
+    if (!this._constructor.SUPPORTS_MODIFY_COLUMN) {
+      this.unsupported('MODIFY COLUMN is not supported in this dialect');
+    }
+
+    return `MODIFY COLUMN ${this.sql(expression, 'this')}`;
   }
 
   alterIndexSql (expression: AlterIndexExpr): string {

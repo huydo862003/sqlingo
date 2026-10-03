@@ -155,6 +155,7 @@ import {
   AliasesExpr,
   StarExpr,
   SessionUserExpr,
+  IndexExpr,
 } from '../expressions';
 import {
   ensureList, seqGet,
@@ -1520,6 +1521,42 @@ export class TSQLParser extends Parser {
 
   parsePrimaryKeyPart (): Expression | undefined {
     return this.parseOrdered();
+  }
+
+  // FIXME: not in upstream sqlglot
+  // T-SQL: INDEX is a valid unnamed constraint keyword inside CREATE TABLE
+  @cache
+  static get SCHEMA_UNNAMED_CONSTRAINTS (): Set<string> {
+    return new Set([
+      ...super.SCHEMA_UNNAMED_CONSTRAINTS,
+      'INDEX',
+    ]);
+  }
+
+  // FIXME: not in upstream sqlglot
+  // T-SQL: parse inline INDEX definitions inside CREATE TABLE
+  // Syntax: INDEX [idx_name] [UNIQUE] [CLUSTERED|NONCLUSTERED] (col, ...)
+  @cache
+  static get CONSTRAINT_PARSERS () {
+    return {
+      ...Parser.CONSTRAINT_PARSERS,
+      'INDEX': function (this: Parser) {
+        const name = this.parseIdVar();
+        const unique = this.matchTexts(['UNIQUE']) || undefined;
+
+        this.matchTexts([
+          'CLUSTERED',
+          'NONCLUSTERED',
+        ]);
+        const params = this.parseIndexParams();
+
+        return this.expression(IndexExpr, {
+          this: name,
+          unique,
+          params,
+        });
+      },
+    };
   }
 }
 export class TSQLGenerator extends Generator {

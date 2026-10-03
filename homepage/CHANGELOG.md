@@ -1,5 +1,123 @@
 # sqlingo-homepage
 
+## 0.3.4
+
+### Patch Changes
+
+- 1238a6e: **PostgreSQL**
+
+  - `PARTITION BY RANGE/LIST/HASH (col [COLLATE collation] [opclass], ...)` is now parsed correctly; partition columns may include an optional collation and opclass after the column name without causing a parse error
+
+  **T-SQL**
+
+  - `INDEX [name] [UNIQUE] [CLUSTERED|NONCLUSTERED] (cols)` inline inside `CREATE TABLE` is now parsed as `IndexExpr` instead of being misclassified as a column definition
+
+  **Base Parser**
+
+  - `consumeDeferrable` now correctly consumes `INITIALLY DEFERRED` or `INITIALLY IMMEDIATE` after `NOT DEFERRABLE`, preventing leftover tokens from causing downstream parse failures
+  - `INT ARRAY` (keyword-form array without brackets) no longer consumes the following comma, fixing parse errors on columns defined after an `INT ARRAY` column
+
+- Updated dependencies [1238a6e]
+  - sqlingo@0.12.4
+
+## 0.3.3
+
+### Patch Changes
+
+- 3ac4745: **MySQL**
+
+  - Column constraints now accept `COLUMN_FORMAT`, `STORAGE`, `INVISIBLE`, and `VISIBLE` modifiers, which are silently consumed and no longer cause parse errors
+  - `UNIQUE [KEY|INDEX] [name] [USING type] (cols) [USING type]` inside `CREATE TABLE` is now parsed correctly, supporting optional key name, pre- and post-column `USING` clause, and `KEY`/`INDEX` synonyms
+
+  **Oracle**
+
+  - `CONSTRAINT STATE` clauses (`RELY`, `NORELY`, `ENABLE`, `DISABLE`, `VALIDATE`, `NOVALIDATE`, `[NOT] DEFERRABLE [INITIALLY DEFERRED|IMMEDIATE]`) are now consumed after column constraints, table constraints, and `CREATE/ALTER` constraints
+  - `LONG RAW` is now recognized as a valid data type
+  - `INTERVAL YEAR|DAY|MONTH|SECOND [(precision)] TO YEAR|DAY|MONTH|SECOND [(precision)]` interval types are now parsed
+  - Oracle storage properties with balanced parentheses (e.g. `STORAGE (...)`, `HEAP (...)`) are now consumed correctly via `consumeBalancedParens`
+
+  **PostgreSQL**
+
+  - `[NOT] DEFERRABLE [INITIALLY DEFERRED|IMMEDIATE]` is now consumed after column constraints, NOT NULL constraints, key constraint options (`USING INDEX [TABLESPACE]`, `INCLUDE (...)`), and table constraints
+  - `USING INDEX [TABLESPACE name]` and `INCLUDE (cols)` inside key constraint options are now handled
+
+  **Base Parser**
+
+  - Added `protected consumeDeferrable()`: shared helper for `[NOT] DEFERRABLE [INITIALLY DEFERRED|IMMEDIATE]` -- used by both Oracle and PostgreSQL dialects, removing duplication
+  - Added `protected skipBalancedParens()`: shared depth-counting parenthesis skip helper, used by Oracle
+  - `CREATE TEMPORARY TABLE ... LOCAL` is now handled via a `LOCAL` property keyword
+  - `IndexExprArgs` gains `params` and `using` fields
+  - `ReferenceExprArgs` gains `options: (Expression | string)[]` to carry `ON DELETE`/`ON UPDATE` action strings
+
+- Updated dependencies [3ac4745]
+  - sqlingo@0.12.3
+
+## 0.3.2
+
+### Patch Changes
+
+- c40f2cf: - fix(tsql): handle ALTER TABLE ADD DEFAULT expr FOR col
+  - Supports both bare values and parenthesized values
+  - Supports ADD CONSTRAINT name DEFAULT expr FOR col variant
+- Updated dependencies [c40f2cf]
+  - sqlingo@0.12.2
+
+## 0.3.1
+
+### Patch Changes
+
+- 85fe775: Avoid infinite loop in parseNewlineDelimited when encountering syntax errors
+- Updated dependencies [85fe775]
+  - sqlingo@0.12.1
+
+## 0.3.0
+
+### Minor Changes
+
+- cfab273: Experimental: Allows parsing newline delimited statements
+
+### Patch Changes
+
+- Updated dependencies [cfab273]
+  - sqlingo@0.12.0
+
+## 0.2.2
+
+### Patch Changes
+
+- 7fd5d09: - fix(mysql): handle CONSTRAINT name PRIMARY KEY key_name USING HASH (cols) syntax
+  - Supports optional index name and USING method before column list in PRIMARY KEY constraints
+  - Previously threw ParseError, now parses correctly as CreateExpr
+- Updated dependencies [7fd5d09]
+  - sqlingo@0.11.2
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [04afc60]
+  - sqlingo@0.11.1
+
+## 0.2.0
+
+### Minor Changes
+
+- ee3aeb9: - fix(postgres): port CREATE TYPE AS ENUM / composite type parsing from upstream sqlglot
+  - fix(mysql): port MODIFY COLUMN parsing and generation from upstream sqlglot
+    - Added ModifyColumnExpr expression class and SUPPORTS_MODIFY_COLUMN generator flag
+  - fix(mysql): port ALTER TABLE AUTO_INCREMENT / COMMENT parsing from upstream sqlglot
+  - fix(oracle): handle NOT NULL ENABLE/DISABLE/VALIDATE/NOVALIDATE constraint modifiers
+    - Previously threw ParseError; now parses correctly as CreateExpr
+    - Custom fix (upstream sqlglot has the same bug), marked with FIXME
+  - fix(parser): move ColumnPosition (FIRST/AFTER) parsing from parseAddColumn into parseColumnDef
+  - fix(postgres): add TokenType.TYPE to CREATABLES and Postgres keywords
+  - test: add regression tests for all fixed limitations (postgres, mysql, tsql, oracle)
+
+### Patch Changes
+
+- Updated dependencies [ee3aeb9]
+  - sqlingo@0.11.0
+
 ## 0.1.19
 
 ### Patch Changes

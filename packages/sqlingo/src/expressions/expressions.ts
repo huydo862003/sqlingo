@@ -257,6 +257,9 @@ export class Expression implements
     if (typeof field === 'string') {
       return field;
     }
+    if (typeof field === 'boolean' || typeof field === 'number') {
+      return String(field);
+    }
     if (field instanceof IdentifierExpr || field instanceof LiteralExpr || field instanceof VarExpr) {
       return field.args.this?.toString() ?? '';
     }
@@ -2674,6 +2677,7 @@ export type CreateExprArgs = Merge<[
     replace?: boolean;
     refresh?: Expression;
     unique?: boolean;
+    indexPrefix?: string; // FIXME: custom field for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
     indexes?: Expression[];
     noSchemaBinding?: Expression;
     begin?: Expression;
@@ -3696,6 +3700,23 @@ export class AlterColumnExpr extends Expression {
   declare args: AlterColumnExprArgs;
 
   constructor (args: AlterColumnExprArgs = {}) {
+    super(args);
+  }
+}
+
+export type ModifyColumnExprArgs = Merge<[
+  BaseExpressionArgs,
+  {
+    this?: Expression;
+  },
+]>;
+
+export class ModifyColumnExpr extends Expression {
+  static key = ExpressionKey.MODIFY_COLUMN;
+
+  declare args: ModifyColumnExprArgs;
+
+  constructor (args: ModifyColumnExprArgs = {}) {
     super(args);
   }
 }
@@ -4930,7 +4951,7 @@ export type IndexExprArgs = Merge<[
     unique?: boolean;
     primary?: boolean;
     amp?: Expression;
-    params?: Expression[];
+    params?: Expression;
     this?: Expression;
   },
 ]>;
@@ -4959,7 +4980,7 @@ export class IndexExpr extends Expression {
 export type IndexParametersExprArgs = Merge<[
   BaseExpressionArgs,
   {
-    using?: string;
+    using?: Expression;
     include?: Expression;
     columns?: Expression[];
     withStorage?: Expression;
@@ -4967,6 +4988,7 @@ export type IndexParametersExprArgs = Merge<[
     tablespace?: Expression;
     where?: Expression;
     on?: Expression;
+    reverse?: boolean; // FIXME: custom field for Oracle REVERSE index, remove if sqlglot adds support upstream
   },
 ]>;
 
@@ -6354,7 +6376,7 @@ export type ReferenceExprArgs = Merge<[
   {
     this?: Expression;
     expressions?: Expression[];
-    options?: Expression[];
+    options?: (Expression | string)[];
   },
 ]>;
 

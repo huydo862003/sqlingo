@@ -21,7 +21,7 @@ import type {
   PropertiesExpr,
 } from '../expressions';
 import {
-  AlterIndexExpr, ColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr,
+  AlterIndexExpr, AutoIncrementPropertyExpr, ColumnDefExpr, ColumnExpr, ModifyColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr, SchemaCommentPropertyExpr,
   BitwiseAndAggExpr,
   BitwiseCountExpr,
   BitwiseOrAggExpr,
@@ -81,6 +81,8 @@ import {
   PartitionByListPropertyExpr,
   SetItemExprKind,
   ZeroFillColumnConstraintExpr,
+  UniqueColumnConstraintExpr,
+  SchemaExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   ComputedColumnConstraintExpr,
   ColumnPrefixExpr,
@@ -476,6 +478,7 @@ class MySQLTokenizer extends Tokenizer {
       'TIMESTAMP': TokenType.TIMESTAMPTZ,
       'TINYBLOB': TokenType.TINYBLOB,
       'TINYTEXT': TokenType.TINYTEXT,
+      'TYPE': TokenType.TYPE, // FIXME: enables CREATE TYPE AS ENUM parsing, remove if sqlglot adds MySQL support upstream
       'UNLOCK TABLES': TokenType.COMMAND,
       'UNSIGNED': TokenType.UBIGINT,
       'UNSIGNED INTEGER': TokenType.UBIGINT,
@@ -924,6 +927,36 @@ class MySQLParser extends Parser {
       ZEROFILL: function (this: Parser) {
         return this.expression(ZeroFillColumnConstraintExpr);
       },
+      // FIXME: not in upstream sqlglot
+      // MySQL: COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}
+      COLUMN_FORMAT: function (this: Parser) {
+        this.parseIdVar();
+
+        return this.expression(VarExpr, {
+          this: 'COLUMN_FORMAT',
+        });
+      },
+      // FIXME: not in upstream sqlglot
+      // MySQL: STORAGE {DISK | MEMORY | DEFAULT}
+      STORAGE: function (this: Parser) {
+        this.parseIdVar();
+
+        return this.expression(VarExpr, {
+          this: 'STORAGE',
+        });
+      },
+      // FIXME: not in upstream sqlglot
+      // MySQL 8.0+: INVISIBLE | VISIBLE
+      INVISIBLE: function (this: Parser) {
+        return this.expression(VarExpr, {
+          this: 'INVISIBLE',
+        });
+      },
+      VISIBLE: function (this: Parser) {
+        return this.expression(VarExpr, {
+          this: 'VISIBLE',
+        });
+      },
     };
   }
 
@@ -932,7 +965,13 @@ class MySQLParser extends Parser {
     return {
       ...Parser.ALTER_PARSERS,
       MODIFY: function (this: Parser) {
-        return this.parseAlterTableAlter();
+        return (this as MySQLParser).parseAlterTableModify();
+      },
+      AUTO_INCREMENT: function (this: Parser) {
+        return this.parsePropertyAssignment(AutoIncrementPropertyExpr);
+      },
+      COMMENT: function (this: Parser) {
+        return this.parsePropertyAssignment(SchemaCommentPropertyExpr);
       },
     };
   }
@@ -1056,6 +1095,37 @@ class MySQLParser extends Parser {
     return this.expression(ColumnPrefixExpr, {
       this: thisExpr,
       expression: expression,
+    });
+  }
+
+  // MySQL: UNIQUE [INDEX | KEY] [name] [index_type] (key_part,...) [index_option]
+  // key_part supports ((expr)) for expression indexes
+  override parseUnique (): UniqueColumnConstraintExpr {
+    this.matchTexts([
+      'KEY',
+      'INDEX',
+    ]);
+    const thisExpr = this.parseUniqueKey();
+    const indexType = (this.match(TokenType.USING) || undefined) && this.advanceAny() && this.prev?.text;
+
+    if (!this.match(TokenType.L_PAREN, {
+      advance: false,
+    })) {
+      return this.expression(UniqueColumnConstraintExpr, {
+        this: thisExpr,
+        indexType,
+      });
+    }
+
+    const expressions = this.parseWrappedCsv(this.parseOrdered.bind(this));
+
+    return this.expression(UniqueColumnConstraintExpr, {
+      this: this.expression(SchemaExpr, {
+        this: thisExpr,
+        expressions,
+      }),
+      indexType: indexType || ((this.match(TokenType.USING) || undefined) && this.advanceAny() && this.prev?.text),
+      options: this.parseKeyConstraintOptions(),
     });
   }
 
@@ -1378,6 +1448,28 @@ class MySQLParser extends Parser {
     });
   }
 
+  protected parseAlterTableModify (): Expression | undefined {
+    this.match(TokenType.COLUMN);
+
+    const column = this.parseField({
+      anyToken: true,
+    });
+
+    if (!column) {
+      return undefined;
+    }
+
+    const columnDef = this.parseColumnDef(column);
+
+    if (!(columnDef instanceof ColumnDefExpr)) {
+      return undefined;
+    }
+
+    return this.expression(ModifyColumnExpr, {
+      this: columnDef,
+    });
+  }
+
   /**
    * Parses MySQL partitioning properties for RANGE and LIST schemes
    */
@@ -1473,7 +1565,9 @@ class MySQLParser extends Parser {
     });
   }
 
-  public parsePrimaryKey (
+  // FIXME: upstream sqlglot doesn't handle MySQL PRIMARY KEY [key_name] [USING method] (cols)
+  // Remove this override if sqlglot adds support upstream
+  public override parsePrimaryKey (
     options: {
       wrappedOptional?: boolean;
       inProps?: boolean;
@@ -1483,10 +1577,8 @@ class MySQLParser extends Parser {
     const {
       wrappedOptional = false,
       inProps = false,
-      namedPrimaryKey: _namedPrimaryKey = false,
     } = options;
 
-    // MySQL always supports named primary keys in this context
     return super.parsePrimaryKey({
       wrappedOptional,
       inProps,
@@ -1520,6 +1612,7 @@ class MySQLGenerator extends Generator {
   static SUPPORTS_UESCAPE = false;
   static INTERVAL_ALLOWS_PLURAL_FORM: boolean = false;
   static LOCKING_READS_SUPPORTED: boolean = true;
+  static SUPPORTS_MODIFY_COLUMN = true;
 
   @cache
   static get NULL_ORDERING_SUPPORTED () {

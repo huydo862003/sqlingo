@@ -290,6 +290,8 @@ class TestTSQL extends Validator {
       },
     );
     this.validateIdentity('CREATE TABLE x (A INTEGER NOT NULL, B INTEGER NULL)');
+    this.validateIdentity("CREATE TABLE test (text1 VARCHAR(255) DEFAULT 'Test')");
+    this.validateIdentity("CREATE TABLE s (status VARCHAR(20) CHECK (status IN ('active', 'inactive')))");
     this.validateAll('CREATE TABLE x ( A INTEGER NOT NULL, B INTEGER NULL )', {
       write: {
         hive: 'CREATE TABLE x (A INT NOT NULL, B INT)',

@@ -19,7 +19,7 @@ import type {
   ParseOptions,
 } from './parser';
 import {
-  Parser, parse, parseOne,
+  Parser, parse, parseOne, parseNewlineDelimited,
 } from './parser';
 import type {
   GeneratorOptions, TranspileOptions,
@@ -67,7 +67,7 @@ export type {
   ParseOptions,
 };
 export {
-  Parser, parse, parseOne,
+  Parser, parse, parseOne, parseNewlineDelimited,
 };
 export type {
   GeneratorOptions, TranspileOptions,

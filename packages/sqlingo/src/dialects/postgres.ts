@@ -609,6 +609,7 @@ export class PostgresTokenizer extends Tokenizer {
       'SERIAL': TokenType.SERIAL,
       'SMALLSERIAL': TokenType.SMALLSERIAL,
       'TEMP': TokenType.TEMPORARY,
+      'TYPE': TokenType.TYPE,
       'REGCLASS': TokenType.OBJECT_IDENTIFIER,
       'REGCOLLATION': TokenType.OBJECT_IDENTIFIER,
       'REGCONFIG': TokenType.OBJECT_IDENTIFIER,
@@ -1054,6 +1055,76 @@ class PostgresParser extends Parser {
       ...Parser.TABLE_ALIAS_TOKENS,
       TokenType.STRAIGHT_JOIN,
     ]);
+  }
+
+  override parseColumnConstraint (): Expression | undefined {
+    const result = super.parseColumnConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  override parseNotConstraint (): Expression | undefined {
+    const result = super.parseNotConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: ... USING INDEX [TABLESPACE name]
+  // PostgreSQL: ... INCLUDE (col, ...)
+  // PostgreSQL: ... [NOT] DEFERRABLE [INITIALLY {DEFERRED|IMMEDIATE}]
+  override parseKeyConstraintOptions (): string[] {
+    if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+    ])) {
+      if (this.matchTexts(['TABLESPACE'])) {
+        this.parseIdVar();
+      }
+    }
+    if (this.matchTexts(['INCLUDE'])) {
+      this.parseWrappedIdVars();
+    }
+    const result = super.parseKeyConstraintOptions();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: UNIQUE (...) INCLUDE (cols)
+  override parseConstraint (): Expression | undefined {
+    const result = super.parseConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL PARTITION BY RANGE/LIST/HASH (col [COLLATE coll] [opclass], ...)
+  // Partition columns may include an optional collation and opclass after the column name
+  // The base parsePartitionedBy uses a function-call parse path that cannot consume the opclass identifier after COLLATE
+  override parsePartitionedBy (): PartitionedByPropertyExpr {
+    this.match(TokenType.EQ);
+
+    // optional RANGE / LIST / HASH keyword before '('
+    const methodIdent = this.parseIdVar();
+    const columns = this.match(TokenType.L_PAREN, {
+      advance: false,
+    })
+      ? this.parseWrappedCsv(() => this.parseWithOperator())
+      : undefined;
+
+    return this.expression(PartitionedByPropertyExpr, {
+      this: methodIdent,
+      expressions: columns,
+    });
   }
 }
 class PostgresGenerator extends Generator {
@@ -1761,6 +1832,12 @@ class PostgresGenerator extends Generator {
       }
 
       return 'ARRAY';
+    }
+
+    if (expression.isType(DataTypeExprKind.ENUM)) {
+      return `ENUM (${this.expressions(expression, {
+        flat: true,
+      })})`;
     }
 
     if (

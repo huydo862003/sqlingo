@@ -46,6 +46,18 @@ class TestMySQL extends Validator {
     this.validateIdentity('ALTER TABLE t ADD INDEX `i` (`c`)');
     this.validateIdentity('ALTER TABLE t ADD UNIQUE `i` (`c`)');
     this.validateIdentity('ALTER TABLE test_table MODIFY COLUMN test_column LONGTEXT');
+    this.validateIdentity('ALTER TABLE t AUTO_INCREMENT=3000000000');
+    this.validateIdentity("ALTER TABLE t1 COMMENT='New table comment'");
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT NOT NULL');
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT DEFAULT 5');
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT NOT NULL DEFAULT 5');
+    this.validateIdentity("ALTER TABLE t MODIFY COLUMN c VARCHAR(50) NOT NULL DEFAULT 'foo'");
+    this.validateIdentity("ALTER TABLE t MODIFY COLUMN c INT COMMENT 'hi'");
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT FIRST');
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT AFTER d');
+    this.validateIdentity('ALTER TABLE t MODIFY COLUMN c INT NOT NULL AFTER d');
+    this.validateIdentity('CREATE TABLE t (end_build YEAR(4))');
+    this.validateIdentity("SELECT _BINARY 'hello' AS c1");
     this.validateIdentity('ALTER VIEW v AS SELECT a, b, c, d FROM foo');
     this.validateIdentity('ALTER VIEW v AS SELECT * FROM foo WHERE c > 100');
     this.validateIdentity(

@@ -15,14 +15,20 @@ import {
 } from '../tokens';
 import type {
   Expression,
-  ColumnDefExpr,
   IntervalExpr,
   CoalesceExpr,
   HintExpr,
   IsAsciiExpr,
   OffsetExpr,
+
+  PartitionedByPropertyExpr,
 } from '../expressions';
 import {
+  ColumnDefExpr,
+  DataTypeExpr,
+  DefaultColumnConstraintExpr,
+  ModifyColumnExpr,
+  VarExpr,
   IdentifierExpr,
   JsonExistsExpr,
   TimeToStrExpr,
@@ -171,6 +177,199 @@ export class OracleTokenizer extends Tokenizer {
 }
 
 export class OracleParser extends Parser {
+  // FIXME: upstream sqlglot doesn't handle Oracle constraint state modifiers
+  // Oracle syntax: constraint_def [ENABLE|DISABLE] [VALIDATE|NOVALIDATE] [RELY|NORELY] [DEFERRABLE|NOT DEFERRABLE] [INITIALLY DEFERRED|INITIALLY IMMEDIATE]
+  static CONSTRAINT_STATE_KEYWORDS = [
+    'ENABLE',
+    'DISABLE',
+    'VALIDATE',
+    'NOVALIDATE',
+    'RELY',
+    'NORELY',
+  ];
+
+  // FIXME: not in upstream sqlglot, used to skip unsupported Oracle clauses with nested parens
+  // Consumes next keyword (e.g. HEAP, INDEX, EXTERNAL) then an optional balanced paren block
+  consumeBalancedParens (): void {
+    this.parseIdVar();
+    this.skipBalancedParens();
+  }
+
+  private consumeConstraintState (): void {
+    while (true) {
+      if (this.matchTexts(OracleParser.CONSTRAINT_STATE_KEYWORDS)) continue;
+      // [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+      const before = this.index;
+
+      this.consumeDeferrable();
+      if (this.index !== before) continue;
+      break;
+    }
+  }
+
+  override parseColumnConstraint (): Expression | undefined {
+    const result = super.parseColumnConstraint();
+
+    this.consumeConstraintState();
+
+    return result;
+  }
+
+  override parseNotConstraint (): Expression | undefined {
+    const result = super.parseNotConstraint();
+
+    this.consumeConstraintState();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // Consumes Oracle constraint state modifiers after table-level constraints
+  override parseConstraint (): Expression | undefined {
+    const result = super.parseConstraint();
+
+    this.consumeConstraintState();
+
+    return result;
+  }
+
+  // FIXME: upstream sqlglot doesn't handle Oracle ALTER TABLE MODIFY
+  // Remove this if sqlglot adds support upstream
+  @cache
+  static get ALTER_PARSERS () {
+    return {
+      ...Parser.ALTER_PARSERS,
+      MODIFY: function (this: Parser) {
+        return (this as OracleParser).parseAlterTableModify();
+      },
+    };
+  }
+
+  protected parseAlterTableModify (): Expression | Expression[] | undefined {
+    // Oracle MODIFY supports both:
+    //   ALTER TABLE t MODIFY col
+    //   ALTER TABLE t MODIFY (col ..., col2 ...)
+    const wrapped = this.match(TokenType.L_PAREN);
+    const results: Expression[] = [];
+
+    do {
+      const column = this.parseField({
+        anyToken: true,
+      });
+
+      if (!column) break;
+      const columnDef = this.parseColumnDef(column);
+
+      if (columnDef instanceof ColumnDefExpr) {
+        results.push(this.expression(ModifyColumnExpr, {
+          this: columnDef,
+        }));
+      }
+    } while (wrapped && this.match(TokenType.COMMA));
+
+    if (wrapped) this.match(TokenType.R_PAREN);
+
+    return results.length ? results : undefined;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // LONG RAW
+  // INTERVAL {YEAR|DAY}[(precision)] TO {MONTH|SECOND}[(precision)]
+  override parseTypes (options: {
+    checkFunc?: boolean;
+    schema?: boolean;
+    allowIdentifiers?: boolean;
+  } = {}): Expression | undefined {
+    // LONG RAW
+    if (this.matchTextSeq([
+      'LONG',
+      'RAW',
+    ])) {
+      return this.expression(DataTypeExpr, {
+        this: 'LONG RAW',
+      }) as DataTypeExpr;
+    }
+
+    // INTERVAL YEAR(2) TO MONTH / INTERVAL DAY(2) TO SECOND(6)
+    if (this.curr?.tokenType === TokenType.INTERVAL) {
+      const start = this.index;
+
+      this.advance(); // consume INTERVAL
+
+      if (this.curr && this._dialectConstructor.VALID_INTERVAL_UNITS.has(this.curr.text.toUpperCase())) {
+        const parts = [
+          'INTERVAL',
+          this.curr.text.toUpperCase(),
+        ];
+
+        this.advance(); // consume YEAR/DAY/etc
+
+        // optional (precision)
+        if (this.match(TokenType.L_PAREN, {
+          advance: false,
+        })) {
+          parts.push('(' + (this.advance(), this.parseNumber()?.name ?? '') + ')');
+          this.match(TokenType.R_PAREN);
+        }
+
+        // TO unit
+        if (this.matchTextSeq('TO')) {
+          parts.push('TO');
+          if (this.curr) {
+            parts.push(this.curr.text.toUpperCase());
+            this.advance();
+          }
+          // optional (precision) on target unit
+          if (this.match(TokenType.L_PAREN, {
+            advance: false,
+          })) {
+            parts.push('(' + (this.advance(), this.parseNumber()?.name ?? '') + ')');
+            this.match(TokenType.R_PAREN);
+          }
+        }
+
+        return this.expression(DataTypeExpr, {
+          this: parts.join(' '),
+        }) as DataTypeExpr;
+      }
+
+      // Not a recognized interval unit, backtrack and let base handle it
+      this.retreat(start);
+    }
+
+    return super.parseTypes(options);
+  }
+
+  // FIXME: not in upstream sqlglot
+  // Oracle: PARTITION BY {RANGE|LIST|HASH} (cols) (PARTITION name VALUES {LESS THAN (expr) | (val,...)} [, ...])
+  override parsePartitionedBy (): PartitionedByPropertyExpr {
+    const result = super.parsePartitionedBy();
+
+    // Consume Oracle partition definitions: (PARTITION name VALUES ...)
+    this.skipBalancedParens();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // Oracle 12c+: DEFAULT [ON NULL] <expr>
+  @cache
+  static get CONSTRAINT_PARSERS (): Partial<Record<string, (this: Parser, ...args: unknown[]) => Expression | Expression[] | undefined>> {
+    return {
+      ...Parser.CONSTRAINT_PARSERS,
+      DEFAULT: function (this: Parser) {
+        this.matchTextSeq([
+          'ON',
+          'NULL',
+        ]);
+
+        return this.expression(DefaultColumnConstraintExpr, {
+          this: this.parseBitwise(),
+        });
+      },
+    };
+  }
+
   @cache
   static get ID_VAR_TOKENS (): Set<TokenType> {
     return new Set([
@@ -311,6 +510,15 @@ export class OracleParser extends Parser {
       },
       FORCE: function (this: Parser) {
         return this.expression(ForcePropertyExpr, {});
+      },
+      // FIXME: not in upstream sqlglot
+      // ORGANIZATION {HEAP | INDEX | EXTERNAL} [(...)]
+      ORGANIZATION: function (this: Parser) {
+        (this as OracleParser).consumeBalancedParens();
+
+        return this.expression(VarExpr, {
+          this: 'ORGANIZATION',
+        });
       },
     };
   }
@@ -582,6 +790,7 @@ export class OracleParser extends Parser {
 }
 export class OracleGenerator extends Generator {
   static ON_CONDITION_EMPTY_BEFORE_ERROR = false;
+  static SUPPORTS_MODIFY_COLUMN = true; // FIXME: custom Oracle MODIFY support, remove if sqlglot adds upstream
 
   @cache
   static get AFTER_HAVING_MODIFIER_TRANSFORMS () {
@@ -736,6 +945,11 @@ export class OracleGenerator extends Generator {
     m.set(VolatilePropertyExpr, PropertiesLocation.UNSUPPORTED);
 
     return m;
+  }
+
+  // FIXME: Oracle uses MODIFY (not MODIFY COLUMN), remove if sqlglot adds upstream
+  public modifyColumnSql (expression: ModifyColumnExpr): string {
+    return `MODIFY ${this.sql(expression, 'this')}`;
   }
 
   public currentTimestampSql (expression: CurrentTimestampExpr): string {

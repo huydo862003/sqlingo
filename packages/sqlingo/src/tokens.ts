@@ -433,6 +433,7 @@ export enum TokenType {
   TRUE = 'true',
   TRIGGER = 'trigger',
   TRUNCATE = 'truncate',
+  TYPE = 'type',
   UNCACHE = 'uncache',
   UNION = 'union',
   UNNEST = 'unnest',

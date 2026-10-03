@@ -8,9 +8,9 @@ import {
   Expression,
 
   UnnestExpr, AlterExpr, ArrayOverlapsExpr, JsonExtractScalarExpr,
-  JsonExtractExpr, ObjectIdentifierExpr, DataTypeExpr,
+  JsonExtractExpr, ObjectIdentifierExpr, DataTypeExpr, DataTypeExprKind,
   JsonbContainsAnyTopKeysExpr, JsonbContainsAllTopKeysExpr, JsonbDeleteAtPathExpr,
-  TransactionExpr, BinaryExpr, CastExpr, ColumnDefExpr,
+  TransactionExpr, BinaryExpr, CastExpr, ColumnDefExpr, CreateExpr, SchemaExpr,
 } from '../../../src/expressions';
 import {
   narrowInstanceOf,
@@ -91,6 +91,7 @@ class TestPostgres extends Validator {
     this.validateIdentity('SELECT CASE WHEN SUBSTRING(\'abcdefg\') IN (\'ab\') THEN 1 ELSE 0 END');
     this.validateIdentity('COMMENT ON TABLE mytable IS \'this\'');
     this.validateIdentity('COMMENT ON MATERIALIZED VIEW my_view IS \'this\'');
+    this.validateIdentity("COMMENT ON COLUMN products.name IS 'some text'");
     this.validateIdentity('SELECT e\'\\xDEADBEEF\'');
     this.validateIdentity('SELECT CAST(e\'\\176\' AS BYTEA)');
     this.validateIdentity('SELECT * FROM x WHERE SUBSTRING(\'Thomas\' FROM \'...$\') IN (\'mas\')');
@@ -1226,6 +1227,20 @@ FROM json_data, field_ids`,
       dialect: 'postgres',
     })).toBe('CREATE TABLE t (x INTERVAL DAY)');
 
+    const createType = this.validateIdentity("CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')");
+    expect(createType).toBeInstanceOf(CreateExpr);
+    expect((createType as CreateExpr).args.expression).toBeInstanceOf(DataTypeExpr);
+    expect(((createType as CreateExpr).args.expression as DataTypeExpr).isType(DataTypeExprKind.ENUM)).toBe(true);
+
+    const createTypeEmpty = this.validateIdentity('CREATE TYPE mood AS ENUM ()');
+    expect(createTypeEmpty).toBeInstanceOf(CreateExpr);
+
+    const createTypeComposite = this.validateIdentity('CREATE TYPE inventory_item AS (name TEXT, supplier_id INT, price DECIMAL)');
+    expect(createTypeComposite).toBeInstanceOf(CreateExpr);
+    expect((createTypeComposite as CreateExpr).args.expression).toBeInstanceOf(SchemaExpr);
+
+    this.validateIdentity("CREATE TYPE public.mood AS ENUM ('sad', 'ok')");
+
     this.validateIdentity('ALTER INDEX "IX_Ratings_Column1" RENAME TO "IX_Ratings_Column2"');
     this.validateIdentity('CREATE TABLE x (a TEXT COLLATE "de_DE")');
     this.validateIdentity('CREATE TABLE x (a TEXT COLLATE pg_catalog."default")');
@@ -1235,6 +1250,10 @@ FROM json_data, field_ids`,
     this.validateIdentity('CREATE INDEX et_vid_idx ON et(vid) INCLUDE (fid)');
     this.validateIdentity('CREATE INDEX idx_x ON x USING BTREE(x, y) WHERE (NOT y IS NULL)');
     this.validateIdentity('CREATE TABLE test (elems JSONB[])');
+    this.validateIdentity('CREATE TABLE foo (bar TEXT[], bar2 INT ARRAY)', 'CREATE TABLE foo (bar TEXT[], bar2 INT[])');
+    this.validateIdentity('CREATE TABLE foo (foo1 TIMETZ(2) [])', 'CREATE TABLE foo (foo1 TIMETZ(2)[])');
+    this.validateIdentity('CREATE TABLE t (left_shift INT GENERATED ALWAYS AS (a << 2) STORED)');
+    this.validateIdentity("CREATE TABLE t (binary_col INT DEFAULT 0b101010)", "CREATE TABLE t (binary_col INT DEFAULT b'101010')");
     this.validateIdentity('CREATE TABLE public.y (x TSTZRANGE NOT NULL)');
     this.validateIdentity('CREATE TABLE test (foo HSTORE)');
     this.validateIdentity('CREATE TABLE test (foo JSONB)');

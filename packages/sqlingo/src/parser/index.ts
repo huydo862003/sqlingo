@@ -535,6 +535,17 @@ export function parse<IntoT extends typeof Expression = typeof Expression> (
 }
 
 /**
+ * Like parse(), but handles multiple statements without semicolons
+ * When a statement parser returns with leftover tokens, the leftovers are re-parsed as the next statement instead of raising an error
+ */
+export function parseNewlineDelimited<IntoT extends typeof Expression = typeof Expression> (
+  sql: string,
+  opts?: ParseOptions<IntoT>,
+): (InstanceType<IntoT> | undefined)[] {
+  return Dialect.getOrRaise(opts?.read ?? opts?.dialect).parseNewlineDelimited(sql, opts) as (InstanceType<IntoT> | undefined)[];
+}
+
+/**
  * Parses the given SQL string and returns a syntax tree for the first parsed SQL statement.
  *
  * @param sql - The SQL code string to parse
@@ -1607,6 +1618,7 @@ export class Parser {
       TokenType.INDEX,
       TokenType.PROCEDURE,
       TokenType.TRIGGER,
+      TokenType.TYPE,
       ...Parser.DB_CREATABLES,
     ]);
   }
@@ -2269,6 +2281,12 @@ export class Parser {
     };
   }
 
+  // FIXME: not in upstream sqlglot, used by parseAsCommand in newline-delimited mode
+  @cache
+  static get NEWLINE_BOUNDARY_TOKENS (): Set<TokenType> {
+    return new Set(Object.keys(this.STATEMENT_PARSERS) as TokenType[]);
+  }
+
   @cache
   static get STATEMENT_PARSERS (): Partial<Record<TokenType, (this: Parser) => Expression | undefined>> {
     return {
@@ -2742,6 +2760,11 @@ export class Parser {
       },
       'GLOBAL': function (this: Parser) {
         return this.expression(GlobalPropertyExpr, {});
+      },
+      // FIXME: not in upstream sqlglot, but PostgreSQL supports CREATE LOCAL TEMP TABLE
+      // LOCAL <TEMPORARY | TEMP> TABLE
+      'LOCAL': function (this: Parser) {
+        return this.expression(TemporaryPropertyExpr, {});
       },
       'HEAP': function (this: Parser) {
         return this.expression(HeapPropertyExpr, {});
@@ -4128,6 +4151,8 @@ export class Parser {
   protected pipeCteCounter: number;
   protected _chunks: Token[][];
   protected _chunkIndex: number;
+  // FIXME: not in upstream sqlglot, enables newline-delimited statement splitting
+  protected _newlineDelimited: boolean;
 
   constructor (options: ParseOptions = {}) {
     const {
@@ -4151,6 +4176,7 @@ export class Parser {
     this.pipeCteCounter = 0;
     this._chunks = [];
     this._chunkIndex = 0;
+    this._newlineDelimited = false;
     this.reset();
   }
 
@@ -4166,6 +4192,7 @@ export class Parser {
     this.pipeCteCounter = 0;
     this._chunks = [];
     this._chunkIndex = 0;
+    this._newlineDelimited = false;
   }
 
   /**
@@ -4186,17 +4213,37 @@ export class Parser {
     });
   }
 
+  // FIXME: not in upstream sqlglot, custom feature for delimiter-free SQL dumps
+  parseNewlineDelimited (rawTokens: Token[], sql?: string): (Expression | undefined)[] {
+    try {
+      const result = this._parse({
+        parseMethod: function (this: Parser) {
+          return this.parseStatement();
+        },
+        rawTokens,
+        sql,
+        newlineDelimited: true,
+      });
+
+      return result;
+    } finally {
+      this._newlineDelimited = false;
+    }
+  }
+
   protected _parse (options: {
     parseMethod: (this: Parser) => Expression | undefined;
     rawTokens: Token[];
     sql?: string;
+    newlineDelimited?: boolean;
   }): (Expression | undefined)[] {
     const {
-      parseMethod, rawTokens, sql,
+      parseMethod, rawTokens, sql, newlineDelimited = false,
     } = options;
 
     this.reset();
     this.sql = sql || '';
+    this._newlineDelimited = newlineDelimited;
 
     const total = rawTokens.length;
     const chunks: Token[][] = [[]];
@@ -4520,6 +4567,18 @@ export class Parser {
 
     const unique = this.match(TokenType.UNIQUE) || undefined;
 
+    // FIXME: upstream sqlglot doesn't handle FULLTEXT/BITMAP/SPATIAL index qualifiers in CREATE INDEX
+    // Remove this if sqlglot adds support upstream
+    let indexPrefix: string | undefined;
+
+    if (this.matchTexts([
+      'FULLTEXT',
+      'BITMAP',
+      'SPATIAL',
+    ])) {
+      indexPrefix = this.prev?.text.toUpperCase();
+    }
+
     let clustered: boolean | undefined;
 
     if (this.matchTextSeq([
@@ -4705,6 +4764,27 @@ export class Parser {
         index,
         anonymous,
       });
+    } else if (createToken.tokenType === TokenType.TYPE) {
+      thisExpr = this.parseTableParts({
+        schema: true,
+      });
+
+      if (!thisExpr || !this.match(TokenType.ALIAS)) {
+        return this.parseAsCommand(start);
+      }
+
+      if (this.match(TokenType.ENUM)) {
+        expression = new DataTypeExpr({
+          this: DataTypeExprKind.ENUM,
+          expressions: this.parseWrappedCsv(this.parseString.bind(this)),
+        });
+      } else if (this.match(TokenType.L_PAREN, {
+        advance: false,
+      })) {
+        expression = this.parseSchema();
+      } else {
+        return this.parseAsCommand(start);
+      }
     } else if (this._constructor.DB_CREATABLES.has(createToken.tokenType)) {
       const tableParts = this.parseTableParts({
         schema: true,
@@ -4822,8 +4902,10 @@ export class Parser {
       }
     }
 
+    // FIXME: _newlineDelimited skips this guard, upstream always falls to CommandExpr
     if (
       this.curr
+      && !this._newlineDelimited
       && !this.matchSet(new Set([
         TokenType.R_PAREN,
         TokenType.COMMA,
@@ -4843,6 +4925,7 @@ export class Parser {
       replace,
       refresh,
       unique,
+      indexPrefix,
       expression,
       exists,
       properties,
@@ -7715,7 +7798,26 @@ export class Parser {
   }
 
   parseIndexParams (): IndexParametersExpr {
-    const using = this.match(TokenType.USING)
+    // FIXME: not in upstream sqlglot - consume USING INDEX [TABLESPACE name] before USING BTREE/HASH
+    let usingIndexTablespace: Expression | undefined;
+
+    if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+      'TABLESPACE',
+    ])) {
+      usingIndexTablespace = this.parseVar({
+        anyToken: true,
+      });
+    } else if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+    ])) {
+      // USING INDEX without TABLESPACE
+      usingIndexTablespace = var_('');
+    }
+
+    let using = !usingIndexTablespace && this.match(TokenType.USING)
       ? this.parseVar({
         anyToken: true,
       })
@@ -7726,6 +7828,18 @@ export class Parser {
     })
       ? this.parseWrappedCsv(() => this.parseWithOperator())
       : undefined;
+
+    // FIXME: upstream sqlglot doesn't handle USING after column list (e.g. CREATE INDEX idx ON t (a) USING BTREE)
+    // Remove this if sqlglot adds support upstream
+    if (!using && this.match(TokenType.USING)) {
+      using = this.parseVar({
+        anyToken: true,
+      });
+    }
+
+    // FIXME: upstream sqlglot doesn't handle Oracle REVERSE index keyword
+    // Remove this if sqlglot adds support upstream
+    const reverse = this.matchTextSeq('REVERSE') || undefined;
 
     const include = this.matchTextSeq('INCLUDE')
       ? this.parseWrappedIdVars()
@@ -7757,6 +7871,7 @@ export class Parser {
         withStorage,
         tablespace,
         on,
+        reverse,
       },
     );
   }
@@ -10800,6 +10915,18 @@ export class Parser {
         break;
       }
 
+      // INT ARRAY (no brackets): wrap immediately without consuming further tokens
+      // Calling parseCsv here would steal the column-separator comma
+      if (!matchedLBracket && matchedArray) {
+        matchedArray = false;
+        thisExpr = new DataTypeExpr({
+          this: DataTypeExprKind.ARRAY,
+          expressions: [thisExpr as DataTypeExpr],
+          nested: true,
+        });
+        continue;
+      }
+
       matchedArray = false;
       const valuesInBracket = this.parseCsv(() => this.parseDisjunction());
 
@@ -11536,8 +11663,22 @@ export class Parser {
 
       expressions.push(parseMethod(this));
 
+      // FIXME: _newlineDelimited loops on leftover tokens, upstream always raises
       if (this.index < this.tokens.length) {
-        this.raiseError('Invalid expression / Unexpected token');
+        if (this._newlineDelimited) {
+          while (this.curr) {
+            const before = this.index;
+
+            expressions.push(parseMethod(this));
+
+            if (this.index === before) {
+              // No progress, skip token to avoid infinite loop
+              this.advance();
+            }
+          }
+        } else {
+          this.raiseError('Invalid expression / Unexpected token');
+        }
       }
 
       this.checkErrors();
@@ -14103,13 +14244,20 @@ export class Parser {
 
     let thisExpr: Expression | undefined;
 
+    // FIXME: upstream sqlglot only checks next === L_PAREN for namedPrimaryKey
+    // We also accept next === USING to handle MySQL PRIMARY KEY key_name USING HASH (cols)
+    // Remove this if sqlglot adds support upstream
     if (
       namedPrimaryKey
       && !((this.curr?.text.toUpperCase() || '') in this._constructor.CONSTRAINT_PARSERS)
       && this.next
-      && this.next.tokenType === TokenType.L_PAREN
+      && (this.next.tokenType === TokenType.L_PAREN || this.next.tokenType === TokenType.USING)
     ) {
       thisExpr = this.parseIdVar();
+    }
+    // Consume optional USING BTREE/HASH before column list (MySQL syntax)
+    if (!inProps && this.match(TokenType.USING)) {
+      this.advance();
     }
 
     if (!inProps && !this.match(TokenType.L_PAREN, {
@@ -14198,6 +14346,55 @@ export class Parser {
     );
   }
 
+  // FIXME: not in upstream sqlglot
+  // SQL standard: [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+  // Used by both PostgreSQL and Oracle dialects
+  protected consumeDeferrable (): void {
+    // NOT DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+    if (this.matchTextSeq([
+      'NOT',
+      'DEFERRABLE',
+    ])) {
+      this.matchTextSeq([
+        'INITIALLY',
+        'DEFERRED',
+      ]) || this.matchTextSeq([
+        'INITIALLY',
+        'IMMEDIATE',
+      ]);
+
+      return;
+    }
+    // DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+    if (this.matchTexts(['DEFERRABLE'])) {
+      this.matchTextSeq([
+        'INITIALLY',
+        'DEFERRED',
+      ]) || this.matchTextSeq([
+        'INITIALLY',
+        'IMMEDIATE',
+      ]);
+    }
+  }
+
+  // FIXME: not in upstream sqlglot
+  // Skips a balanced paren block starting at the current token
+  protected skipBalancedParens (): void {
+    if (this.curr?.tokenType !== TokenType.L_PAREN) return;
+    let depth = 0;
+
+    while (this.curr) {
+      if (this.curr.tokenType === TokenType.L_PAREN) depth++;
+      else if (this.curr.tokenType === TokenType.R_PAREN) {
+        depth--;
+        if (depth === 0) {
+          this.advance(); break;
+        }
+      }
+      this.advance();
+    }
+  }
+
   parseKeyConstraintOptions (): string[] {
     const options: string[] = [];
 
@@ -14268,6 +14465,16 @@ export class Parser {
   }
 
   parseForeignKey (): ForeignKeyExpr {
+    // FIXME: upstream sqlglot doesn't handle MySQL FOREIGN KEY index_name (cols) syntax
+    // Remove this if sqlglot adds support upstream
+    if (
+      this.curr
+      && this.curr.tokenType !== TokenType.L_PAREN
+      && this.curr.tokenType !== TokenType.REFERENCES
+    ) {
+      this.advance(); // skip optional index name
+    }
+
     const expressions = !this.match(TokenType.REFERENCES, {
       advance: false,
     })
@@ -14707,10 +14914,25 @@ export class Parser {
       return thisResult as Expression | undefined;
     }
 
+    let position: ColumnPositionExpr | undefined;
+
+    if (this.matchTexts([
+      'FIRST',
+      'AFTER',
+    ])) {
+      const pos = this.prev?.text ?? '';
+
+      position = this.expression(ColumnPositionExpr, {
+        this: this.parseColumn(),
+        position: pos,
+      });
+    }
+
     return this.expression(ColumnDefExpr, {
       this: thisResult,
       kind,
       constraints,
+      position,
     });
   }
 
@@ -15345,10 +15567,17 @@ export class Parser {
         schema: true,
         parsePartition: this._constructor.ALTER_TABLE_PARTITIONS,
       });
+      // FIXME: upstream sqlglot doesn't handle WITH NOCHECK (TSQL)
+      // Remove this if sqlglot adds support upstream
       check = this.matchTextSeq([
         'WITH',
         'CHECK',
-      ]) || undefined;
+      ])
+        || this.matchTextSeq([
+          'WITH',
+          'NOCHECK',
+        ])
+        || undefined;
       cluster = this.match(TokenType.ON) ? this.parseOnProperty() : undefined;
 
       if (this.next) {
@@ -15371,7 +15600,8 @@ export class Parser {
         this._dialectConstructor.ALTER_TABLE_SUPPORTS_CASCADE
         && this.matchTextSeq('CASCADE');
 
-      if (!this.curr && actions) {
+      // FIXME: _newlineDelimited also accepts leftover tokens, upstream requires !this.curr
+      if ((!this.curr || this._newlineDelimited) && actions) {
         return this.expression(AlterExpr, {
           this: thisExpr,
           kind: enumFromString(AlterExprKind, alterToken.text) ?? alterToken.text.toUpperCase(),
@@ -16173,26 +16403,7 @@ export class Parser {
       return undefined;
     }
 
-    const expression = this.parseColumnDefWithExists();
-
-    if (!expression) {
-      return undefined;
-    }
-
-    if (this.matchTexts([
-      'FIRST',
-      'AFTER',
-    ])) {
-      const position = this.prev?.text ?? '';
-      const columnPosition = this.expression(ColumnPositionExpr, {
-        this: this.parseColumn(),
-        position,
-      });
-
-      expression.setArgKey('position', columnPosition);
-    }
-
-    return expression;
+    return this.parseColumnDefWithExists() ?? undefined;
   }
 
   parseDropColumn (): DropExpr | CommandExpr | undefined {
@@ -16257,6 +16468,45 @@ export class Parser {
       return undefined;
     };
 
+    // FIXME: upstream sqlglot doesn't handle unnamed CHECK in ALTER TABLE ADD
+    // Remove this if sqlglot adds support upstream
+    if (this.matchTexts(['CHECK'], {
+      advance: false,
+    })) {
+      return [
+        this.expression(AddConstraintExpr, {
+          expressions: this.parseCsv(this.parseConstraint.bind(this)),
+        }),
+      ];
+    }
+
+    // FIXME: upstream sqlglot doesn't handle TSQL ADD [CONSTRAINT name] DEFAULT expr FOR col
+    // Remove this if sqlglot adds support upstream
+    if (this.matchTexts(['DEFAULT'], {
+      advance: false,
+    })) {
+      return this.parseAlterTableAddDefault();
+    }
+
+    if (
+      this.curr?.tokenType === TokenType.CONSTRAINT
+      && this.next
+      && this.next.tokenType !== TokenType.L_PAREN
+    ) {
+      // Peek: CONSTRAINT <name> DEFAULT?
+      const savedIndex = this.index;
+
+      this.advance(); // CONSTRAINT
+      this.advance(); // name
+      if (this.matchTexts(['DEFAULT'], {
+        advance: false,
+      })) {
+        return this.parseAlterTableAddDefault();
+      }
+
+      this.retreat(savedIndex);
+    }
+
     if (
       !this.matchSet(this._constructor.ADD_CONSTRAINT_TOKENS, {
         advance: false,
@@ -16272,6 +16522,31 @@ export class Parser {
     }
 
     return this.parseCsv(parseAddAlteration);
+  }
+
+  // FIXME: not in upstream sqlglot, handles TSQL ADD DEFAULT expr FOR col
+  protected parseAlterTableAddDefault (): Expression[] {
+    this.advance(); // consume DEFAULT
+    const defaultExpr = this.curr?.tokenType === TokenType.L_PAREN
+      ? this.parseWrapped(() => this.parseExpression())
+      : this.parseExpression();
+
+    if (this.matchTextSeq('FOR')) {
+      const column = this.parseField({
+        anyToken: true,
+      });
+
+      if (column) {
+        return [
+          this.expression(AlterColumnExpr, {
+            this: column,
+            default: defaultExpr,
+          }),
+        ];
+      }
+    }
+
+    return [];
   }
 
   parseAlterTableAlter (): Expression | undefined {
@@ -16586,9 +16861,32 @@ export class Parser {
   }
 
   parseAsCommand (start?: Token): CommandExpr {
+    // FIXME: _newlineDelimited diverges from upstream, scopes to newline boundaries at depth 0
+    const statementTokens = this._newlineDelimited
+      ? this._constructor.NEWLINE_BOUNDARY_TOKENS
+      : undefined;
+    let depth = 0;
+
     while (this.curr) {
+      if (this.curr.tokenType === TokenType.L_PAREN) {
+        depth++;
+      } else if (this.curr.tokenType === TokenType.R_PAREN) {
+        depth = Math.max(0, depth - 1);
+      }
+
+      if (
+        statementTokens
+        && depth === 0
+        && statementTokens.has(this.curr.tokenType)
+        && this.prev
+        && this.prev.line < this.curr.line
+      ) {
+        break;
+      }
+
       this.advance();
     }
+
     const text = this.findSql(start, this.prev);
     const size = start?.text.length || 0;
 

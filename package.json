@@ -12,9 +12,9 @@
 		"doc": "pnpm --filter sqlingo-homepage run build"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.31.1",
+		"@changesets/cli": "^3.0.3",
 		"@hdnax/nuclint": "^0.17.5",
-		"eslint": "^9.39.5",
+		"eslint": "^10.11.0",
 		"eslint-plugin-unicorn": "^74.0.0",
 		"eslint-plugin-vue": "^10.11.0",
 		"tailwindcss": "^4.3.3",
