@@ -20,7 +20,7 @@
     "monaco-editor": "^0.56.0",
     "pinia": "^3.0.4",
     "sqlingo": "workspace:*",
-    "typerighter": "^0.40.1",
+    "typerighter": "^0.40.4",
     "vue": "^3.5.43",
     "vue-router": "^5.3.1"
   },

@@ -65,8 +65,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/sqlingo
       typerighter:
-        specifier: ^0.40.1
-        version: 0.40.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1)
+        specifier: ^0.40.4
+        version: 0.40.4(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1)
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@6.0.3)
@@ -609,8 +609,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lucide/vue@1.47.0':
-    resolution: {integrity: sha512-S0/UX9zra4Z8xmqrA1MH5GiSKA8daAPFwkmORt/u+gUHAkYZoeOcr+DH3scZeyE9bdLWScGK+MJoDYi8rIU5Jg==}
+  '@lucide/vue@1.49.0':
+    resolution: {integrity: sha512-7xS5gYnLoIx0jlmlRE3Rb71fIHaNqhVBiKMpOlqrYt6nMPy3C/62HJHo5XNsV3HTK+9l3M0hXICrIA7S5v6y5Q==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -1165,11 +1165,11 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
-  '@typerighter/rpc-client@0.40.1':
-    resolution: {integrity: sha512-uh1+LYDpAZd4qyvLqcYL4WHB9oxy4JNL6lA6GmgLcNyx9JmkVTXICeqUw0/4/lFzpPjWxB2I9GGDboOq7U9cxg==}
+  '@typerighter/rpc-client@0.40.4':
+    resolution: {integrity: sha512-HWONPsRKDIDkVDZoQvMcu2ONpMCQI+fAH7dgQzORG6tXd+aZptJu/nxeshZQva3D2WB4y9F9PY8LRNN6dUKQpQ==}
 
-  '@typerighter/rpc-server@0.40.1':
-    resolution: {integrity: sha512-IAdr3ujpyRYBr9TjRgGA82zUSN81+lijehkKmX99ErwG6TmooGdVwQkQlOGae0CyKR1S8ZVCSBldEZ75m/V+sw==}
+  '@typerighter/rpc-server@0.40.4':
+    resolution: {integrity: sha512-96EdBLTeXPJ03/VkN6Irx0pRJchIQ8n8fYjpmzcYZ7bMvII5INI7gswg90i4gN8rltkE50Kq/TqnfV974UiI9A==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -1832,8 +1832,8 @@ packages:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
 
-  enhanced-resolve@5.25.1:
-    resolution: {integrity: sha512-nGXts5znJzmWPu+mIE9izCOzdg63oJca2mDzGWWTth7sr4aCToKcoyFVBQwN75Ij5Pf6p510EwkTqViTRzDV+w==}
+  enhanced-resolve@5.26.0:
+    resolution: {integrity: sha512-9vhedylFonb2YGogzUKX6+Ja72gOJbN1QHAqdrvqLwhdl/QWbKopzoUC9EbQNVsAns/bx/4uyqalrQAoy1IByw==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -2483,8 +2483,8 @@ packages:
   micromark-util-symbol@2.0.1:
     resolution: {integrity: sha512-vs5t8Apaud9N28kgCrRUdEed4UJ+wWNvicHLPxCa9ENlYuAY31M0ETy5y1vA33YoNPDFTghEbnh6efaE8h4x0Q==}
 
-  micromark-util-types@2.0.2:
-    resolution: {integrity: sha512-Yw0ECSpJoViF1qTU4DC6NwtC4aWGt1EkzaQB8KPPyCRR8z9TWeV0HbEFGTO+ZY1wB22zmxnJqhPyTpOVCpeHTA==}
+  micromark-util-types@2.0.3:
+    resolution: {integrity: sha512-oxB2Ik03hI0gv+VNn9tnh1t1YEe9MDPptViAEgfdf3YQHsn0pzGTgCdlSCJXcwhqm8phaEuM7zeEu3QQzVBrPg==}
 
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
@@ -2993,8 +2993,8 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typerighter@0.40.1:
-    resolution: {integrity: sha512-wTbv6VTkcdWF98ugO7c8HHGJGjMSsgNwoD2LWjTCovMwTVin+LpsluQEn3dAgmVT1Y5XeMLvb20OHkUfF8Vv1Q==}
+  typerighter@0.40.4:
+    resolution: {integrity: sha512-0AvLAr49o6EpfWYWlOc9bd34j6h6B+iM/8C6sMPCDAcwg0yGMTdhG3EJ2FBDqnDywfUbMUI+h8zripCZ3xRHIA==}
     hasBin: true
 
   typescript-eslint@8.59.2:
@@ -3814,7 +3814,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lucide/vue@1.47.0(vue@3.5.43(typescript@6.0.3))':
+  '@lucide/vue@1.49.0(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       vue: 3.5.43(typescript@6.0.3)
 
@@ -4179,9 +4179,9 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typerighter/rpc-client@0.40.1': {}
+  '@typerighter/rpc-client@0.40.4': {}
 
-  '@typerighter/rpc-server@0.40.1':
+  '@typerighter/rpc-server@0.40.4':
     dependencies:
       dotenv: 17.4.2
 
@@ -4853,7 +4853,7 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.3.3
 
-  enhanced-resolve@5.25.1:
+  enhanced-resolve@5.26.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -4915,7 +4915,7 @@ snapshots:
     dependencies:
       '@eslint/css-tree': 4.1.1
       '@valibot/to-json-schema': 1.8.0(valibot@1.5.0(typescript@6.0.3))
-      enhanced-resolve: 5.25.1
+      enhanced-resolve: 5.26.0
       jiti: 2.7.0
       synckit: 0.11.13
       tailwind-csstree: 0.3.3
@@ -4956,7 +4956,7 @@ snapshots:
   eslint-plugin-n@18.0.1(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3):
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.11.0(jiti@2.7.0))
-      enhanced-resolve: 5.25.1
+      enhanced-resolve: 5.26.0
       eslint: 10.11.0(jiti@2.7.0)
       eslint-plugin-es-x: 7.8.0(eslint@10.11.0(jiti@2.7.0))
       get-tsconfig: 4.14.3
@@ -5502,7 +5502,7 @@ snapshots:
   micromark-util-character@2.1.1:
     dependencies:
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-encode@2.0.1: {}
 
@@ -5514,7 +5514,7 @@ snapshots:
 
   micromark-util-symbol@2.0.1: {}
 
-  micromark-util-types@2.0.2: {}
+  micromark-util-types@2.0.3: {}
 
   minimatch@10.2.6:
     dependencies:
@@ -5973,7 +5973,7 @@ snapshots:
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
       chalk: 4.1.2
-      enhanced-resolve: 5.25.1
+      enhanced-resolve: 5.26.0
       tapable: 2.3.3
       tsconfig-paths: 4.2.0
 
@@ -6019,17 +6019,17 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typerighter@0.40.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1):
+  typerighter@0.40.4(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1):
     dependencies:
       '@clack/prompts': 1.8.1
       '@floating-ui/vue': 2.0.1(vue@3.5.43(typescript@6.0.3))
       '@fontsource-variable/inter': 5.3.0
       '@fontsource-variable/jetbrains-mono': 5.3.0
-      '@lucide/vue': 1.47.0(vue@3.5.43(typescript@6.0.3))
+      '@lucide/vue': 1.49.0(vue@3.5.43(typescript@6.0.3))
       '@shikijs/transformers': 4.4.3
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
-      '@typerighter/rpc-client': 0.40.1
-      '@typerighter/rpc-server': 0.40.1
+      '@typerighter/rpc-client': 0.40.4
+      '@typerighter/rpc-server': 0.40.4
       '@vitejs/plugin-vue': 6.0.9(vite@8.2.2(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(vue@3.5.43(typescript@6.0.3))
       cac: 7.0.0
       picocolors: 1.1.1
