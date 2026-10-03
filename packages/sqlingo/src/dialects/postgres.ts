@@ -1450,9 +1450,13 @@ class PostgresGenerator extends Generator {
         mergeWithoutTargetSql,
       ],
       [
+        // FIXME: not in upstream sqlglot
+        // PostgreSQL PARTITION BY: emit method(cols) when expressions are present
         PartitionedByPropertyExpr,
         function (this: Generator, e: PartitionedByPropertyExpr) {
-          return `PARTITION BY ${this.sql(e, 'this')}`;
+          const method = this.sql(e, 'this');
+          const cols = (e.args.expressions ?? []).map((col) => this.sql(col)).join(', ');
+          return cols ? `PARTITION BY ${method}(${cols})` : `PARTITION BY ${method}`;
         },
       ],
       [
