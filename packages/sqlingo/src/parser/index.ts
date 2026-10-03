@@ -10915,6 +10915,18 @@ export class Parser {
         break;
       }
 
+      // INT ARRAY (no brackets): wrap immediately without consuming further tokens.
+      // Calling parseCsv here would steal the column-separator comma.
+      if (!matchedLBracket && matchedArray) {
+        matchedArray = false;
+        thisExpr = new DataTypeExpr({
+          this: DataTypeExprKind.ARRAY,
+          expressions: [thisExpr as DataTypeExpr],
+          nested: true,
+        });
+        continue;
+      }
+
       matchedArray = false;
       const valuesInBracket = this.parseCsv(() => this.parseDisjunction());
 
