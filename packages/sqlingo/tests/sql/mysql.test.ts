@@ -5,7 +5,7 @@ import {
   parseOne, transpile,
 } from '../../src/index';
 import {
-  AlterExpr, CreateExpr, CommandExpr, ForeignKeyExpr,
+  AlterExpr, CreateExpr, CommandExpr, ForeignKeyExpr, IndexColumnConstraintExpr, ColumnDefExpr,
 } from '../../src/expressions';
 
 describe('MySQL custom fixes', () => {
@@ -398,6 +398,48 @@ describe('MySQL custom fixes', () => {
       );
 
       expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // INDEX / KEY inside CREATE TABLE should parse as IndexColumnConstraintExpr, not ColumnDefExpr
+  describe('INDEX inside CREATE TABLE', () => {
+    test('INDEX k (id) is IndexColumnConstraintExpr', () => {
+      const result = parseOne('CREATE TABLE t (id INT, INDEX k (id))', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      const schema = (result as CreateExpr).args.this as any;
+      const exprs: any[] = schema?.args?.expressions ?? [];
+      const indexExpr = exprs.find((e: any) => !(e instanceof ColumnDefExpr));
+
+      expect(indexExpr).toBeInstanceOf(IndexColumnConstraintExpr);
+    });
+
+    test('KEY k (id) is IndexColumnConstraintExpr', () => {
+      const result = parseOne('CREATE TABLE t (id INT, KEY k (id))', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      const schema = (result as CreateExpr).args.this as any;
+      const exprs: any[] = schema?.args?.expressions ?? [];
+      const indexExpr = exprs.find((e: any) => !(e instanceof ColumnDefExpr));
+
+      expect(indexExpr).toBeInstanceOf(IndexColumnConstraintExpr);
+    });
+
+    test('expression index INDEX k ((d + 1)) is IndexColumnConstraintExpr', () => {
+      const result = parseOne('CREATE TABLE t (d INT, INDEX k ((d + 1)))', {
+        dialect: 'mysql',
+      });
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      const schema = (result as CreateExpr).args.this as any;
+      const exprs: any[] = schema?.args?.expressions ?? [];
+      const indexExpr = exprs.find((e: any) => !(e instanceof ColumnDefExpr));
+
+      expect(indexExpr).toBeInstanceOf(IndexColumnConstraintExpr);
     });
   });
 });
