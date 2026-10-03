@@ -2761,6 +2761,11 @@ export class Parser {
       'GLOBAL': function (this: Parser) {
         return this.expression(GlobalPropertyExpr, {});
       },
+      // FIXME: not in upstream sqlglot, but PostgreSQL supports CREATE LOCAL TEMP TABLE
+      // LOCAL <TEMPORARY | TEMP> TABLE
+      'LOCAL': function (this: Parser) {
+        return this.expression(TemporaryPropertyExpr, {});
+      },
       'HEAP': function (this: Parser) {
         return this.expression(HeapPropertyExpr, {});
       },
@@ -7793,7 +7798,26 @@ export class Parser {
   }
 
   parseIndexParams (): IndexParametersExpr {
-    let using = this.match(TokenType.USING)
+    // FIXME: not in upstream sqlglot - consume USING INDEX [TABLESPACE name] before USING BTREE/HASH
+    let usingIndexTablespace: Expression | undefined;
+
+    if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+      'TABLESPACE',
+    ])) {
+      usingIndexTablespace = this.parseVar({
+        anyToken: true,
+      });
+    } else if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+    ])) {
+      // USING INDEX without TABLESPACE
+      usingIndexTablespace = var_('');
+    }
+
+    let using = !usingIndexTablespace && this.match(TokenType.USING)
       ? this.parseVar({
         anyToken: true,
       })
@@ -16397,7 +16421,9 @@ export class Parser {
 
     // FIXME: upstream sqlglot doesn't handle TSQL ADD [CONSTRAINT name] DEFAULT expr FOR col
     // Remove this if sqlglot adds support upstream
-    if (this.matchTexts(['DEFAULT'], { advance: false })) {
+    if (this.matchTexts(['DEFAULT'], {
+      advance: false,
+    })) {
       return this.parseAlterTableAddDefault();
     }
 
@@ -16411,7 +16437,9 @@ export class Parser {
 
       this.advance(); // CONSTRAINT
       this.advance(); // name
-      if (this.matchTexts(['DEFAULT'], { advance: false })) {
+      if (this.matchTexts(['DEFAULT'], {
+        advance: false,
+      })) {
         return this.parseAlterTableAddDefault();
       }
 
@@ -16443,13 +16471,17 @@ export class Parser {
       : this.parseExpression();
 
     if (this.matchTextSeq('FOR')) {
-      const column = this.parseField({ anyToken: true });
+      const column = this.parseField({
+        anyToken: true,
+      });
 
       if (column) {
-        return [this.expression(AlterColumnExpr, {
-          this: column,
-          default: defaultExpr,
-        })];
+        return [
+          this.expression(AlterColumnExpr, {
+            this: column,
+            default: defaultExpr,
+          }),
+        ];
       }
     }
 

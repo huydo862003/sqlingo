@@ -1045,6 +1045,8 @@ export enum CreateExprKind {
   TRIGGER = 'trigger',
   SEQUENCE = 'sequence',
   TEMPORARY_VIEW = 'temporary view',
+  // FIXME: not in upstream sqlglot - added so CREATE TYPE AS ENUM can be matched via enum instead of string
+  TYPE = 'TYPE',
 }
 
 export enum DescribeExprKind {
@@ -1088,9 +1090,9 @@ export enum ColumnDefExprKind {
 }
 
 export enum CommentExprKind {
-  TABLE = 'table',
-  COLUMN = 'column',
-  VIEW = 'view',
+  TABLE = 'TABLE',
+  COLUMN = 'COLUMN',
+  VIEW = 'VIEW',
 }
 
 export enum ColumnConstraintExprKind {

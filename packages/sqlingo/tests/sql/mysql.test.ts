@@ -149,6 +149,140 @@ describe('MySQL custom fixes', () => {
     });
   });
 
+  // MySQL: UNIQUE [INDEX|KEY] with expression indexes ((expr))
+  describe('UNIQUE INDEX with expression', () => {
+    test('UNIQUE INDEX with double-paren expression', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id INT, UNIQUE INDEX uk ((LOWER(email))))',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('INDEX with double-paren expression still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (d INT, INDEX k ((d + 1)))',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('UNIQUE INDEX with simple column still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (a INT, UNIQUE INDEX uk (a))',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('inline column UNIQUE still works', () => {
+      const result = parseOne(
+        'CREATE TABLE t (a INT UNIQUE)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // FIXME: not in upstream sqlglot
+  // MySQL: COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}
+  describe('COLUMN_FORMAT column attribute', () => {
+    test('COLUMN_FORMAT FIXED', () => {
+      const result = parseOne(
+        'CREATE TABLE t (id INT, col VARCHAR(100) COLUMN_FORMAT FIXED)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+      expect(result).not.toBeInstanceOf(CommandExpr);
+    });
+
+    test('COLUMN_FORMAT DYNAMIC', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col TEXT COLUMN_FORMAT DYNAMIC)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('COLUMN_FORMAT DEFAULT', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col VARCHAR(100) COLUMN_FORMAT DEFAULT)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('COLUMN_FORMAT with other constraints', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col VARCHAR(50) COLUMN_FORMAT FIXED NOT NULL DEFAULT "x")',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
+  // FIXME: not in upstream sqlglot
+  // MySQL: STORAGE {DISK | MEMORY | DEFAULT}
+  describe('STORAGE column attribute', () => {
+    test('STORAGE DISK', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col INT STORAGE DISK)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('STORAGE MEMORY', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col INT STORAGE MEMORY)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+
+    test('STORAGE DEFAULT', () => {
+      const result = parseOne(
+        'CREATE TABLE t (col INT STORAGE DEFAULT)',
+        {
+          dialect: 'mysql',
+        },
+      );
+
+      expect(result).toBeInstanceOf(CreateExpr);
+    });
+  });
+
   // FIXME: upstream sqlglot doesn't handle CREATE TYPE AS ENUM in MySQL
   // Remove these tests if sqlglot adds support upstream
   describe('CREATE TYPE AS ENUM (MySQL)', () => {

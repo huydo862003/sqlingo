@@ -53,7 +53,9 @@ describe('TSQL custom fixes', () => {
   // Remove these tests if sqlglot adds support upstream
   describe('ALTER TABLE ADD DEFAULT ... FOR', () => {
     test('ADD DEFAULT value FOR col', () => {
-      const result = parseOne('ALTER TABLE t ADD DEFAULT 0 FOR col', { dialect: 'tsql' });
+      const result = parseOne('ALTER TABLE t ADD DEFAULT 0 FOR col', {
+        dialect: 'tsql',
+      });
 
       expect(result).toBeInstanceOf(AlterExpr);
       expect(result).not.toBeInstanceOf(CommandExpr);
@@ -61,14 +63,18 @@ describe('TSQL custom fixes', () => {
     });
 
     test('ADD DEFAULT (value) FOR col', () => {
-      const result = parseOne('ALTER TABLE t ADD DEFAULT (0) FOR col', { dialect: 'tsql' });
+      const result = parseOne('ALTER TABLE t ADD DEFAULT (0) FOR col', {
+        dialect: 'tsql',
+      });
 
       expect(result).toBeInstanceOf(AlterExpr);
       expect(result.find(AlterColumnExpr)).toBeTruthy();
     });
 
     test('ADD DEFAULT string FOR col', () => {
-      const result = parseOne("ALTER TABLE t ADD DEFAULT ('test') FOR col", { dialect: 'tsql' });
+      const result = parseOne('ALTER TABLE t ADD DEFAULT (\'test\') FOR col', {
+        dialect: 'tsql',
+      });
 
       expect(result).toBeInstanceOf(AlterExpr);
       expect(result.find(AlterColumnExpr)).toBeTruthy();
@@ -77,7 +83,9 @@ describe('TSQL custom fixes', () => {
     test('ADD CONSTRAINT name DEFAULT value FOR col', () => {
       const result = parseOne(
         'ALTER TABLE t ADD CONSTRAINT df_col DEFAULT 0 FOR col',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
@@ -87,7 +95,9 @@ describe('TSQL custom fixes', () => {
     test('ADD CONSTRAINT still works for FK', () => {
       const result = parseOne(
         'ALTER TABLE t ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES b(id)',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);
@@ -97,7 +107,9 @@ describe('TSQL custom fixes', () => {
     test('ADD CONSTRAINT still works for CHECK', () => {
       const result = parseOne(
         'ALTER TABLE t ADD CONSTRAINT chk CHECK (a > 0)',
-        { dialect: 'tsql' },
+        {
+          dialect: 'tsql',
+        },
       );
 
       expect(result).toBeInstanceOf(AlterExpr);

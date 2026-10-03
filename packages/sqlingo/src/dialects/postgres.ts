@@ -1056,6 +1056,73 @@ class PostgresParser extends Parser {
       TokenType.STRAIGHT_JOIN,
     ]);
   }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: constraint ... [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
+  private consumeDeferrable (): void {
+    if (this.matchTextSeq([
+      'NOT',
+      'DEFERRABLE',
+    ])) return;
+    if (this.matchTexts(['DEFERRABLE'])) {
+      this.matchTextSeq([
+        'INITIALLY',
+        'DEFERRED',
+      ]) || this.matchTextSeq([
+        'INITIALLY',
+        'IMMEDIATE',
+      ]);
+    }
+  }
+
+  override parseColumnConstraint (): Expression | undefined {
+    const result = super.parseColumnConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  override parseNotConstraint (): Expression | undefined {
+    const result = super.parseNotConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: ... USING INDEX [TABLESPACE name]
+  // PostgreSQL: ... INCLUDE (col, ...)
+  // PostgreSQL: ... [NOT] DEFERRABLE [INITIALLY {DEFERRED|IMMEDIATE}]
+  override parseKeyConstraintOptions (): string[] {
+    if (this.matchTextSeq([
+      'USING',
+      'INDEX',
+    ])) {
+      if (this.matchTexts(['TABLESPACE'])) {
+        this.parseIdVar();
+      }
+    }
+    if (this.matchTexts(['INCLUDE'])) {
+      this.parseWrappedIdVars();
+    }
+    const result = super.parseKeyConstraintOptions();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
+
+  // FIXME: not in upstream sqlglot
+  // PostgreSQL: UNIQUE (...) INCLUDE (cols)
+  override parseConstraint (): Expression | undefined {
+    const result = super.parseConstraint();
+
+    this.consumeDeferrable();
+
+    return result;
+  }
 }
 class PostgresGenerator extends Generator {
   // port from _Dialect metaclass logic

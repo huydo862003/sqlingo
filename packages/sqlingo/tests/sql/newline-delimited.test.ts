@@ -14,7 +14,9 @@ describe('parseNewlineDelimited', () => {
       const results = parseNewlineDelimited(`
 CREATE TABLE t (a INT)
 CREATE TABLE u (b INT)
-`, { dialect: 'mysql' });
+`, {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(2);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -25,7 +27,9 @@ CREATE TABLE u (b INT)
       const results = parseNewlineDelimited(`
 CREATE TABLE t (a INT)
 ALTER TABLE t ADD COLUMN b INT
-`, { dialect: 'mysql' });
+`, {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(2);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -37,7 +41,9 @@ ALTER TABLE t ADD COLUMN b INT
 CREATE TABLE t (a INT)
 ALTER TABLE t ADD COLUMN b INT
 DROP TABLE t
-`, { dialect: 'mysql' });
+`, {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(3);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -48,7 +54,9 @@ DROP TABLE t
       const results = parseNewlineDelimited(`
 CREATE TABLE t (a INT)
 ALTER TABLE t ADD b INT
-`, { dialect: 'tsql' });
+`, {
+        dialect: 'tsql',
+      });
 
       expect(results).toHaveLength(2);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -59,7 +67,9 @@ ALTER TABLE t ADD b INT
       const results = parseNewlineDelimited(`
 CREATE TABLE t (a INT)
 ALTER TABLE t ADD COLUMN b INT
-`, { dialect: 'postgres' });
+`, {
+        dialect: 'postgres',
+      });
 
       expect(results).toHaveLength(2);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -71,7 +81,9 @@ ALTER TABLE t ADD COLUMN b INT
     test('semicolon-separated', () => {
       const results = parseNewlineDelimited(
         'CREATE TABLE t (a INT); ALTER TABLE t ADD COLUMN b INT',
-        { dialect: 'mysql' },
+        {
+          dialect: 'mysql',
+        },
       );
 
       expect(results).toHaveLength(2);
@@ -82,7 +94,9 @@ ALTER TABLE t ADD COLUMN b INT
 
   describe('single statement', () => {
     test('single CREATE TABLE', () => {
-      const results = parseNewlineDelimited('CREATE TABLE t (a INT)', { dialect: 'mysql' });
+      const results = parseNewlineDelimited('CREATE TABLE t (a INT)', {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(1);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -94,7 +108,9 @@ CREATE TABLE t (
   a INT,
   b VARCHAR(100)
 )
-`, { dialect: 'mysql' });
+`, {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(1);
       expect(results[0]).toBeInstanceOf(CreateExpr);
@@ -103,7 +119,9 @@ CREATE TABLE t (
 
   describe('does not split mid-line', () => {
     test('INSERT INTO t SELECT on same line', () => {
-      const results = parseNewlineDelimited('INSERT INTO t SELECT * FROM u', { dialect: 'mysql' });
+      const results = parseNewlineDelimited('INSERT INTO t SELECT * FROM u', {
+        dialect: 'mysql',
+      });
 
       expect(results).toHaveLength(1);
     });
@@ -111,13 +129,17 @@ CREATE TABLE t (
 
   describe('edge cases', () => {
     test('empty input', () => {
-      const results = parseNewlineDelimited('', { dialect: 'mysql' });
+      const results = parseNewlineDelimited('', {
+        dialect: 'mysql',
+      });
 
       expect(results.filter(Boolean)).toHaveLength(0);
     });
 
     test('only semicolons', () => {
-      const results = parseNewlineDelimited(';;;', { dialect: 'mysql' });
+      const results = parseNewlineDelimited(';;;', {
+        dialect: 'mysql',
+      });
 
       expect(results.filter(Boolean)).toHaveLength(0);
     });
@@ -129,7 +151,9 @@ CREATE TABLE t (
         parseNewlineDelimited(`
 ))) garbage (((
 CREATE TABLE t (a INT)
-`, { dialect: 'mysql' });
+`, {
+          dialect: 'mysql',
+        });
       } catch {
         // ParseError is acceptable
       }
@@ -143,7 +167,9 @@ CREATE TABLE t (a INT)
 CREATE TABLE t (a INT)
 SET NAMES utf8
 CREATE TABLE u (b INT)
-`, { dialect: 'mysql' });
+`, {
+        dialect: 'mysql',
+      });
 
       expect(Date.now() - start).toBeLessThan(5000);
 
