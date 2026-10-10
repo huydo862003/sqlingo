@@ -296,11 +296,13 @@
       </div>
     </footer>
 
+    <!-- eslint-disable vue/no-v-text-v-html-on-component -->
     <component
       :is="scriptTag"
       type="application/ld+json"
       v-html="jsonLd"
     />
+    <!-- eslint-enable vue/no-v-text-v-html-on-component -->
   </MainLayout>
 </template>
 
