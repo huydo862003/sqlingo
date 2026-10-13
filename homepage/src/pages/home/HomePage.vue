@@ -296,28 +296,13 @@
       </div>
     </footer>
 
+    <!-- eslint-disable vue/no-v-text-v-html-on-component -->
     <component
       :is="scriptTag"
       type="application/ld+json"
-    >
-      {{ JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "sqlingo",
-        "description": "sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler,"
-          + " and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.",
-        "alternateName": "sqlingojs",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "All",
-        "license": "https://opensource.org/licenses/MIT",
-        "softwareVersion": SQLINGO_VERSION,
-        "url": "https://huydo862003.github.io/sqlingo/",
-        "author": {
-          "@type": "Person",
-          "name": "Huy Do",
-        },
-      }) }}
-    </component>
+      v-html="jsonLd"
+    />
+    <!-- eslint-enable vue/no-v-text-v-html-on-component -->
   </MainLayout>
 </template>
 
@@ -343,6 +328,24 @@ import {
 } from '@/constants';
 
 const scriptTag = 'script';
+
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  'name': 'sqlingo',
+  'description': 'sqlingo (sqlingojs) is a TypeScript/JavaScript SQL parser, transpiler,'
+    + ' and query optimizer. Port of Python SQLGlot supporting 32 SQL dialects.',
+  'alternateName': 'sqlingojs',
+  'applicationCategory': 'DeveloperApplication',
+  'operatingSystem': 'All',
+  'license': 'https://opensource.org/licenses/MIT',
+  'softwareVersion': SQLINGO_VERSION,
+  'url': 'https://huydo862003.github.io/sqlingo/',
+  'author': {
+    '@type': 'Person',
+    'name': 'Huy Do',
+  },
+});
 
 useSeoMeta({
   title: 'sqlingo: TypeScript SQL Parser, Transpiler & Optimizer',
