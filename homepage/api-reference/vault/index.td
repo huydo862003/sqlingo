@@ -21,7 +21,13 @@ const [sql] = transpile("SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t", {
 
 ## What you get
 
-**Parsing**: every SQL string becomes a typed AST you can inspect, search, and transform. **Transpiling**: convert between 32 dialects with automatic function, type, and syntax mapping. **Optimization**: given schema information, the optimizer qualifies columns, simplifies conditions, and eliminates dead code. **Building**: construct queries programmatically with a fluent API that produces the same AST.
+**Parsing**: every SQL string becomes a typed AST you can inspect, search, and transform.
+
+**Transpiling**: convert between 32 dialects with automatic function, type, and syntax mapping.
+
+**Optimization**: given schema information, the optimizer qualifies columns, simplifies conditions, and eliminates dead code.
+
+**Building**: construct queries programmatically with a fluent API that produces the same AST.
 
 ## Documentation
 
