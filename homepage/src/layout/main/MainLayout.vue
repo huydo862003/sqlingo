@@ -58,7 +58,8 @@ const {
 
 <style scoped>
 .td-footer {
-  background: var(--color-neutral-12);
+  background: var(--gui-neutral-bg-subtle);
+  border-top: 1px solid var(--gui-neutral-border);
   flex-shrink: 0;
 }
 
@@ -72,11 +73,11 @@ const {
 
 .td-footer-text {
   font-size: var(--text-sm);
-  color: var(--gui-neutral-border-strong);
+  color: var(--gui-neutral-solid);
 }
 
 .td-footer-link {
-  color: var(--color-primary-8);
+  color: var(--gui-primary-solid);
   text-decoration: none;
   font-size: var(--text-sm);
 }

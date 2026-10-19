@@ -4,6 +4,9 @@ import {
 import {
   createPinia,
 } from 'pinia';
+import {
+  useTheme,
+} from '@hdnax/genuix';
 import App from './App.vue';
 import {
   routes,
@@ -22,7 +25,7 @@ export const createApp = ViteSSG(
     app.use(createPinia());
 
     if (isClient) {
-      document.documentElement.classList.remove('dark');
+      useTheme();
     }
   },
 );

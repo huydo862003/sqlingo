@@ -107,10 +107,10 @@
                 :id="`demo-${name}`"
                 :code="demo.code"
                 :language="GCodeLanguage.Typescript"
-                :highlight-theme="GHighlightTheme.AtomOne"
+                :highlight-theme="codeTheme"
                 show-line-numbers
                 hide-header
-                class="border-none bg-white py-3"
+                class="border-none bg-(--color-neutral-1) py-3"
               />
             </ClientOnly>
             <div class="td-demo-bar td-demo-bar--returns">
@@ -125,10 +125,10 @@
                 :id="`demo-result-${name}`"
                 :code="demo.result"
                 :language="GCodeLanguage.Typescript"
-                :highlight-theme="GHighlightTheme.AtomOne"
+                :highlight-theme="codeTheme"
                 show-line-numbers
                 hide-header
-                class="border-none bg-white py-3"
+                class="border-none bg-(--color-neutral-1) py-3"
               />
             </ClientOnly>
             <div class="td-demo-caption">
@@ -317,6 +317,8 @@ import {
   GCodeBlock,
   GCodeLanguage,
   GHighlightTheme,
+  useTheme,
+  GTheme,
 } from '@hdnax/genuix';
 import {
   useSeoMeta,
@@ -326,6 +328,10 @@ import {
   SQLINGO_VERSION,
   SQLGLOT_VERSION,
 } from '@/constants';
+
+const themeStore = useTheme();
+const codeTheme = computed(() =>
+  themeStore.effectiveTheme === GTheme.Dark ? GHighlightTheme.TokyoNight : GHighlightTheme.AtomOne);
 
 const scriptTag = 'script';
 
@@ -635,8 +641,8 @@ const shownCount = computed(() =>
 .td-demo-section {
   padding: 48px 0 56px;
   background: var(--gui-neutral-bg-active);
-  border-top: 1px solid var(--gui-neutral-border-subtle);
-  border-bottom: 1px solid var(--gui-neutral-border-subtle);
+  border-top: 1px solid var(--gui-neutral-border);
+  border-bottom: 1px solid var(--gui-neutral-border);
 }
 
 .td-demo-header {
@@ -873,7 +879,7 @@ const shownCount = computed(() =>
 .td-cards-section {
   padding: 48px 0;
   background: var(--gui-neutral-bg-subtle);
-  border-top: 1px solid var(--gui-neutral-border-subtle);
+  border-top: 1px solid var(--gui-neutral-border);
 }
 
 .td-cards-grid {
@@ -977,7 +983,7 @@ const shownCount = computed(() =>
 .td-why-section {
   padding: 48px 0 56px;
   background: var(--gui-neutral-bg);
-  border-top: 1px solid var(--gui-neutral-border-subtle);
+  border-top: 1px solid var(--gui-neutral-border);
 }
 
 .td-why-grid {
@@ -1044,7 +1050,8 @@ const shownCount = computed(() =>
 /* Footer */
 .td-footer {
   padding: 28px 0;
-  background: var(--color-neutral-12);
+  background: var(--gui-neutral-bg-subtle);
+  border-top: 1px solid var(--gui-neutral-border);
 }
 
 .td-footer-inner {
@@ -1054,11 +1061,11 @@ const shownCount = computed(() =>
   gap: 24px;
   flex-wrap: wrap;
   font-size: var(--text-sm);
-  color: var(--gui-neutral-border-strong);
+  color: var(--gui-neutral-solid);
 }
 
 .td-footer-link {
-  color: var(--color-primary-8);
+  color: var(--gui-primary-solid);
   text-decoration: none;
 }
 
