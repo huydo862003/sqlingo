@@ -39,6 +39,12 @@
         <div v-else>
           <SqlToDbml />
         </div>
+        <template #fallback>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="h-112 rounded-xl border border-[var(--gui-neutral-border-subtle)] bg-white" />
+            <div class="h-112 rounded-xl border border-[var(--gui-neutral-border-subtle)] bg-white" />
+          </div>
+        </template>
       </ClientOnly>
 
       <div class="mt-12" />

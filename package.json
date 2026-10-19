@@ -30,8 +30,8 @@
 			"read-yaml-file": "^2.1.0"
 		},
 		"onlyBuiltDependencies": [
-			"@typerighter/rpc-server",
-			"esbuild"
+			"esbuild",
+			"unrs-resolver"
 		]
 	}
 }
