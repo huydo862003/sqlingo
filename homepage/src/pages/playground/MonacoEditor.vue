@@ -31,13 +31,9 @@ const {
 const themeStore = useTheme();
 const editorElement = useTemplateRef('editorElement');
 
-// Lazy-loaded Monaco reference — avoids importing .css at SSR time
+// Lazy-loaded Monaco reference - avoids importing .css at SSR time
 const monacoRef = shallowRef<typeof import('monaco-editor') | null>(null);
 let editor: import('monaco-editor').editor.IStandaloneCodeEditor | null = null;
-
-function getMonacoTheme (): string {
-  return themeStore.effectiveTheme === GTheme.Dark ? 'sqlingo-dark' : 'sqlingo-light';
-}
 
 function defineThemes (monaco: typeof import('monaco-editor')): void {
   const style = getComputedStyle(document.documentElement);
@@ -72,21 +68,34 @@ function defineThemes (monaco: typeof import('monaco-editor')): void {
   });
 }
 
+function getMonacoTheme (): string {
+  return themeStore.effectiveTheme === GTheme.Dark ? 'sqlingo-dark' : 'sqlingo-light';
+}
+
 onMounted(async () => {
   if (!editorElement.value) return;
 
-  const [monaco, { dbmlMonarchTokensProvider }] = await Promise.all([
+  const [
+    monaco,
+    {
+      dbmlMonarchTokensProvider,
+    },
+  ] = await Promise.all([
     import('monaco-editor'),
     import('@dbml/parse'),
   ]);
 
-  const { default: EditorWorker } = await import('monaco-editor/editor/editor.worker?worker');
+  const {
+    default: EditorWorker,
+  } = await import('monaco-editor/editor/editor.worker?worker');
 
   self.MonacoEnvironment = {
     getWorker: () => new EditorWorker(),
   };
 
-  monaco.languages.register({ id: 'dbml' });
+  monaco.languages.register({
+    id: 'dbml',
+  });
   monaco.languages.setMonarchTokensProvider(
     'dbml',
     dbmlMonarchTokensProvider as import('monaco-editor').languages.IMonarchLanguage,
@@ -99,18 +108,25 @@ onMounted(async () => {
     value: content.value,
     language,
     theme: getMonacoTheme(),
-    minimap: { enabled: false },
+    minimap: {
+      enabled: false,
+    },
     scrollBeyondLastLine: false,
     readOnly,
     fontSize: 14,
     fontFamily: 'var(--font-mono)',
     lineNumbers: 'on',
     folding: false,
-    guides: { indentation: false },
+    guides: {
+      indentation: false,
+    },
     overviewRulerLanes: 0,
     lineDecorationsWidth: 8,
     lineNumbersMinChars: 3,
-    padding: { top: 12, bottom: 12 },
+    padding: {
+      top: 12,
+      bottom: 12,
+    },
     automaticLayout: true,
     fixedOverflowWidgets: true,
     scrollbar: {
