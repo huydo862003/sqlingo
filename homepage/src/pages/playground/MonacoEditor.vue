@@ -8,6 +8,8 @@
 </template>
 
 <script setup lang="ts">
+// eslint-disable-next-line import/no-namespace
+import type * as Monaco from 'monaco-editor';
 import {
   onMounted, onBeforeUnmount, watch, useTemplateRef, shallowRef,
 } from 'vue';
@@ -32,10 +34,10 @@ const themeStore = useTheme();
 const editorElement = useTemplateRef('editorElement');
 
 // Lazy-loaded Monaco reference - avoids importing .css at SSR time
-const monacoRef = shallowRef<typeof import('monaco-editor') | null>(null);
-let editor: import('monaco-editor').editor.IStandaloneCodeEditor | null = null;
+const monacoRef = shallowRef<typeof Monaco | null>(null);
+let editor: Monaco.editor.IStandaloneCodeEditor | null = null;
 
-function defineThemes (monaco: typeof import('monaco-editor')): void {
+function defineThemes (monaco: typeof Monaco): void {
   const style = getComputedStyle(document.documentElement);
   const resolve = (token: string): string => style.getPropertyValue(token).trim();
 
@@ -98,7 +100,7 @@ onMounted(async () => {
   });
   monaco.languages.setMonarchTokensProvider(
     'dbml',
-    dbmlMonarchTokensProvider as import('monaco-editor').languages.IMonarchLanguage,
+    dbmlMonarchTokensProvider as Monaco.languages.IMonarchLanguage,
   );
 
   monacoRef.value = monaco;
