@@ -1,6 +1,6 @@
 {
 	"private": true,
-	"packageManager": "pnpm@10.26.1",
+	"packageManager": "pnpm@12.3.4",
 	"scripts": {
 		"test": "pnpm --filter sqlingo run test",
 		"build": "pnpm --filter sqlingo run build",
@@ -19,20 +19,5 @@
 		"eslint-plugin-vue": "^10.11.1",
 		"tailwindcss": "^4.3.3",
 		"vue-tsc": "^3.3.11"
-	},
-	"pnpm": {
-		"overrides": {
-			"esbuild": "^0.28.1",
-			"dompurify@>=3.0.1": "^3.4.11",
-			"ws@>=8.0.0": "^8.21.0",
-			"js-yaml@<4": "^4.2.0",
-			"js-yaml@>=4.0.0 <=4.1.1": "^4.2.0",
-			"read-yaml-file": "^2.1.0"
-		},
-		"onlyBuiltDependencies": [
-			"@typerighter/rpc-server",
-			"esbuild",
-			"unrs-resolver"
-		]
 	}
 }

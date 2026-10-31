@@ -24,7 +24,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "typerighter": "^0.45.0",
+    "typerighter": "^0.51.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.3",

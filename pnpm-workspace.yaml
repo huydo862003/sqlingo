@@ -16,5 +16,12 @@ overrides:
   ws@>=8.0.0 <8.20.1: '>=8.20.1'
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
 
-onlyBuiltDependencies:
-  - esbuild
+minimumReleaseAgeExclude:
+  - '@typerighter/rpc-client@0.51.0'
+  - '@typerighter/rpc-server@0.51.0'
+  - typerighter@0.51.0
+
+allowBuilds:
+  '@typerighter/rpc-server': true
+  esbuild: true
+  unrs-resolver: true
