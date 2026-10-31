@@ -11,38 +11,6 @@ import type {
   DbmlInlineReference,
 } from './ref';
 
-export class DbmlColumnType extends SchemaElement {
-  readonly kind = DbmlKind.COLUMN_TYPE;
-  schema?: string;
-  name: string;
-  args?: string[];
-  array?: boolean | (number | undefined)[];
-
-  constructor (arguments_: {
-    schema?: string;
-    name: string;
-    args?: string[];
-    array?: boolean | (number | undefined)[];
-  }) {
-    super();
-    this.schema = arguments_.schema;
-    this.name = arguments_.name;
-    this.args = arguments_.args;
-    this.array = arguments_.array;
-  }
-
-  intern (): string {
-    const base = this.schema ? `${this.schema}.${this.name}` : this.name;
-    const argumentsString = this.args?.length ? `(${this.args.join(',')})` : '';
-    let array = '';
-
-    if (this.array === true) array = '[]';
-    else if (Array.isArray(this.array)) array = this.array.map((n) => `[${n ?? ''}]`).join('');
-
-    return `${this.kind}:${base}${argumentsString}${array}`;
-  }
-}
-
 export class DbmlColumn extends SchemaElement {
   readonly kind = DbmlKind.COLUMN;
   name: string;
@@ -83,5 +51,37 @@ export class DbmlColumn extends SchemaElement {
 
   intern (): string {
     return `${this.kind}:${this.name}:${this.type.intern()}`;
+  }
+}
+
+export class DbmlColumnType extends SchemaElement {
+  readonly kind = DbmlKind.COLUMN_TYPE;
+  schema?: string;
+  name: string;
+  args?: string[];
+  array?: boolean | (number | undefined)[];
+
+  constructor (arguments_: {
+    schema?: string;
+    name: string;
+    args?: string[];
+    array?: boolean | (number | undefined)[];
+  }) {
+    super();
+    this.schema = arguments_.schema;
+    this.name = arguments_.name;
+    this.args = arguments_.args;
+    this.array = arguments_.array;
+  }
+
+  intern (): string {
+    const base = this.schema ? `${this.schema}.${this.name}` : this.name;
+    const argumentsString = this.args?.length ? `(${this.args.join(',')})` : '';
+    let array = '';
+
+    if (this.array === true) array = '[]';
+    else if (Array.isArray(this.array)) array = this.array.map((n) => `[${n ?? ''}]`).join('');
+
+    return `${this.kind}:${base}${argumentsString}${array}`;
   }
 }

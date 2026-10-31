@@ -8,25 +8,6 @@ import {
   DbmlKind,
 } from './kind';
 
-export class DbmlTableGroupField extends SchemaElement {
-  readonly kind = DbmlKind.TABLE_GROUP_FIELD;
-  schema: string;
-  table: string;
-
-  constructor (arguments_: {
-    schema?: string;
-    table: string;
-  }) {
-    super();
-    this.schema = arguments_.schema ?? DEFAULT_SCHEMA_NAME;
-    this.table = arguments_.table;
-  }
-
-  intern (): string {
-    return `${this.kind}:${this.schema}.${this.table}`;
-  }
-}
-
 export class DbmlTableGroup extends SchemaElement {
   readonly kind = DbmlKind.TABLE_GROUP;
   name: string;
@@ -46,5 +27,24 @@ export class DbmlTableGroup extends SchemaElement {
 
   intern (): string {
     return `${this.kind}:${this.name}`;
+  }
+}
+
+export class DbmlTableGroupField extends SchemaElement {
+  readonly kind = DbmlKind.TABLE_GROUP_FIELD;
+  schema: string;
+  table: string;
+
+  constructor (arguments_: {
+    schema?: string;
+    table: string;
+  }) {
+    super();
+    this.schema = arguments_.schema ?? DEFAULT_SCHEMA_NAME;
+    this.table = arguments_.table;
+  }
+
+  intern (): string {
+    return `${this.kind}:${this.schema}.${this.table}`;
   }
 }

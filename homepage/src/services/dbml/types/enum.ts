@@ -8,25 +8,6 @@ import {
   DbmlKind,
 } from './kind';
 
-export class DbmlEnumValue extends SchemaElement {
-  readonly kind = DbmlKind.ENUM_VALUE;
-  name: string;
-  note?: string;
-
-  constructor (arguments_: {
-    name: string;
-    note?: string;
-  }) {
-    super();
-    this.name = arguments_.name;
-    this.note = arguments_.note;
-  }
-
-  intern (): string {
-    return `${this.kind}:${this.name}`;
-  }
-}
-
 export class DbmlEnum extends SchemaElement {
   readonly kind = DbmlKind.ENUM;
   schema?: string;
@@ -49,5 +30,24 @@ export class DbmlEnum extends SchemaElement {
 
   intern (): string {
     return `${this.kind}:${this.schema ?? DEFAULT_SCHEMA_NAME}.${this.name}`;
+  }
+}
+
+export class DbmlEnumValue extends SchemaElement {
+  readonly kind = DbmlKind.ENUM_VALUE;
+  name: string;
+  note?: string;
+
+  constructor (arguments_: {
+    name: string;
+    note?: string;
+  }) {
+    super();
+    this.name = arguments_.name;
+    this.note = arguments_.note;
+  }
+
+  intern (): string {
+    return `${this.kind}:${this.name}`;
   }
 }

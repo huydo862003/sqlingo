@@ -12,25 +12,6 @@ export enum DbmlIndexType {
   GIST = 'gist',
 }
 
-export class DbmlIndexColumn extends SchemaElement {
-  readonly kind = DbmlKind.INDEX_COLUMN;
-  expression: string;
-  isExpression?: boolean;
-
-  constructor (arguments_: {
-    expression: string;
-    isExpression?: boolean;
-  }) {
-    super();
-    this.expression = arguments_.expression;
-    this.isExpression = arguments_.isExpression;
-  }
-
-  intern (): string {
-    return `${this.kind}:${this.isExpression ? 'e' : 'c'}:${this.expression}`;
-  }
-}
-
 export class DbmlIndex extends SchemaElement {
   readonly kind = DbmlKind.INDEX;
   name?: string;
@@ -61,5 +42,24 @@ export class DbmlIndex extends SchemaElement {
     const columns = this.columns.map((column) => column.intern()).join('|');
 
     return `${this.kind}:${this.name ?? ''}:${columns}`;
+  }
+}
+
+export class DbmlIndexColumn extends SchemaElement {
+  readonly kind = DbmlKind.INDEX_COLUMN;
+  expression: string;
+  isExpression?: boolean;
+
+  constructor (arguments_: {
+    expression: string;
+    isExpression?: boolean;
+  }) {
+    super();
+    this.expression = arguments_.expression;
+    this.isExpression = arguments_.isExpression;
+  }
+
+  intern (): string {
+    return `${this.kind}:${this.isExpression ? 'e' : 'c'}:${this.expression}`;
   }
 }
