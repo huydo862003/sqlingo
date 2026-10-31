@@ -151,8 +151,8 @@ importers:
   homepage:
     dependencies:
       '@dbml/parse':
-        specifier: ^10.2.0
-        version: 10.2.0
+        specifier: ^11.0.0
+        version: 11.0.0
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -399,8 +399,8 @@ packages:
     resolution: {integrity: sha512-bPlN9S9O1A0euCpEWE4qnvB5YDuyYVsUTrxSgmAM1Is0j4tICHoVyOVAXfWMP/kS9ZrjvyIXWV2PmomiAXXqOw==}
     engines: {node: '>=20.19.0'}
 
-  '@dbml/parse@10.2.0':
-    resolution: {integrity: sha512-jg8j93Wr7fahM5B1Uz0+HO79vdTYfsuJKRfeuHKCQRyE7JDhUrtEnBkdRbOehFmkiSbGJO2mqz6LKJNqlI3RfA==}
+  '@dbml/parse@11.0.0':
+    resolution: {integrity: sha512-vmPZqzAJPAOf+zRy0lgnTtUzllmrG6peOHBdgY3k2vUe3B84lw3G/kEZHE6r+xq6rIZPviGYKc0AdlgDXj7szg==}
     engines: {node: '>=18'}
 
   '@dual-bundle/import-meta-resolve@4.2.1':
@@ -3995,7 +3995,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.1': {}
 
-  '@dbml/parse@10.2.0':
+  '@dbml/parse@11.0.0':
     dependencies:
       lodash-es: 4.18.1
       luxon: 3.7.2
@@ -5108,7 +5108,7 @@ snapshots:
       '@vue/shared': 3.5.43
       entities: 7.0.1
       estree-walker: 2.0.2
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-core@3.5.44':
     dependencies:
@@ -5138,7 +5138,7 @@ snapshots:
       estree-walker: 2.0.2
       magic-string: 0.30.21
       postcss: 8.5.31
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-sfc@3.5.44':
     dependencies:
@@ -6609,7 +6609,7 @@ snapshots:
   terser@5.51.2:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.18.0
+      acorn: 8.19.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
