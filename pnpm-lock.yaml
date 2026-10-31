@@ -157,8 +157,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@hdnax/genuix':
-        specifier: ^0.19.0
-        version: 0.19.0(@phosphor-icons/vue@2.2.1(vue@3.5.43(typescript@6.0.3)))(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(highlight.js@11.12.0)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
+        specifier: ^0.19.1
+        version: 0.19.1(@phosphor-icons/vue@2.2.1(vue@3.5.43(typescript@6.0.3)))(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(highlight.js@11.12.0)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))
       highlight.js:
         specifier: ^11.12.0
         version: 11.12.0
@@ -803,8 +803,8 @@ packages:
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
-  '@hdnax/genuix@0.19.0':
-    resolution: {integrity: sha512-suQNQaiGygFmRVAirVFA1+eGecYLc+gGhHFXt/J+4ZUqXo6wSUk3pWudTryx5cYF8jewwzwy03z6WyyQzQELNw==}
+  '@hdnax/genuix@0.19.1':
+    resolution: {integrity: sha512-mMRLoAuHFgOWFBwcCUuiXNoDIQU/9zRaIAq90CPwMjREDrcxCGeT+N0m1cQgDC9aAv56O34G7fnLQ5tje7ITlA==}
     peerDependencies:
       '@phosphor-icons/vue': ^2.2.1
       highlight.js: ^11.12.0
@@ -4251,7 +4251,7 @@ snapshots:
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
-  '@hdnax/genuix@0.19.0(@phosphor-icons/vue@2.2.1(vue@3.5.43(typescript@6.0.3)))(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(highlight.js@11.12.0)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))':
+  '@hdnax/genuix@0.19.1(@phosphor-icons/vue@2.2.1(vue@3.5.43(typescript@6.0.3)))(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(highlight.js@11.12.0)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3)))(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       '@fontsource-variable/archivo': 5.3.0
       '@fontsource-variable/jetbrains-mono': 5.3.0
@@ -5108,7 +5108,7 @@ snapshots:
       '@vue/shared': 3.5.43
       entities: 7.0.1
       estree-walker: 2.0.2
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-core@3.5.44':
     dependencies:
@@ -5138,7 +5138,7 @@ snapshots:
       estree-walker: 2.0.2
       magic-string: 0.30.21
       postcss: 8.5.31
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-sfc@3.5.44':
     dependencies:
@@ -6609,7 +6609,7 @@ snapshots:
   terser@5.51.2:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.18.0
+      acorn: 8.19.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
