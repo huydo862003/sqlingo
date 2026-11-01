@@ -200,8 +200,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
       typerighter:
-        specifier: ^0.51.0
-        version: 0.51.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1)
+        specifier: ^0.52.1
+        version: 0.52.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1581,11 +1581,11 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
-  '@typerighter/rpc-client@0.51.0':
-    resolution: {integrity: sha512-w3iqbTDCwrimg/BUGDMbXSWL4a0L5e9mzGHMQsaCAl57tQTwrnRDinxEfZUcNY0sm/Nf/TgHo9Qp1UAhqpBzxQ==}
+  '@typerighter/rpc-client@0.52.1':
+    resolution: {integrity: sha512-Y0OVW333GoxgiUw5Hl6Mja+Bk3a8KOGt0yd8I83s1P9oG2kP+FqmtD7UB1lQWmt5EPukNvaD4tgwESahhzeNQw==}
 
-  '@typerighter/rpc-server@0.51.0':
-    resolution: {integrity: sha512-CDU7YOIFRagWJ21mrL3aTV2VAJe/s/b16Gxw7cCO61gWsggIqnY0MLnhlc7iNbMN1tKBJBZm5k8BEog7OIEEVg==}
+  '@typerighter/rpc-server@0.52.1':
+    resolution: {integrity: sha512-oVZUfDo4sMZVksx9oj2y+mf+0DYvXffbhU75Wk6RBCNmYN7tbIFIQAp6fMTgm5N8h1/d+JzP6EagoQ/voBTqhA==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -3414,8 +3414,8 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typerighter@0.51.0:
-    resolution: {integrity: sha512-6WPVUbMGcCV99IQLK4UJFDj2Z0b3uDnYFv4ejNhTCytUK4nU4b5xPxxlM9dnSvRG+58ZDRuMoKw25tOc/A/ZPg==}
+  typerighter@0.52.1:
+    resolution: {integrity: sha512-GmKMYHdSO9YOPbJqG/YpI44B5fdudjJZiFLDj9KTwPpCpYOrDR8WtZV1K/dliCSTGa7v1IekzsOOk5kRdOQDlw==}
     hasBin: true
     peerDependencies:
       typescript: ^6.0.3
@@ -4797,9 +4797,9 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typerighter/rpc-client@0.51.0': {}
+  '@typerighter/rpc-client@0.52.1': {}
 
-  '@typerighter/rpc-server@0.51.0':
+  '@typerighter/rpc-server@0.52.1':
     dependencies:
       dotenv: 18.0.8
 
@@ -5206,8 +5206,8 @@ snapshots:
   '@vue/language-core@3.3.13':
     dependencies:
       '@volar/language-core': 2.4.28
-      '@vue/compiler-dom': 3.5.43
-      '@vue/shared': 3.5.43
+      '@vue/compiler-dom': 3.5.44
+      '@vue/shared': 3.5.44
       alien-signals: 3.2.1
       muggle-string: 0.4.1
       path-browserify: 1.0.1
@@ -6709,7 +6709,7 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typerighter@0.51.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1):
+  typerighter@0.52.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.1):
     dependencies:
       '@clack/prompts': 1.8.1
       '@floating-ui/vue': 2.0.1(vue@3.5.44(typescript@6.0.3))
@@ -6718,8 +6718,8 @@ snapshots:
       '@lucide/vue': 1.49.0(vue@3.5.44(typescript@6.0.3))
       '@shikijs/transformers': 4.4.3
       '@tailwindcss/vite': 4.3.3(vite@8.3.5(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
-      '@typerighter/rpc-client': 0.51.0
-      '@typerighter/rpc-server': 0.51.0
+      '@typerighter/rpc-client': 0.52.1
+      '@typerighter/rpc-server': 0.52.1
       '@vitejs/plugin-vue': 6.0.10(vite@8.3.5(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
       cac: 7.0.0
       picocolors: 1.1.1

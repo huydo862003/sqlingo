@@ -17,9 +17,9 @@ overrides:
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
 
 minimumReleaseAgeExclude:
-  - '@typerighter/rpc-client@0.51.0'
-  - '@typerighter/rpc-server@0.51.0'
-  - typerighter@0.51.0
+  - '@typerighter/rpc-client@0.51.0 || 0.52.1'
+  - '@typerighter/rpc-server@0.51.0 || 0.52.1'
+  - typerighter@0.51.0 || 0.52.1
 
 allowBuilds:
   '@typerighter/rpc-server': true
