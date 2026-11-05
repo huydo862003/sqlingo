@@ -55,6 +55,49 @@
       "key"
     ]
   },
+  "grid": {
+    "source": "typerighter/src/client/theme-default/components/custom/TdGrid.vue",
+    "props": {
+      "columns": {
+        "schema": {
+          "type": "number"
+        },
+        "description": "Number of equal columns"
+      },
+      "gap": {
+        "schema": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "description": "Gap between cells in rem (default 1)"
+      }
+    }
+  },
+  "grid-cell": {
+    "source": "typerighter/src/client/theme-default/components/custom/TdGridCell.vue",
+    "props": {
+      "colSpan": {
+        "schema": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "description": "Number of grid columns this cell spans"
+      },
+      "rowSpan": {
+        "schema": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "description": "Number of grid rows this cell spans"
+      }
+    }
+  },
   "toc": {
     "source": "typerighter/src/client/theme-default/components/custom/TdToc.vue",
     "props": {
@@ -65,12 +108,48 @@
             "null"
           ]
         },
-        "description": "Disable active heading tracking on scroll"
+        "description": "Disable active heading tracking"
+      },
+      "inline": {
+        "schema": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "description": "Render as inline hierarchical list instead of sidebar list"
+      },
+      "scrollable": {
+        "schema": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "description": "Enable scroll-to-active behavior within a constrained container"
       }
     }
   },
   "glossary-index": {
-    "source": "typerighter/src/client/theme-default/components/custom/glossary/TdGlossaryIndex.vue"
+    "source": "typerighter/src/client/theme-default/components/custom/glossary/TdGlossaryIndex.vue",
+    "props": {
+      "mode": {
+        "schema": {
+          "oneOf": [
+            {
+              "const": "informative"
+            },
+            {
+              "const": "dense"
+            },
+            {
+              "const": null
+            }
+          ]
+        },
+        "description": "Informative (rows with excerpt/tags/time) or dense (multi-column links)"
+      }
+    }
   },
   "glossary-row": {
     "source": "typerighter/src/client/theme-default/components/custom/glossary/TdGlossaryRow.vue",
