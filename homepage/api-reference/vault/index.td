@@ -38,15 +38,6 @@ Start with the quick start, then work through the guide. The reference pages are
 3. [Reference](03-references/index): the full Expression API and all 32 dialect imports
 4. [FAQ](04-faq): common questions and troubleshooting
 
-## Roadmap
-
-sqlingo tracks [SQLGlot](https://github.com/tobymao/sqlglot) upstream. Planned work:
-
-- Catch up with SQLGlot v26 (PRQL dialect, improved type inference)
-- WASM build for zero-dependency browser usage
-- Schema extraction from DDL statements
-- Performance benchmarks against the Python implementation
-
 ## Links
 
 - [Changelog](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CHANGELOG.md) for release history
