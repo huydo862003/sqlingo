@@ -4652,7 +4652,7 @@ export class Parser {
       extendProps(this.parseProperties());
 
       expression = (this.match(TokenType.ALIAS) && this.parseHeredoc()) || undefined;
-      extendProps(this.parseProperties());
+      extendProps(this.parseFunctionProperties());
 
       if (!expression) {
         if (this.match(TokenType.COMMAND)) {
@@ -15295,6 +15295,10 @@ export class Parser {
     }
 
     return transformed;
+  }
+
+  parseFunctionProperties (): PropertiesExpr | undefined {
+    return this.parseProperties();
   }
 
   parseUserDefinedFunctionExpression (): Expression | undefined {

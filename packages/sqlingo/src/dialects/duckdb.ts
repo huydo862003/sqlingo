@@ -78,6 +78,7 @@ import {
   LeadExpr,
   LikePropertyExpr,
   NthValueExpr,
+  PropertiesExpr,
   PropertiesLocation,
   SequencePropertiesExpr,
   TemporaryPropertyExpr,
@@ -2670,6 +2671,21 @@ class DuckDBParser extends Parser {
         });
       },
     };
+  }
+
+  parseFunctionProperties (): PropertiesExpr | undefined {
+    if (this.match(TokenType.TABLE)) {
+      return new PropertiesExpr({
+        expressions: [
+          new ReturnsPropertyExpr({
+            this: new SchemaExpr({ this: var_('TABLE') }),
+            isTable: true,
+          }),
+        ],
+      });
+    }
+
+    return super.parseFunctionProperties();
   }
 
   parseLambda (options: {

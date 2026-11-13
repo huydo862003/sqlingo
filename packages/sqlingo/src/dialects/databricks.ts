@@ -35,10 +35,13 @@ import {
   ConvertTimezoneExpr,
   ToCharExpr,
   CastExpr,
+  CreateExpr,
   CurrentCatalogExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   RegexpLikeExpr,
   LiteralExpr,
+  ReturnExpr,
+  ReturnsPropertyExpr,
   SAFE_IDENTIFIER_RE,
 } from '../expressions';
 import {
@@ -227,6 +230,21 @@ class DatabricksGenerator extends Spark.Generator {
         'VOID',
       ],
     ]);
+  }
+
+  createSql (expression: CreateExpr): string {
+    const body = expression.args.expression;
+
+    if (
+      body
+      && !(body instanceof ReturnExpr)
+      && expression.args.kind === 'FUNCTION'
+      && [...expression.findAll(ReturnsPropertyExpr)].some((p) => p.args.isTable)
+    ) {
+      expression.set('expression', new ReturnExpr({ this: body }));
+    }
+
+    return super.createSql(expression);
   }
 
   @cache
