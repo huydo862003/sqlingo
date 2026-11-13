@@ -346,7 +346,6 @@ import {
   TryCastExpr,
   FilterExpr,
   AndExpr,
-  UserDefinedFunctionExpr,
   UnnestExpr,
   JsonPathKeyExpr,
   JsonPathRootExpr,
@@ -5849,16 +5848,6 @@ class DuckDBGenerator extends Generator {
     return super.tableSampleSql(expression, {
       tablesampleKeyword: keyword,
     });
-  }
-
-  columnDefSql (expression: ColumnDefExpr, options: {
-    sep?: string;
-  } = {}): string {
-    if (expression.parent instanceof UserDefinedFunctionExpr) {
-      return this.sql(expression, 'this');
-    }
-
-    return super.columnDefSql(expression, options);
   }
 
   joinSql (expression: JoinExpr): string {

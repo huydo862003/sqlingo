@@ -168,7 +168,7 @@ class TestDuckDB extends Validator {
         mysql: 'SELECT * FROM x ORDER BY 1',
       },
     });
-    this.validateAll('CREATE TEMPORARY FUNCTION f1(a, b) AS (a + b)', {
+    this.validateAll('CREATE TEMPORARY FUNCTION f1(a BIGINT, b BIGINT) AS (a + b)', {
       read: {
         bigquery: 'CREATE TEMP FUNCTION f1(a INT64, b INT64) AS (a + b)',
       },
@@ -1990,7 +1990,7 @@ class TestDuckDB extends Validator {
       {
         write: {
           databricks: "CREATE OR REPLACE FUNCTION func(a INT, b FLOAT) RETURNS TABLE RETURN SELECT a",
-          duckdb: "CREATE OR REPLACE FUNCTION func(a INT, b FLOAT) AS TABLE SELECT a",
+          duckdb: "CREATE OR REPLACE FUNCTION func(a INT, b REAL) AS TABLE SELECT a",
         },
       },
     );
