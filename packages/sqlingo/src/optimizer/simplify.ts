@@ -486,7 +486,8 @@ function isNonnullConstant (expression: unknown): boolean {
 
 /** Check if expression is a constant */
 function isConstant (expression: unknown): boolean {
-  return CONSTANTS.some((c) => expression instanceof c) || isDateLiteral(expression);
+  const expr = expression instanceof NegExpr ? expression.args.this : expression;
+  return CONSTANTS.some((c) => expr instanceof c) || isDateLiteral(expr);
 }
 
 type DateRange = [DateTime, DateTime];
