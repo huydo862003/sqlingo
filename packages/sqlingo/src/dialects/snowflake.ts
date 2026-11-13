@@ -256,6 +256,8 @@ import {
   WindowSpecExpr,
   RespectNullsExpr,
   IgnoreNullsExpr,
+  LeftExpr,
+  RightExpr,
   true_,
 } from '../expressions';
 import {
@@ -1596,6 +1598,11 @@ class SnowflakeParser extends Parser {
             expressions: args.slice(1),
             ignoreNulls: true,
           }),
+        LEFT: (args: Expression[]) => new LeftExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          negativeLengthReturnsEmpty: true,
+        }),
         HEX_DECODE_BINARY: (args: unknown[]) => UnhexExpr.fromArgList(args),
         IFF: (args: unknown[]) => IfExpr.fromArgList(args),
         MD5_HEX: (args: unknown[]) => Md5Expr.fromArgList(args),
@@ -1639,6 +1646,11 @@ class SnowflakeParser extends Parser {
           upper: LiteralExpr.number('9.223372036854776e+18'),
         }),
         REPLACE: buildReplaceWithOptionalReplacement,
+        RIGHT: (args: Expression[]) => new RightExpr({
+          this: seqGet(args, 0),
+          expression: seqGet(args, 1),
+          negativeLengthReturnsEmpty: true,
+        }),
         REGEXP_LIKE: (args: Expression[]) => new RegexpLikeExpr({
           this: seqGet(args, 0),
           expression: seqGet(args, 1),

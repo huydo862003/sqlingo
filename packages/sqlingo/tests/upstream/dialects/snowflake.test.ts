@@ -432,6 +432,24 @@ class TestSnowflake extends Validator {
       },
     );
 
+    {
+      let expr = this.validateIdentity("RIGHT('GAJGSKD', 2)");
+      let annotated = annotateTypes(expr, {
+        dialect: 'snowflake',
+      });
+      expect(annotated.sql({
+        dialect: 'duckdb',
+      })).toBe("CASE WHEN 2 < 0 THEN '' ELSE RIGHT('GAJGSKD', 2) END");
+
+      expr = this.validateIdentity("RIGHT(TO_BINARY('SNOWIKOPN', 'utf-8'), ABS(-3))");
+      annotated = annotateTypes(expr, {
+        dialect: 'snowflake',
+      });
+      expect(annotated.sql({
+        dialect: 'duckdb',
+      })).toBe("CASE WHEN ABS(-3) < 0 THEN UNHEX('') ELSE UNHEX(RIGHT(HEX(ENCODE('SNOWIKOPN')), ABS(-3) * 2)) END");
+    }
+
     this.validateAll(
       'SELECT ZIPF(1, 10, 1234)',
       {

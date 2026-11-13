@@ -55,6 +55,7 @@ import type {
   MapInsertExpr,
   MapPickExpr,
   MapSizeExpr,
+  LeftExpr,
   RightExpr,
   ArraySliceExpr,
   DateTruncExpr,
@@ -6315,30 +6316,39 @@ class DuckDBGenerator extends Generator {
     return 'RANDOM()';
   }
 
-  rightSql (expression: RightExpr): string {
-    const arg = expression.args.this;
-    const length = expression.args.expression;
+  private leftRightSql (expression: LeftExpr | RightExpr, funcName: string): string {
+    const arg = expression.args.this as Expression;
+    const length = expression.args.expression as Expression;
+    const isBin = isBinary(arg);
 
-    if (isBinary(arg)) {
-      const hexArg = new HexExpr({
-        this: arg,
+    let result: Expression;
+    if (isBin) {
+      const hexArg = new HexExpr({ this: arg });
+      const hexLength = new MulExpr({ this: length, expression: LiteralExpr.number(2) });
+      result = new UnhexExpr({
+        this: new AnonymousExpr({ this: funcName, expressions: [hexArg, hexLength] }),
       });
-      const hexLength = new MulExpr({
-        this: length,
-        expression: LiteralExpr.number(2),
-      });
-      const hexRight = this.func('RIGHT', [
-        hexArg,
-        hexLength,
-      ]);
-
-      return `UNHEX(${hexRight})`;
+    } else {
+      result = new AnonymousExpr({ this: funcName, expressions: [arg, length] });
     }
 
-    return this.func('RIGHT', [
-      arg,
-      length,
-    ]);
+    if (expression.args.negativeLengthReturnsEmpty) {
+      const empty: Expression = isBin ? new UnhexExpr({ this: LiteralExpr.string('') }) : LiteralExpr.string('');
+      result = new CaseExpr({}).when(
+        new LtExpr({ this: length, expression: LiteralExpr.number(0) }),
+        empty,
+      ).else(result);
+    }
+
+    return this.sql(result);
+  }
+
+  leftSql (expression: LeftExpr): string {
+    return this.leftRightSql(expression, 'LEFT');
+  }
+
+  rightSql (expression: RightExpr): string {
+    return this.leftRightSql(expression, 'RIGHT');
   }
 
   base64EncodeSql (expression: Base64EncodeExpr): string {

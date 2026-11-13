@@ -25702,6 +25702,7 @@ export type LeftExprArgs = Merge<[
   {
     this?: Expression;
     expression?: Expression;
+    negativeLengthReturnsEmpty?: boolean;
   },
 ]>;
 
@@ -25716,6 +25717,7 @@ export class LeftExpr extends FuncExpr {
   static availableArgs = new Set([
     'this',
     'expression',
+    'negativeLengthReturnsEmpty',
   ]);
 
   static argOrder = [
@@ -25739,6 +25741,7 @@ export type RightExprArgs = Merge<[
   {
     this?: Expression;
     expression?: Expression;
+    negativeLengthReturnsEmpty?: boolean;
   },
 ]>;
 
@@ -25753,6 +25756,7 @@ export class RightExpr extends FuncExpr {
   static availableArgs = new Set([
     'this',
     'expression',
+    'negativeLengthReturnsEmpty',
   ]);
 
   static argOrder = [
