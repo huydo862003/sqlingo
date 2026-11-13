@@ -5818,16 +5818,6 @@ class DuckDBGenerator extends Generator {
     });
   }
 
-  columnDefSql (expression: ColumnDefExpr, options: {
-    sep?: string;
-  } = {}): string {
-    if (expression.parent instanceof UserDefinedFunctionExpr) {
-      return this.sql(expression, 'this');
-    }
-
-    return super.columnDefSql(expression, options);
-  }
-
   joinSql (expression: JoinExpr): string {
     const isInnerOuter = [
       '',
