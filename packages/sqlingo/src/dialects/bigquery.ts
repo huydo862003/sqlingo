@@ -1319,7 +1319,7 @@ export class BigQueryParser extends Parser {
     return this.expression(ExportExpr, {
       connection: this.matchTextSeq('WITH') && this.matchTextSeq('CONNECTION') && this.parseTableParts(),
       options: this.parseProperties(),
-      this: this.matchTextSeq('AS') && this.parseSelect(),
+      this: this.matchTextSeq('AS') && this.parseSelect({ nested: true }),
     });
   }
 
