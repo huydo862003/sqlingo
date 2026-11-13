@@ -67,6 +67,7 @@ import type {
   CheckJsonExpr,
   StripNullValueExpr,
   UnicodeExpr,
+  CompressExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -4480,6 +4481,11 @@ class DuckDBGenerator extends Generator {
     return `(${this.sql(replacePlaceholders((this._constructor as typeof DuckDBGenerator).BITMAP_CONSTRUCT_AGG_TEMPLATE.copy(), [], {
       arg,
     }))})`;
+  }
+
+  compressSql (expression: CompressExpr): string {
+    this.unsupported('DuckDB does not support the COMPRESS() function');
+    return this.functionFallbackSql(expression);
   }
 
   nthValueSql (expression: NthValueExpr): string {
