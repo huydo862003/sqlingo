@@ -1041,6 +1041,7 @@ export interface ParseOptions<IntoT extends typeof Expression = typeof Expressio
   errorLevel?: ErrorLevel;
   errorMessageContext?: number;
   maxErrors?: number;
+  maxNodes?: number;
 
   into?: string | IntoT | (string | IntoT)[] | (new (args: any) => any) | (new (args: any) => any)[];
   [key: string]: unknown;
@@ -4150,6 +4151,8 @@ export class Parser {
   protected errorLevel: ErrorLevel;
   protected errorMessageContext: number;
   protected maxErrors: number;
+  protected maxNodes: number;
+  protected _nodeCount: number;
   protected errors: ParseError[];
   protected tokens: Token[];
   protected index: number;
@@ -4169,6 +4172,7 @@ export class Parser {
       errorLevel = ErrorLevel.IMMEDIATE,
       errorMessageContext = 100,
       maxErrors = 3,
+      maxNodes = -1,
     } = options;
 
     this.sql = '';
@@ -4176,6 +4180,8 @@ export class Parser {
     this.errorLevel = errorLevel;
     this.errorMessageContext = errorMessageContext;
     this.maxErrors = maxErrors;
+    this.maxNodes = maxNodes;
+    this._nodeCount = 0;
     this.errors = [];
     this.tokens = [];
     this.index = 0;
@@ -4203,6 +4209,7 @@ export class Parser {
     this._chunks = [];
     this._chunkIndex = 0;
     this._newlineDelimited = false;
+    this._nodeCount = 0;
   }
 
   /**
@@ -14329,7 +14336,11 @@ export class Parser {
   }
 
   parseUniqueKey (): Expression | undefined {
-    if (this.curr && this.curr.text.toUpperCase() in this._constructor.CONSTRAINT_PARSERS) {
+    if (
+      this.curr
+      && this.curr.tokenType !== TokenType.IDENTIFIER
+      && this.curr.text.toUpperCase() in this._constructor.CONSTRAINT_PARSERS
+    ) {
       return undefined;
     }
 
@@ -15990,6 +16001,7 @@ export class Parser {
                 values: false,
               }),
             expression: this.matchTextSeq('VALUES') && this.parseValue(),
+            where: this.parseWhere(),
           });
         }
       } else if (this.match(TokenType.UPDATE)) {
@@ -16002,6 +16014,7 @@ export class Parser {
         } else {
           then = this.expression(UpdateExpr, {
             expressions: this.match(TokenType.SET) && this.parseCsv(this.parseEquality.bind(this)),
+            where: this.parseWhere(),
           });
         }
       } else if (this.match(TokenType.DELETE)) {
@@ -16773,6 +16786,12 @@ export class Parser {
         local,
         overwrite,
         inpath,
+        files: this.matchTextSeq([
+          'FROM',
+          'FILES',
+        ]) && this.expression(PropertiesExpr, {
+          expressions: this.parseWrappedProperties(),
+        }),
         partition: this.parsePartition(),
         inputFormat: this.matchTextSeq('INPUTFORMAT') && this.parseString(),
         serde: this.matchTextSeq('SERDE') && this.parseString(),
@@ -16783,6 +16802,7 @@ export class Parser {
   }
 
   parseDelete (): DeleteExpr {
+    const hint = this.parseHint();
     let tables: Expression[] | undefined;
 
     if (!this.match(TokenType.FROM, {
@@ -16794,6 +16814,7 @@ export class Parser {
     const returning = this.parseReturning();
 
     return this.expression(DeleteExpr, {
+      hint,
       tables,
       this: this.match(TokenType.FROM) && this.parseTable({
         joins: true,
@@ -16812,7 +16833,9 @@ export class Parser {
   }
 
   parseUpdate (): UpdateExpr {
+    const hint = this.parseHint();
     const kwargs: Record<string, unknown> = {
+      hint,
       this: this.parseTable({
         joins: true,
         aliasTokens: this._constructor.UPDATE_ALIAS_TOKENS,
@@ -16936,7 +16959,7 @@ export class Parser {
     if (this.match(TokenType.L_PAREN)) {
       while (true) {
         const key = this.parseIdVar();
-        const value = this.parsePrimary();
+        const value = this.parseFunction() || this.parsePrimaryOrVar();
 
         if (!key && !value) {
           break;
@@ -17680,6 +17703,14 @@ export class Parser {
     expression: E,
     args?: unknown[],
   ): E {
+    if (-1 < this.maxNodes) {
+      this._nodeCount += 1;
+
+      if (this.maxNodes < this._nodeCount) {
+        this.raiseError(`Maximum number of AST nodes (${this.maxNodes}) exceeded`);
+      }
+    }
+
     if (this.errorLevel !== ErrorLevel.IGNORE) {
       for (const errorMessage of expression.errorMessages(args)) {
         this.raiseError(errorMessage);

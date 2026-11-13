@@ -162,7 +162,7 @@ function annotateWithinGroup (this: TypeAnnotator, expression: WithinGroupExpr):
 
     this.setType(expression, isInstanceOf(firstType, DataTypeExpr) ? firstType : undefined);
   } else {
-    this.setType(expression, isInstanceOf(inner, Expression) ? inner.type : undefined);
+    this.setType(expression, isInstanceOf(inner, Expression) ? inner.type as DataTypeExpr | undefined : undefined);
   }
 
   return expression;

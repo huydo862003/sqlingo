@@ -32,6 +32,8 @@ import {
   ArrayUniqueAggExpr,
   EuclideanDistanceExpr,
   AddMonthsExpr,
+  DateAddExpr,
+  DateSubExpr,
   RegexpLikeExpr,
   TsOrDsToDateExpr,
   UniqueKeyPropertyExpr,
@@ -74,7 +76,7 @@ import type {
   Dialect,
 } from './dialect';
 import {
-  approxCountDistinctSql, Dialects,
+  approxCountDistinctSql, buildDateDeltaWithInterval, Dialects,
   propertySql,
   renameFunc,
   timeFormat,
@@ -161,11 +163,15 @@ class DorisParser extends MySQL.Parser {
   }) => Expression> {
     return {
       ...MySQL.Parser.FUNCTIONS,
+      ADDDATE: buildDateDeltaWithInterval(DateAddExpr, 'DAY'),
       COLLECT_SET: (args: unknown[]) => ArrayUniqueAggExpr.fromArgList(args),
+      DATE_ADD: buildDateDeltaWithInterval(DateAddExpr, 'DAY'),
+      DATE_SUB: buildDateDeltaWithInterval(DateSubExpr, 'DAY'),
       DATE_TRUNC: buildDateTrunc,
       L2_DISTANCE: (args: unknown[]) => EuclideanDistanceExpr.fromArgList(args),
       MONTHS_ADD: (args: unknown[]) => AddMonthsExpr.fromArgList(args),
       REGEXP: (args: unknown[]) => RegexpLikeExpr.fromArgList(args),
+      SUBDATE: buildDateDeltaWithInterval(DateSubExpr, 'DAY'),
       TO_DATE: (args: unknown[]) => TsOrDsToDateExpr.fromArgList(args),
     };
   }

@@ -8,7 +8,8 @@ import type {
   Expression,
 } from '../../../src/expressions';
 import {
-  DescribeExpr, EqExpr, LiteralExpr, ModExpr, SessionParameterExpr,
+  AutoIncrementPropertyExpr, DescribeExpr, EqExpr, InvisibleColumnConstraintExpr,
+  LiteralExpr, ModExpr, SessionParameterExpr,
   ShowExpr, TruncExpr, UtcTimeExpr, UtcTimestampExpr,
   WhereExpr,
 } from '../../../src/expressions';
@@ -36,7 +37,9 @@ class TestMySQL extends Validator {
     this.validateIdentity('CREATE TABLE 00f (1d BIGINT)');
     this.validateIdentity('CREATE TABLE temp (id SERIAL PRIMARY KEY)');
     this.validateIdentity('UPDATE items SET items.price = 0 WHERE items.id >= 5 LIMIT 10');
+    this.validateIdentity('UPDATE /*+ MAX_EXECUTION_TIME(1) */ t SET a = 1');
     this.validateIdentity('DELETE FROM t WHERE a <= 10 LIMIT 10');
+    this.validateIdentity('DELETE /*+ MAX_EXECUTION_TIME(1) */ FROM t WHERE a = 1');
     this.validateIdentity('DELETE FROM t FORCE INDEX (idx) WHERE a > 5 ORDER BY id');
     this.validateIdentity('CREATE TABLE foo (a BIGINT, INDEX USING BTREE (b))');
     this.validateIdentity('CREATE TABLE foo (a BIGINT, FULLTEXT INDEX (b))');
@@ -233,6 +236,11 @@ class TestMySQL extends Validator {
     this.validateIdentity('ALTER TABLE t ALTER INDEX i VISIBLE');
     this.validateIdentity('ALTER TABLE t ALTER COLUMN c SET INVISIBLE');
     this.validateIdentity('ALTER TABLE t ALTER COLUMN c SET VISIBLE');
+    this.validateIdentity('ALTER TABLE t RENAME INDEX a TO b');
+    this.validateIdentity(
+      'ALTER TABLE t RENAME KEY a TO b',
+      'ALTER TABLE t RENAME INDEX a TO b',
+    );
     this.validateIdentity(
       'UPDATE foo JOIN bar ON TRUE SET foo.a = bar.a WHERE foo.id = bar.id',
     );
@@ -1918,6 +1926,16 @@ COMMENT='\u5BA2\u6237\u8D26\u6237\u8868'`,
       },
     );
   }
+
+  testInvisibleColumn () {
+    expect(parseOne('CREATE TABLE t (c INT INVISIBLE)', { dialect: 'mysql' }).find(InvisibleColumnConstraintExpr)).toBeTruthy();
+    expect(parseOne('ALTER TABLE t ADD COLUMN c INT INVISIBLE', { dialect: 'mysql' }).find(InvisibleColumnConstraintExpr)).toBeTruthy();
+  }
+
+  testAlterTableAutoIncrement () {
+    const prop = parseOne('ALTER TABLE t AUTO_INCREMENT=3000000000', { dialect: 'mysql' }).find(AutoIncrementPropertyExpr);
+    expect(Number((prop?.args.this as LiteralExpr)?.name)).toBe(3000000000);
+  }
 }
 
 const t = new TestMySQL();
@@ -1971,4 +1989,6 @@ describe('TestMySQL', () => {
   test('testValidIntervalUnits', () => t.testValidIntervalUnits());
   test('testCreateTrigger', () => t.testCreateTrigger());
   test('testIgnoreRespectNulls', () => t.testIgnoreRespectNulls());
+  test('testInvisibleColumn', () => t.testInvisibleColumn());
+  test('testAlterTableAutoIncrement', () => t.testAlterTableAutoIncrement());
 });

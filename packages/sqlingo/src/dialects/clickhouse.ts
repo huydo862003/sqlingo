@@ -176,6 +176,8 @@ import {
   SchemaExpr,
   JoinExprKind,
   func,
+  GroupConcatExpr,
+  LimitExpr,
 } from '../expressions';
 import {
   isInt,
@@ -782,6 +784,7 @@ class ClickHouseParser extends Parser {
       'deltaSumTimestamp',
       'groupArray',
       'groupArrayLast',
+      'groupConcat',
       'groupUniqArray',
       'groupArrayInsertAt',
       'groupArrayMovingAvg',
@@ -987,6 +990,9 @@ class ClickHouseParser extends Parser {
         return and(this.parseFunctionArgs({
           alias: false,
         })) as Expression;
+      },
+      GROUPCONCAT: function (this: Parser) {
+        return (this as ClickHouseParser).parseGroupConcat();
       },
       OR: function (this: Parser) {
         return or(this.parseFunctionArgs({
@@ -1575,6 +1581,35 @@ class ClickHouseParser extends Parser {
     return this.expression(QuantileExpr, {
       this: thisNode,
       quantile: LiteralExpr.number(0.5),
+    });
+  }
+
+  parseGroupConcat (): GroupConcatExpr {
+    const args = this.parseCsv(() => this.parseLambda());
+    const params = this.parseFuncParams();
+
+    if (params) {
+      // groupConcat(sep [, limit])(expr)
+      const separator = seqGet(args, 0);
+      const limit = seqGet(args, 1);
+      let thisNode: Expression | undefined = seqGet(params, 0);
+
+      if (limit !== undefined && thisNode !== undefined) {
+        thisNode = new LimitExpr({
+          this: thisNode,
+          expression: limit,
+        });
+      }
+
+      return this.expression(GroupConcatExpr, {
+        this: thisNode,
+        separator: separator as unknown as string,
+      });
+    }
+
+    // groupConcat(expr)
+    return this.expression(GroupConcatExpr, {
+      this: seqGet(args, 0),
     });
   }
 
@@ -2991,6 +3026,40 @@ export class ClickHouseGenerator extends Generator {
     return super.valuesSql(expression, {
       valuesAsTable,
     });
+  }
+
+  groupConcatSql (expression: GroupConcatExpr): string {
+    let thisNode = expression.args.this;
+    const separator = expression.args.separator;
+
+    if (thisNode instanceof LimitExpr && thisNode.args.this) {
+      const limit = thisNode;
+
+      thisNode = limit.args.this;
+
+      return this.sql(new ParameterizedAggExpr({
+        this: new VarExpr({
+          this: 'groupConcat',
+        }),
+        params: [thisNode!],
+        expressions: [
+          separator,
+          limit.args.expression,
+        ].filter(Boolean) as Expression[],
+      }));
+    }
+
+    if (separator) {
+      return this.sql(new ParameterizedAggExpr({
+        this: new VarExpr({
+          this: 'groupConcat',
+        }),
+        params: [thisNode!],
+        expressions: [separator as unknown as Expression],
+      }));
+    }
+
+    return this.func('groupConcat', thisNode ? [thisNode] : []);
   }
 
   timestampTruncSql (expression: TimestampTruncExpr): string {

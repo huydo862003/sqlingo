@@ -41,6 +41,7 @@ import {
   EndsWithExpr,
   GetbitExpr,
   SafeAddExpr,
+  SafeDivideExpr,
   SafeMultiplyExpr,
   SafeSubtractExpr,
   StartsWithExpr,
@@ -322,6 +323,7 @@ class SparkParser extends Spark2.Parser {
         defaultUnit: 'DAY',
       }),
       TRY_ADD: (args: unknown[]) => SafeAddExpr.fromArgList(args),
+      TRY_DIVIDE: (args: unknown[]) => SafeDivideExpr.fromArgList(args),
       TRY_MULTIPLY: (args: unknown[]) => SafeMultiplyExpr.fromArgList(args),
       TRY_SUBTRACT: (args: unknown[]) => SafeSubtractExpr.fromArgList(args),
       DATEDIFF: buildDatediff,
@@ -542,6 +544,10 @@ class SparkGenerator extends Spark2.Generator {
       [
         SafeAddExpr,
         renameFunc('TRY_ADD'),
+      ],
+      [
+        SafeDivideExpr,
+        renameFunc('TRY_DIVIDE'),
       ],
       [
         SafeMultiplyExpr,

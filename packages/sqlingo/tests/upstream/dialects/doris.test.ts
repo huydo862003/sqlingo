@@ -301,6 +301,20 @@ class TestDoris extends Validator {
       'CREATE MATERIALIZED VIEW mv BUILD DEFERRED REFRESH AUTO ON SCHEDULE EVERY 10 MINUTE AS SELECT 1',
     );
   }
+
+  testDateAddSub () {
+    // Standard INTERVAL form
+    this.validateIdentity("SELECT DATE_ADD(x, INTERVAL '3' DAY)");
+    this.validateIdentity("SELECT DATE_SUB(x, INTERVAL '3' MONTH)");
+
+    // Two-argument shorthand - default unit DAY
+    this.validateIdentity('SELECT DATE_SUB(x, 3)', 'SELECT DATE_SUB(x, INTERVAL 3 DAY)');
+    this.validateIdentity('SELECT DATE_ADD(x, 7)', 'SELECT DATE_ADD(x, INTERVAL 7 DAY)');
+
+    // ADDDATE / SUBDATE aliases
+    this.validateIdentity('SELECT ADDDATE(x, 7)', 'SELECT DATE_ADD(x, INTERVAL 7 DAY)');
+    this.validateIdentity('SELECT SUBDATE(x, 7)', 'SELECT DATE_SUB(x, INTERVAL 7 DAY)');
+  }
 }
 
 const t = new TestDoris();
@@ -317,4 +331,5 @@ describe('TestDoris', () => {
   test('tableAliasConversion', () => t.testTableAliasConversion());
   test('renameTable', () => t.testRenameTable());
   test('materializedViewProperties', () => t.testMaterializedViewProperties());
+  test('testDateAddSub', () => t.testDateAddSub());
 });

@@ -12,9 +12,11 @@ import type {
   SelectExpr,
 } from '../../../src/expressions';
 import {
-  AliasExpr, AndExpr, AnonymousAggFuncExpr, AnonymousExpr, ArrayExpr,
+  AliasExpr, AndExpr, AnonymousAggFuncExpr, AnonymousExpr,
+  ArrayCompactExpr, ArrayConcatExpr, ArrayDistinctExpr, ArrayExceptExpr, ArrayExpr,
   CombinedAggFuncExpr, CombinedParameterizedAggExpr, ColumnConstraintExpr,
-  ColumnExpr, CreateExpr, DataTypeExpr, DateStrToDateExpr, IfExpr, LiteralExpr,
+  ColumnExpr, CreateExpr, DataTypeExpr, DateStrToDateExpr, GroupConcatExpr,
+  IfExpr, LimitExpr, LiteralExpr,
   OnClusterExpr, ParameterExpr, ParameterizedAggExpr, ParenExpr,
   PropertiesExpr, EnginePropertyExpr, SchemaCommentPropertyExpr,
   SubqueryExpr, TableExpr, TimeStrToTimeExpr, TruncExpr, TupleExpr,
@@ -97,6 +99,11 @@ class TestClickHouse extends Validator {
       dialect: 'clickhouse',
     })).toBe('COUNT(x)');
 
+    this.validateIdentity(
+      'cast(notEmpty(report_task_id)?report_task_id:\'-1\' AS text)',
+      'CAST(CASE WHEN notEmpty(report_task_id) THEN report_task_id ELSE \'-1\' END AS String)',
+    );
+
     this.validateIdentity('SELECT DISTINCT ON ("id") * FROM t');
     this.validateIdentity('SELECT 1 OR (1 = 2)');
     this.validateIdentity('SELECT 1 AND (1 = 2)');
@@ -161,6 +168,7 @@ class TestClickHouse extends Validator {
     this.validateIdentity('SELECT groupUniqArray(2)(a)');
     this.validateIdentity('SELECT exponentialTimeDecayedAvg(60)(a, b)');
     this.validateIdentity('levenshteinDistance(col1, col2)', 'editDistance(col1, col2)');
+    this.validateIdentity('jaroWinklerSimilarity(\'hello\', \'world\')');
     this.validateIdentity('SELECT * FROM foo WHERE x GLOBAL IN (SELECT * FROM bar)');
     this.validateIdentity('SELECT * FROM foo WHERE x GLOBAL NOT IN (SELECT * FROM bar)');
     this.validateIdentity('POSITION(haystack, needle)');
@@ -887,6 +895,10 @@ class TestClickHouse extends Validator {
 
     this.validateIdentity('farmFingerprint64(x1, x2, x3)');
 
+    this.validateIdentity('cityHash64()');
+    this.validateIdentity('cityHash64(x)');
+    this.validateIdentity('cityHash64(x, y, z)');
+
     this.validateIdentity('cosineDistance(x, y)');
     this.validateIdentity('L2Distance(x, y)');
     this.validateIdentity('tuple(1 = 1, \'foo\' = \'foo\')');
@@ -898,6 +910,8 @@ class TestClickHouse extends Validator {
     this.validateIdentity('currentDatabase()', 'CURRENT_DATABASE()');
     this.validateIdentity('currentSchemas(TRUE)', 'CURRENT_SCHEMAS(TRUE)');
 
+    this.validateIdentity('VERSION()');
+
     this.validateIdentity(
       'SELECT quantilesExactExclusive(0.25, 0.5, 0.75)(x) AS y FROM (SELECT number AS x FROM num)',
     );
@@ -905,6 +919,23 @@ class TestClickHouse extends Validator {
     this.validateIdentity('SELECT or(0, 1, -2)', 'SELECT 0 OR 1 OR -2');
     this.validateIdentity('SELECT and(1, 2, 3)', 'SELECT 1 AND 2 AND 3');
     this.validateIdentity('SELECT or(and(3, 0), 5)', 'SELECT (3 AND 0) OR 5');
+
+    this.validateIdentity('arrayCompact([1, 1, nan, nan, 2, 3, 3, 3])').assertIs(ArrayCompactExpr);
+    this.validateIdentity('arrayConcat([1, 2], [3, 4])').assertIs(ArrayConcatExpr);
+    this.validateIdentity('arrayDistinct([1, 2, 2, 3, 1])').assertIs(ArrayDistinctExpr);
+    this.validateIdentity('arrayExcept([1, 2, 3, 2, 4], [3, 5])').assertIs(ArrayExceptExpr);
+    this.validateIdentity('SELECT UTCTimestamp()', 'SELECT CURRENT_TIMESTAMP(\'UTC\')');
+
+    for (const global_ of ['', 'GLOBAL ']) {
+      for (const side of ['', 'LEFT ', 'RIGHT ', 'FULL ']) {
+        for (const strictness of ['ANY ', 'ALL ']) {
+          const sql = `SELECT * FROM foo1 ${global_}${side}${strictness}JOIN foo2 ON foo1.id = foo2.id`;
+          this.validateIdentity(sql);
+        }
+      }
+    }
+
+    this.validateIdentity('SELECT []');
   }
 
   testClickhouseValues () {
@@ -1277,6 +1308,21 @@ ORDER BY (
     this.validateIdentity(
       'CREATE TABLE t1 ("x" UInt32, "y" Dynamic, "z" Dynamic(max_types = 10)) ENGINE=MergeTree ORDER BY x',
     );
+    this.validateIdentity(
+      'CREATE TABLE test_table (id Int32, name String) ENGINE=MergeTree PRIMARY KEY id',
+      'CREATE TABLE test_table (id Int32, name String) ENGINE=MergeTree PRIMARY KEY (id)',
+    );
+    this.validateIdentity(
+      'CREATE TABLE test_table (id Int32, name String) ENGINE=MergeTree PRIMARY KEY tuple()',
+      'CREATE TABLE test_table (id Int32, name String) ENGINE=MergeTree PRIMARY KEY (tuple())',
+    );
+
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT t CHECK (SELECT 1)) ENGINE=MergeTree ORDER BY a',
+    );
+    this.validateIdentity(
+      'CREATE TABLE t (a UInt32, CONSTRAINT t ASSUME (SELECT 1)) ENGINE=MergeTree ORDER BY a',
+    );
 
     this.validateAll(
       'CREATE DATABASE x',
@@ -1607,6 +1653,20 @@ LIFETIME(MIN 0 MAX 0)`,
         pretty: true,
       },
     );
+    // TODO: tcpPort() function call in dict SOURCE property is not yet supported by TS parser
+    // this.validateIdentity(
+    //   'CREATE DICTIONARY dict1 (key UInt64) PRIMARY KEY (key) SOURCE(CLICKHOUSE(HOST \'localhost\' PORT tcpPort() USER \'default\' DB CURRENT_DATABASE())) LIFETIME(MIN 1 MAX 10) LAYOUT(FLAT())',
+    // );
+    this.validateIdentity(
+      'CREATE DICTIONARY dict1 (key UInt64) PRIMARY KEY (key) SOURCE(FILE(PATH \'/tmp/test.csv\' FORMAT CSVWithNames)) LIFETIME(MIN 0 MAX 1) LAYOUT(FLAT())',
+    );
+    this.validateIdentity(
+      'CREATE DICTIONARY dict1 (key UInt64) PRIMARY KEY (key) SOURCE(NULL()) LAYOUT(CACHE(SIZE_IN_CELLS 1000)) LIFETIME(MIN 0 MAX 1)',
+    );
+    this.validateIdentity(
+      'CREATE DICTIONARY dict1 (key UInt64) PRIMARY KEY (key) SOURCE(EXECUTABLE(COMMAND \'echo "1"\' FORMAT TabSeparated)) LIFETIME(MIN 0 MAX 1) LAYOUT(FLAT())',
+    );
+
     this.validateAll(
       `
             CREATE TABLE t (
@@ -1666,6 +1726,9 @@ LIFETIME(MIN 0 MAX 0)`,
         pretty: true,
       },
     );
+
+    this.validateIdentity('DROP TABLE t SYNC');
+    this.validateIdentity('DROP DATABASE IF EXISTS d SYNC');
   }
 
   testAggFunctions () {
@@ -1717,9 +1780,18 @@ LIFETIME(MIN 0 MAX 0)`,
     (this.validateIdentity('SELECT maxMap(k, v) FROM t') as SelectExpr).selects[0].assertIs(AnonymousAggFuncExpr);
     // Single-suffix on collision-prone bases
     (this.validateIdentity('SELECT sumMapIf(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT minMapIf(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity('SELECT maxMapIf(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
     (this.validateIdentity('SELECT sumMapState(k, v) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
     // Multi-suffix chain on collision-prone base
     (this.validateIdentity('SELECT sumMapIfState(k, v, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+
+    // example of a nontrivial query
+    const sumMergeIfMerge = (this.validateIdentity(
+      'SELECT sumMergeIfMerge(s) FROM (SELECT sumMergeIfState(agg, 1 = 1) AS s '
+      + 'FROM (SELECT sumState(toFloat64(number)) AS agg FROM numbers(10)))',
+    ) as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    expect(sumMergeIfMerge.name).toBe('sumMergeIfMerge');
   }
 
   testDetach () {
@@ -2130,6 +2202,40 @@ LIFETIME(MIN 0 MAX 0)`,
     this.validateIdentity('splitByChar(\'\', x)');
   }
 
+  testGroupconcat () {
+    // groupConcat(sep)(col) - parametric form with separator
+    const gc = (this.validateIdentity("SELECT groupConcat(', ')(part_name) FROM system.parts") as SelectExpr).selects[0].assertIs(GroupConcatExpr);
+    expect(gc.args.this?.name).toBe('part_name');
+    expect((gc.args.separator as unknown as LiteralExpr)?.name).toBe(', ');
+
+    // groupConcat(col) - no separator
+    const gc2 = (this.validateIdentity('SELECT groupConcat(part_name) FROM t') as SelectExpr).selects[0].assertIs(GroupConcatExpr);
+    expect(gc2.args.this?.name).toBe('part_name');
+    expect(gc2.args.separator).toBeUndefined();
+
+    // groupConcat(sep, limit)(col) - with limit
+    const gc3 = (this.validateIdentity("SELECT groupConcat(', ', 2)(part_name) FROM t") as SelectExpr).selects[0].assertIs(GroupConcatExpr);
+    gc3.args.this?.assertIs(LimitExpr);
+    expect((gc3.args.this as LimitExpr)?.args.this?.name).toBe('part_name');
+
+    // Combinators are preserved as CombinedAggFunc / CombinedParameterizedAgg
+    (this.validateIdentity('SELECT groupConcatIf(x, cond) FROM t') as SelectExpr).selects[0].assertIs(CombinedAggFuncExpr);
+    (this.validateIdentity("SELECT groupConcatIf(', ')(x, cond) FROM t") as SelectExpr).selects[0].assertIs(CombinedParameterizedAggExpr);
+
+    // Cross-dialect transpilation
+    this.validateAll(
+      "SELECT groupConcat(', ')(part_name) FROM t",
+      {
+        read: { mysql: "SELECT GROUP_CONCAT(part_name SEPARATOR ', ') FROM t" },
+        write: {
+          clickhouse: "SELECT groupConcat(', ')(part_name) FROM t",
+          mysql: "SELECT GROUP_CONCAT(part_name SEPARATOR ', ') FROM t",
+          duckdb: "SELECT LISTAGG(part_name, ', ') FROM t",
+        },
+      },
+    );
+  }
+
   testJsonNested () {
     this.validateIdentity('SELECT col.^nested, t.col2.^nested, t.col3.^nested.twice FROM t');
   }
@@ -2150,6 +2256,20 @@ LIFETIME(MIN 0 MAX 0)`,
     this.validateIdentity(
       'SELECT CAST(val as JSON())',
       'SELECT CAST(val AS JSON)',
+    );
+
+    // Multiline JSON type and non-case-sensitive SKIP
+    this.validateIdentity(
+      `SELECT CAST(val AS JSON(
+                col1 String,
+                skip col2,
+                max_dynamic_paths=2
+            ))`,
+      'SELECT CAST(val AS JSON(col1 String, SKIP col2, max_dynamic_paths = 2))',
+    );
+
+    this.validateIdentity(
+      'SELECT CAST(val AS JSON(col1 String, col2 JSON(colA String, SKIP colB)))',
     );
   }
 }
@@ -2187,4 +2307,5 @@ describe('TestClickHouse', () => {
   test('stringSplit', () => t.testStringSplit());
   test('testJsonNested', () => t.testJsonNested());
   test('testJsonType', () => t.testJsonType());
+  test('testGroupconcat', () => t.testGroupconcat());
 });

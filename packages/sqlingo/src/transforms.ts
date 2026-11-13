@@ -29,6 +29,7 @@ import {
   DataTypeExpr,
   DataTypeExprKind,
   DataTypeParamExpr,
+  DateAddExpr,
   EqExpr,
   ExistsExpr,
   ExplodeExpr,
@@ -185,13 +186,16 @@ export function unnestGenerateDateArrayUsingRecursiveCte (expression: Expression
       const columnName: string | IdentifierExpr = isInstanceOf(rawColumnName, IdentifierExpr) ? rawColumnName : isInstanceOf(rawColumnName, Expression) ? rawColumnName.name : 'date_value';
 
       const startCast = cast(start, 'date');
-      const dateAdd = new AnonymousExpr({
-        this: 'date_add',
-        expressions: [
-          columnName,
-          LiteralExpr.number(step.name),
-          step.args.unit || '',
-        ],
+      const dateAdd = new DateAddExpr({
+        this: columnName instanceof Expression
+          ? columnName
+          : new ColumnExpr({
+            this: new IdentifierExpr({
+              this: columnName,
+            }),
+          }),
+        expression: LiteralExpr.number(step.name),
+        unit: step.args.unit,
       });
       const castDateAdd = cast(dateAdd, 'date');
 

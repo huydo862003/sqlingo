@@ -1449,6 +1449,10 @@ class TestPresto extends Validator {
         },
       },
     );
+
+    this.validateIdentity(
+      'SELECT * FROM foo FOR TIMESTAMP AS OF CAST(\'2020-01-01 00:00:00\' AS TIMESTAMP) AS bar',
+    );
   }
 
   testEncodeDecode () {

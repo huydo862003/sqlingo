@@ -470,11 +470,85 @@ TBLPROPERTIES (
     );
 
     this.validateAll(
+      'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+      {
+        read: {
+          spark2: 'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+          spark: 'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+          databricks: 'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+        },
+        write: {
+          spark2: 'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+          databricks: 'SELECT ELEMENT_AT(ARRAY(1, 2, 3), 1)',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT h.id, amount FROM hourlycostagg h LATERAL VIEW inline(h.costs) c',
+      {
+        write: {
+          duckdb: 'SELECT h.id, amount FROM hourlycostagg AS h CROSS JOIN LATERAL (SELECT UNNEST(h.costs, max_depth => 2)) AS c',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT h.id, amount FROM hourlycostagg h LATERAL VIEW inline(h.adjustments) as type, val, curr',
+      {
+        write: {
+          duckdb: 'SELECT h.id, amount FROM hourlycostagg AS h CROSS JOIN LATERAL (SELECT UNNEST(h.adjustments, max_depth => 2)) AS _u_0(type, val, curr)',
+        },
+      },
+    );
+    this.validateAll(
+      `
+      WITH hourlycostagg AS (
+          SELECT
+              101 AS id,
+              ARRAY(
+                  STRUCT(10.0 AS amount, 'USD' AS currency),
+                  STRUCT(20.0 AS amount, 'EUR' AS currency)
+              ) AS costs,
+              ARRAY(
+                  STRUCT('tax' AS type, 0.15 AS val, 'EUR' AS currency),
+                  STRUCT('fee' AS type, 5.00 AS val, 'EUR' AS currency)
+              ) AS adjustments,
+              ARRAY(
+                  STRUCT(
+                      12.0 AS length,
+                      STRUCT('A' AS tag, 98.5 AS score) AS details
+                  ),
+                  STRUCT(
+                      23.0 AS length,
+                      STRUCT('B' AS tag, 99.5 AS score) AS details
+                  )
+              ) AS info
+      )
+      SELECT
+          h.id,
+          amount,
+          currency,
+          type,
+          val,
+          leng
+      FROM hourlycostagg h
+      LATERAL VIEW inline(h.costs) c
+      LATERAL VIEW inline(h.adjustments) as type, val, curr
+      LATERAL VIEW inline(h.info) exploded as leng, det
+      `,
+      {
+        write: {
+          duckdb: "WITH hourlycostagg AS (SELECT 101 AS id, [{'amount': 10.0, 'currency': 'USD'}, {'amount': 20.0, 'currency': 'EUR'}] AS costs, [{'type': 'tax', 'val': 0.15, 'currency': 'EUR'}, {'type': 'fee', 'val': 5.00, 'currency': 'EUR'}] AS adjustments, [{'length': 12.0, 'details': {'tag': 'A', 'score': 98.5}}, {'length': 23.0, 'details': {'tag': 'B', 'score': 99.5}}] AS info) SELECT h.id, amount, currency, type, val, leng FROM hourlycostagg AS h CROSS JOIN LATERAL (SELECT UNNEST(h.costs, max_depth => 2)) AS c CROSS JOIN LATERAL (SELECT UNNEST(h.adjustments, max_depth => 2)) AS _u_1(type, val, curr) CROSS JOIN LATERAL (SELECT UNNEST(h.info, max_depth => 2)) AS exploded(leng, det)",
+        },
+      },
+    );
+    this.validateAll(
       'SELECT id_column, name, age FROM test_table LATERAL VIEW INLINE(struc_column) explode_view AS name, age',
       {
         write: {
           presto: 'SELECT id_column, name, age FROM test_table CROSS JOIN UNNEST(struc_column) AS explode_view(name, age)',
           spark: 'SELECT id_column, name, age FROM test_table LATERAL VIEW INLINE(struc_column) explode_view AS name, age',
+          duckdb: 'SELECT id_column, name, age FROM test_table CROSS JOIN LATERAL (SELECT UNNEST(struc_column, max_depth => 2)) AS explode_view(name, age)',
         },
       },
     );
@@ -884,7 +958,6 @@ TBLPROPERTIES (
       {
         write: {
           trino: 'REDUCE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)',
-          duckdb: 'REDUCE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)',
           hive: 'REDUCE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)',
           presto: 'REDUCE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)',
           spark: 'AGGREGATE(my_arr, 0, (acc, x) -> acc + x, s -> s * 2)',
@@ -1167,10 +1240,50 @@ TBLPROPERTIES (
         },
       },
     );
+    this.validateIdentity('BIT_GET(11, 0)', 'GETBIT(11, 0)');
     this.validateIdentity('BITMAP_OR_AGG(x)');
     this.validateIdentity('SELECT ELT(2, \'foo\', \'bar\', \'baz\') AS Result');
     this.validateIdentity('SELECT MAKE_INTERVAL(100, 11, 12, 13, 14, 14, 15)');
     this.validateIdentity('SELECT name, GROUPING_ID() FROM customer GROUP BY ROLLUP (name)');
+    this.validateIdentity('SELECT MAKE_TIMESTAMP(2014, 12, 28, 6, 30, 45.887)');
+    this.validateIdentity('SELECT CURDATE()', 'SELECT CURRENT_DATE');
+
+    this.validateAll(
+      'SELECT BIT_COUNT(0)',
+      {
+        write: {
+          spark: 'SELECT BIT_COUNT(0)',
+          databricks: 'SELECT BIT_COUNT(0)',
+          duckdb: 'SELECT BIT_COUNT(0)',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT * FROM foo TIMESTAMP AS OF \'2020-01-01 00:00:00\' AS bar',
+      {
+        read: {
+          spark: 'SELECT * FROM foo TIMESTAMP AS OF \'2020-01-01 00:00:00\' AS bar',
+          databricks: 'SELECT * FROM foo TIMESTAMP AS OF \'2020-01-01 00:00:00\' AS bar',
+        },
+        write: {
+          databricks: 'SELECT * FROM foo TIMESTAMP AS OF \'2020-01-01 00:00:00\' AS bar',
+        },
+      },
+    );
+
+    this.validateAll(
+      'WITH RECURSIVE t(n) AS (SELECT * FROM VALUES (1) AS _values) SELECT n FROM t',
+      {
+        read: {
+          spark: 'WITH RECURSIVE t(n) AS (SELECT * FROM VALUES (1) AS _values) SELECT n FROM t',
+          databricks: 'WITH RECURSIVE t(n) AS (SELECT * FROM VALUES (1) AS _values) SELECT n FROM t',
+        },
+        write: {
+          databricks: 'WITH RECURSIVE t(n) AS (SELECT * FROM VALUES (1) AS _values) SELECT n FROM t',
+        },
+      },
+    );
   }
 
   testBoolOr () {
@@ -1516,6 +1629,46 @@ TBLPROPERTIES (
         databricks: 'SET VARIABLE v = 5',
       },
     });
+
+    this.validateAll(
+      'SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))',
+      {
+        write: {
+          spark: 'SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))',
+          databricks: 'SET VARIABLE v = (SELECT MAX(c1) FROM VALUES (1), (2) AS T(c1))',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SET VARIABLE v = DEFAULT',
+      {
+        write: {
+          spark: 'SET VARIABLE v = DEFAULT',
+          databricks: 'SET VARIABLE v = DEFAULT',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SET VARIABLE v1 = 1, v2 = \'2\'',
+      {
+        write: {
+          spark: 'SET VARIABLE v1 = 1, v2 = \'2\'',
+          databricks: 'SET VARIABLE v1 = 1, v2 = \'2\'',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SET VARIABLE (v1, v2) = (SELECT 1, 2)',
+      {
+        write: {
+          spark: 'SET VARIABLE (v1, v2) = (SELECT 1, 2)',
+          databricks: 'SET VARIABLE (v1, v2) = (SELECT 1, 2)',
+        },
+      },
+    );
   }
 
   testArrayInsert () {
@@ -1526,6 +1679,24 @@ TBLPROPERTIES (
         spark: "SELECT ARRAY_INSERT(ARRAY('a', 'b', 'c'), 1, 'z')",
       },
     });
+  }
+
+  testTryDivide () {
+    this.validateAll(
+      'SELECT TRY_DIVIDE(a, b)',
+      {
+        read: {
+          spark: 'SELECT TRY_DIVIDE(a, b)',
+          databricks: 'SELECT TRY_DIVIDE(a, b)',
+        },
+        write: {
+          spark: 'SELECT TRY_DIVIDE(a, b)',
+          databricks: 'SELECT TRY_DIVIDE(a, b)',
+          snowflake: 'SELECT IFF(b <> 0, a / b, NULL)',
+          duckdb: 'SELECT CASE WHEN b <> 0 THEN a / b ELSE NULL END',
+        },
+      },
+    );
   }
 
   testTranspileAnnotatedExplodedColumn () {
@@ -1578,5 +1749,6 @@ describe('TestSpark', () => {
   test('testDeclare', () => t.testDeclare());
   test('testSetVariable', () => t.testSetVariable());
   test('testArrayInsert', () => t.testArrayInsert());
+  test('test_try_divide', () => t.testTryDivide());
   test('testTranspileAnnotatedExplodedColumn', () => t.testTranspileAnnotatedExplodedColumn());
 });

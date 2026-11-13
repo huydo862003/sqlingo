@@ -13,7 +13,7 @@ import type {
 import {
   Expression,
   BetweenExpr, GteExpr, LteExpr, AndExpr,
-  LiteralExpr, DateDiffExpr, FlattenExpr, RegexpLikeExpr,
+  LiteralExpr, DateDiffExpr, FlattenExpr, RegexpLikeExpr, SelectExpr, DateAddExpr, DateSubExpr,
   UniqueKeyPropertyExpr, RollupPropertyExpr, RefreshTriggerPropertyExpr,
   RollupIndexExpr, PropertiesExpr, CreateExpr, CreateExprKind, SchemaExpr, TableAliasExpr, PartitionedByPropertyExpr,
   PartitionByRangePropertyExpr, PartitionByRangePropertyDynamicExpr,
@@ -37,13 +37,15 @@ import {
 } from '../port_internals';
 import {
   preprocess,
+  eliminateDistinctOn,
+  unnestGenerateDateArrayUsingRecursiveCte,
 } from '../transforms';
 import type {
   Dialect,
 } from './dialect';
 import {
   renameFunc, arrowJsonExtractSql, buildTimestampTrunc, unitToStr,
-  approxCountDistinctSql, inlineArraySql, propertySql, Dialects,
+  approxCountDistinctSql, inlineArraySql, propertySql, Dialects, buildDateDeltaWithInterval,
 } from './dialect';
 import {
   MySQL,
@@ -141,6 +143,10 @@ class StarRocksParser extends MySQL.Parser {
   }) => Expression> {
     return {
       ...MySQL.Parser.FUNCTIONS,
+      ADDDATE: buildDateDeltaWithInterval(DateAddExpr, 'DAY'),
+      DATE_ADD: buildDateDeltaWithInterval(DateAddExpr, 'DAY'),
+      DATE_SUB: buildDateDeltaWithInterval(DateSubExpr, 'DAY'),
+      SUBDATE: buildDateDeltaWithInterval(DateSubExpr, 'DAY'),
       DATE_TRUNC: buildTimestampTrunc,
       DATEDIFF: (args: Expression[]): DateDiffExpr =>
         new DateDiffExpr({
@@ -347,10 +353,16 @@ class StarRocksParser extends MySQL.Parser {
   // port from _Dialect metaclass logic
   @cache
   static get TABLE_ALIAS_TOKENS (): Set<TokenType> {
-    return new Set([
+    const tokens = new Set([
       ...MySQL.Parser.TABLE_ALIAS_TOKENS,
       TokenType.STRAIGHT_JOIN,
     ]);
+
+    // StarRocks supports LEFT SEMI JOIN and LEFT ANTI JOIN natively
+    tokens.delete(TokenType.ANTI);
+    tokens.delete(TokenType.SEMI);
+
+    return tokens;
   }
 };
 
@@ -442,6 +454,11 @@ class StarRocksGenerator extends MySQL.Generator {
       },
     );
     m.set(DeleteExpr, preprocess([eliminateBetweenInDelete]));
+    // StarRocks supports QUALIFY, FULL OUTER JOIN, SEMI/ANTI JOIN natively, so we don't eliminate them
+    m.set(SelectExpr, preprocess([
+      eliminateDistinctOn,
+      unnestGenerateDateArrayUsingRecursiveCte,
+    ]));
     m.set(FlattenExpr, renameFunc('ARRAY_FLATTEN'));
     m.set(JsonExtractScalarExpr, arrowJsonExtractSql);
     m.set(JsonExtractExpr, arrowJsonExtractSql);

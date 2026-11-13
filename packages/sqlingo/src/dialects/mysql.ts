@@ -19,6 +19,8 @@ import type {
   FuncExpr,
 
   PropertiesExpr,
+
+  RenameColumnExpr,
 } from '../expressions';
 import {
   AlterIndexExpr, AutoIncrementPropertyExpr, ColumnDefExpr, ColumnExpr, ModifyColumnExpr, PartitionExpr, PartitionListExpr, PartitionRangeExpr, SchemaCommentPropertyExpr,
@@ -80,6 +82,8 @@ import {
   PartitionByRangePropertyExpr,
   PartitionByListPropertyExpr,
   SetItemExprKind,
+  InvisibleColumnConstraintExpr,
+  RenameIndexExpr,
   ZeroFillColumnConstraintExpr,
   UniqueColumnConstraintExpr,
   SchemaExpr,
@@ -929,6 +933,9 @@ class MySQLParser extends Parser {
       ZEROFILL: function (this: Parser) {
         return this.expression(ZeroFillColumnConstraintExpr);
       },
+      INVISIBLE: function (this: Parser) {
+        return this.expression(InvisibleColumnConstraintExpr);
+      },
       // FIXME: not in upstream sqlglot
       // Revert 16bb024 (mixed commit)
       // MySQL: COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}
@@ -947,19 +954,6 @@ class MySQLParser extends Parser {
 
         return this.expression(VarExpr, {
           this: 'STORAGE',
-        });
-      },
-      // FIXME: not in upstream sqlglot
-      // Revert 16bb024 (mixed commit)
-      // MySQL 8.0+: INVISIBLE | VISIBLE
-      INVISIBLE: function (this: Parser) {
-        return this.expression(VarExpr, {
-          this: 'INVISIBLE',
-        });
-      },
-      VISIBLE: function (this: Parser) {
-        return this.expression(VarExpr, {
-          this: 'VISIBLE',
         });
       },
     };
@@ -1451,6 +1445,30 @@ class MySQLParser extends Parser {
       this: index,
       visible: visible,
     });
+  }
+
+  override parseAlterTableRename (): AlterRenameExpr | RenameColumnExpr | RenameIndexExpr | undefined {
+    if (this.matchTexts([
+      'INDEX',
+      'KEY',
+    ])) {
+      const old = this.parseField({
+        anyToken: true,
+      });
+
+      this.matchTextSeq('TO');
+
+      const new_ = this.parseField({
+        anyToken: true,
+      });
+
+      return this.expression(RenameIndexExpr, {
+        this: old,
+        to: new_,
+      });
+    }
+
+    return super.parseAlterTableRename();
   }
 
   protected parseAlterTableModify (): Expression | undefined {

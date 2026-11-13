@@ -548,6 +548,44 @@ ORDER BY
       'SELECT CONVERT_TIMEZONE(\'America/New_York\', \'2024-08-06 09:10:00.000\')',
       'SELECT CONVERT_TIMEZONE(\'UTC\', \'America/New_York\', \'2024-08-06 09:10:00.000\')',
     );
+
+    // TODO: not yet supported - EXCLUDE column rewriting adds erroneous AS "" to subquery alias
+    // this.validateAll(
+    //   'SELECT *, 4 AS col4 EXCLUDE (col2, col3) FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //   {
+    //     write: {
+    //       redshift: 'SELECT *, 4 AS col4 EXCLUDE (col2, col3) FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //       duckdb: 'SELECT * EXCLUDE (col2, col3) FROM (SELECT *, 4 AS col4 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //       snowflake: 'SELECT * EXCLUDE (col2, col3) FROM (SELECT *, 4 AS col4 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //     },
+    //   },
+    // );
+    // this.validateAll(
+    //   'SELECT *, 4 AS col4 EXCLUDE col2, col3 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //   {
+    //     write: {
+    //       redshift: 'SELECT *, 4 AS col4 EXCLUDE (col2, col3) FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //       duckdb: 'SELECT * EXCLUDE (col2, col3) FROM (SELECT *, 4 AS col4 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //       snowflake: 'SELECT * EXCLUDE (col2, col3) FROM (SELECT *, 4 AS col4 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //     },
+    //   },
+    // );
+    // this.validateAll(
+    //   'SELECT col1, *, col2 EXCLUDE(col3) FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //   {
+    //     write: {
+    //       redshift: 'SELECT col1, *, col2 EXCLUDE (col3) FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3)',
+    //       duckdb: 'SELECT * EXCLUDE (col3) FROM (SELECT col1, *, col2 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //       snowflake: 'SELECT * EXCLUDE (col3) FROM (SELECT col1, *, col2 FROM (SELECT 1 AS col1, 2 AS col2, 3 AS col3))',
+    //     },
+    //   },
+    // );
+    // TODO: not yet supported - EXCLUDE keyword is parsed as function/clause, not as alias
+    // this.validateIdentity('SELECT 1 EXCLUDE', 'SELECT 1 AS EXCLUDE');
+    // this.validateIdentity('SELECT 1 EXCLUDE FROM t', 'SELECT 1 AS EXCLUDE FROM t');
+    // this.validateIdentity('SELECT 1 AS EXCLUDE');
+    // this.validateIdentity('SELECT * FROM (SELECT 1 AS EXCLUDE) AS t');
+    // this.validateIdentity('SELECT 1 AS EXCLUDE, 2 AS foo');
   }
 
   testValues () {

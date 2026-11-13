@@ -10,7 +10,8 @@ import type {
   SelectExpr,
 } from '../../../src/expressions';
 import {
-  DataTypeExpr, IdentifierExpr, JsonPathExpr, ParameterExpr,
+  AiEmbedExpr, AiGenerateExpr, AiSimilarityExpr,
+  DataTypeExpr, DotExpr, IdentifierExpr, JsonPathExpr, LoadDataExpr, ParameterExpr,
   PredictExpr, FeaturesAtTimeExpr, VectorSearchExpr,
   GenerateEmbeddingExpr, MlTranslateExpr, MlForecastExpr, AiForecastExpr,
   SafeFuncExpr, SubstringExpr, TimestampExpr, StrToDateExpr,
@@ -132,6 +133,10 @@ class TestBigQuery extends Validator {
     this.validateIdentity('TIME(\'2008-12-25 15:30:00+08\', \'America/Los_Angeles\')');
     this.validateIdentity('SELECT \'\\n\\r\\a\\v\\f\\t\'');
     this.validateIdentity('SELECT * FROM tbl FOR SYSTEM_TIME AS OF z');
+    this.validateIdentity(
+      'SELECT * FROM tbl FOR SYSTEM TIME AS OF z',
+      'SELECT * FROM tbl FOR SYSTEM_TIME AS OF z',
+    );
     this.validateIdentity('SELECT PARSE_TIMESTAMP(\'%c\', \'Thu Dec 25 07:30:00 2008\', \'UTC\')');
     this.validateIdentity('SELECT ANY_VALUE(fruit HAVING MAX sold) FROM fruits');
     this.validateIdentity('SELECT ANY_VALUE(fruit HAVING MIN sold) FROM fruits');
@@ -213,6 +218,12 @@ class TestBigQuery extends Validator {
     this.validateIdentity('BEGIN TRANSACTION');
     this.validateIdentity('COMMIT TRANSACTION');
     this.validateIdentity('ROLLBACK TRANSACTION');
+    for (const loadDataSql of [
+      "LOAD DATA OVERWRITE mydataset.table1 FROM FILES(FORMAT='AVRO', uris=['gs://bucket/path/file.avro'])",
+      "LOAD DATA INTO TABLE mydataset.table1 FROM FILES(FORMAT='AVRO', uris=['gs://bucket/path/file.avro'])",
+    ]) {
+      this.validateIdentity(loadDataSql).assertIs(LoadDataExpr);
+    }
     this.validateIdentity('CAST(x AS BIGNUMERIC)');
     this.validateIdentity('SELECT y + 1 FROM x GROUP BY y + 1 ORDER BY 1');
     this.validateIdentity('SELECT TIMESTAMP_SECONDS(2) AS t');
@@ -1996,8 +2007,8 @@ WHERE
           'trino': 'IF(y <> 0, CAST(x AS DOUBLE) / y, NULL)',
           'hive': 'IF(y <> 0, x / y, NULL)',
           'spark2': 'IF(y <> 0, x / y, NULL)',
-          'spark': 'IF(y <> 0, x / y, NULL)',
-          'databricks': 'IF(y <> 0, x / y, NULL)',
+          'spark': 'TRY_DIVIDE(x, y)',
+          'databricks': 'TRY_DIVIDE(x, y)',
           'snowflake': 'IFF(y <> 0, x / y, NULL)',
           'postgres': 'CASE WHEN y <> 0 THEN CAST(x AS DOUBLE PRECISION) / y ELSE NULL END',
         },
@@ -2013,8 +2024,8 @@ WHERE
           'trino': 'IF((2 * y) <> 0, CAST((x + 1) AS DOUBLE) / (2 * y), NULL)',
           'hive': 'IF((2 * y) <> 0, (x + 1) / (2 * y), NULL)',
           'spark2': 'IF((2 * y) <> 0, (x + 1) / (2 * y), NULL)',
-          'spark': 'IF((2 * y) <> 0, (x + 1) / (2 * y), NULL)',
-          'databricks': 'IF((2 * y) <> 0, (x + 1) / (2 * y), NULL)',
+          'spark': 'TRY_DIVIDE(x + 1, 2 * y)',
+          'databricks': 'TRY_DIVIDE(x + 1, 2 * y)',
           'snowflake': 'IFF((2 * y) <> 0, (x + 1) / (2 * y), NULL)',
           'postgres': 'CASE WHEN (2 * y) <> 0 THEN CAST((x + 1) AS DOUBLE PRECISION) / (2 * y) ELSE NULL END',
         },
@@ -2423,6 +2434,9 @@ WHERE
           },
         },
       );
+      this.validateIdentity(
+        'WITH foo AS (SELECT [1, 2, 3] AS array_col) SELECT array_col[offset] FROM foo CROSS JOIN UNNEST(array_col) WITH OFFSET AS offset',
+      );
     } finally {
       warnSpy3.mockRestore();
     }
@@ -2616,6 +2630,18 @@ OPTIONS (
     this.validateIdentity(
       "SELECT AI.GENERATE_BOOL(MODEL `mydataset.gemini_model`, 'Is sky blue?')",
     );
+
+    const aiEmbed = this.validateIdentity("SELECT AI.EMBED('hello')") as SelectExpr;
+    const aiEmbedDot = aiEmbed.selects[0].assertIs(DotExpr);
+    expect(aiEmbedDot.args.expression).toBeInstanceOf(AiEmbedExpr);
+
+    const aiSimilarity = this.validateIdentity("SELECT AI.SIMILARITY('a', 'b')") as SelectExpr;
+    const aiSimilarityDot = aiSimilarity.selects[0].assertIs(DotExpr);
+    expect(aiSimilarityDot.args.expression).toBeInstanceOf(AiSimilarityExpr);
+
+    const aiGenerate = this.validateIdentity("SELECT AI.GENERATE('Write a haiku')") as SelectExpr;
+    const aiGenerateDot = aiGenerate.selects[0].assertIs(DotExpr);
+    expect(aiGenerateDot.args.expression).toBeInstanceOf(AiGenerateExpr);
   }
 
   testMerge () {
@@ -3563,6 +3589,27 @@ OPTIONS (
       'EXTRACT(WEEK(THURSDAY) FROM DATE \'2013-12-25\')',
       'EXTRACT(WEEK(THURSDAY) FROM CAST(\'2013-12-25\' AS DATE))',
     );
+
+    const weekTrunc: Record<string, [string, string]> = {
+      'MONDAY': ['WEEK(MONDAY)', 'DATE_TRUNC(\'WEEK\', date)'],
+      'TUESDAY': ['WEEK(TUESDAY)', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'-1\' DAY) + INTERVAL \'1\' DAY AS DATE)'],
+      'WEDNESDAY': ['WEEK(WEDNESDAY)', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'-2\' DAY) + INTERVAL \'2\' DAY AS DATE)'],
+      'THURSDAY': ['WEEK(THURSDAY)', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'-3\' DAY) + INTERVAL \'3\' DAY AS DATE)'],
+      'FRIDAY': ['WEEK(FRIDAY)', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'-4\' DAY) + INTERVAL \'4\' DAY AS DATE)'],
+      'SATURDAY': ['WEEK(SATURDAY)', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'-5\' DAY) + INTERVAL \'5\' DAY AS DATE)'],
+      'SUNDAY': ['WEEK', 'CAST(DATE_TRUNC(\'WEEK\', date + INTERVAL \'1\' DAY) + INTERVAL \'-1\' DAY AS DATE)'],
+    };
+    for (const [day, [bqUnit, duckdbSql]] of Object.entries(weekTrunc)) {
+      this.validateAll(
+        `SELECT DATE_TRUNC(date, WEEK(${day}))`,
+        {
+          write: {
+            bigquery: `SELECT DATE_TRUNC(date, ${bqUnit})`,
+            duckdb: `SELECT ${duckdbSql}`,
+          },
+        },
+      );
+    }
 
     this.validateAll(
       'SELECT DATE_DIFF(\'2024-06-15\', \'2024-01-08\', WEEK(MONDAY))',

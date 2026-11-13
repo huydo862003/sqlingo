@@ -119,6 +119,10 @@ class TestTeradata extends Validator {
       'REPLACE VIEW view_b (COL1, COL2) AS LOCKING ROW FOR ACCESS SELECT COL1, COL2 FROM table_b',
       'CREATE OR REPLACE VIEW view_b (COL1, COL2) AS LOCKING ROW FOR ACCESS SELECT COL1, COL2 FROM table_b',
     );
+    this.validateIdentity(
+      'REPLACE VIEW view_b (COL1, COL2) AS LOCKING ROW FOR ACCESS SELECT COL1, COL2 FROM table_b',
+      'CREATE OR REPLACE VIEW view_b (COL1, COL2) AS LOCKING ROW FOR ACCESS SELECT COL1, COL2 FROM table_b',
+    );
     this.validateIdentity('CREATE TABLE x (y INT) PRIMARY INDEX (y) PARTITION BY y INDEX (y)');
     this.validateIdentity('CREATE TABLE x (y INT) PARTITION BY y INDEX (y)');
     this.validateIdentity(
@@ -135,6 +139,9 @@ class TestTeradata extends Validator {
     );
     this.validateIdentity(
       'CREATE TABLE a (b INT) PARTITION BY RANGE_N(b BETWEEN *, 1 AND * EACH b) INDEX (a)',
+    );
+    this.validateIdentity(
+      'CREATE TABLE a, NO FALLBACK PROTECTION, NO LOG, NO JOURNAL, CHECKSUM=ON, NO MERGEBLOCKRATIO, BLOCKCOMPRESSION=ALWAYS (a INT)',
     );
     this.validateIdentity(
       'CREATE TABLE a, NO FALLBACK PROTECTION, NO LOG, NO JOURNAL, CHECKSUM=ON, NO MERGEBLOCKRATIO, BLOCKCOMPRESSION=ALWAYS (a INT)',

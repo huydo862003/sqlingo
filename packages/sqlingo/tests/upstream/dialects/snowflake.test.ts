@@ -33,6 +33,11 @@ class TestSnowflake extends Validator {
 
   testSnowflake () {
     this.validateIdentity(
+      'WITH t AS (SELECT PARSE_JSON(\'{"level1": {"level2": {"level3": "value"}}}\') AS data) SELECT data:     level1  : level2 : level3::VARIANT FROM t',
+      'WITH t AS (SELECT PARSE_JSON(\'{"level1": {"level2": {"level3": "value"}}}\') AS data) SELECT CAST(GET_PATH(data, \'level1.level2.level3\') AS VARIANT) FROM t',
+    );
+
+    this.validateIdentity(
       'SELECT * FROM x ASOF JOIN y OFFSET MATCH_CONDITION (x.a > y.a)',
       'SELECT * FROM x ASOF JOIN y AS OFFSET MATCH_CONDITION (x.a > y.a)',
     );
@@ -135,11 +140,30 @@ class TestSnowflake extends Validator {
       'SELECT BITMAP_COUNT(BITMAP_CONSTRUCT_AGG(value)) FROM TABLE(FLATTEN(INPUT => ARRAY_CONSTRUCT(1, 2, 3, 5)))',
       'SELECT BITMAP_COUNT(BITMAP_CONSTRUCT_AGG(value)) FROM TABLE(FLATTEN(INPUT => [1, 2, 3, 5]))',
     );
+    this.validateAll(
+      'SELECT ARRAY_MAX([1, 2, 3])',
+      {
+        write: {
+          'duckdb': 'SELECT LIST_MAX([1, 2, 3])',
+          'snowflake': 'SELECT ARRAY_MAX([1, 2, 3])',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT ARRAY_MIN([1, 2, 3])',
+      {
+        write: {
+          'duckdb': 'SELECT LIST_MIN([1, 2, 3])',
+          'snowflake': 'SELECT ARRAY_MIN([1, 2, 3])',
+        },
+      },
+    );
     this.validateIdentity('SELECT BOOLAND(1, -2)');
     this.validateIdentity('SELECT BOOLXOR(2, 0)');
     this.validateIdentity('SELECT BOOLOR(1, 0)');
     this.validateIdentity('SELECT TO_BOOLEAN(\'true\')');
     this.validateIdentity('SELECT TO_BOOLEAN(1)');
+    this.validateIdentity('SELECT TO_VARIANT(123)');
     this.validateIdentity('SELECT IS_NULL_VALUE(GET_PATH(payload, \'field\'))');
     this.validateIdentity('SELECT RTRIMMED_LENGTH(\' ABCD \')');
     this.validateIdentity('SELECT HEX_DECODE_STRING(\'48656C6C6F\')');
@@ -231,7 +255,13 @@ class TestSnowflake extends Validator {
     this.validateIdentity('SELECT SIGN(x)');
     this.validateIdentity('SELECT COSH(1.5)');
     this.validateIdentity('SELECT TANH(0.5)');
-    this.validateIdentity('SELECT JAROWINKLER_SIMILARITY(\'hello\', \'world\')');
+    this.validateAll("JAROWINKLER_SIMILARITY('hello', 'world')", {
+      write: {
+        snowflake: "JAROWINKLER_SIMILARITY('hello', 'world')",
+        duckdb: "CAST(JARO_WINKLER_SIMILARITY(UPPER('hello'), UPPER('world')) * 100 AS INT)",
+        clickhouse: "jaroWinklerSimilarity(UPPER('hello'), UPPER('world'))",
+      },
+    });
     this.validateIdentity('SELECT TRANSLATE(column_name, \'abc\', \'123\')');
     this.validateIdentity('SELECT UNICODE(column_name)');
     this.validateIdentity('SELECT WIDTH_BUCKET(col, 0, 100, 10)');
@@ -378,8 +408,24 @@ class TestSnowflake extends Validator {
         },
       },
     );
-    this.validateIdentity('SELECT RANDOM()');
-    this.validateIdentity('SELECT RANDOM(123)');
+    this.validateAll(
+      'SELECT RANDOM()',
+      {
+        write: {
+          'snowflake': 'SELECT RANDOM()',
+          'duckdb': 'SELECT CAST(-9.223372036854776e+18 + RANDOM() * (9.223372036854776e+18 - -9.223372036854776e+18) AS BIGINT)',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT RANDOM(123)',
+      {
+        write: {
+          'snowflake': 'SELECT RANDOM(123)',
+          'duckdb': 'SELECT CAST(-9.223372036854776e+18 + RANDOM() * (9.223372036854776e+18 - -9.223372036854776e+18) AS BIGINT)',
+        },
+      },
+    );
     this.validateIdentity('SELECT RANDSTR(123, 456)');
     this.validateIdentity('SELECT RANDSTR(123, RANDOM())');
     this.validateIdentity('SELECT NORMAL(0, 1, RANDOM())');
@@ -918,12 +964,6 @@ class TestSnowflake extends Validator {
     (this.validateIdentity(
       'SELECT DATEADD(DAY, -7, DATEADD(t.m, 1, CAST(\'2023-01-03\' AS DATE))) FROM (SELECT \'month\' AS m) AS t',
     ) as any).selects[0].args.this.args.unit.assertIs(ColumnExpr);
-    this.validateAll("SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)", {
-      write: {
-        snowflake: "SELECT STRTOK('a$b$c', SUBSTRING('.$^', 1, 2), 2)",
-        duckdb: String.raw`SELECT CASE WHEN SUBSTRING('.$^', 1, 2) = '' AND 'a$b$c' = '' THEN NULL WHEN SUBSTRING('.$^', 1, 2) = '' AND 2 = 1 THEN 'a$b$c' WHEN SUBSTRING('.$^', 1, 2) = '' THEN NULL WHEN 2 < 0 THEN NULL WHEN 'a$b$c' IS NULL OR SUBSTRING('.$^', 1, 2) IS NULL OR 2 IS NULL THEN NULL ELSE LIST_FILTER(REGEXP_SPLIT_TO_ARRAY('a$b$c', CASE WHEN SUBSTRING('.$^', 1, 2) = '' THEN '' ELSE '[' || REGEXP_REPLACE(SUBSTRING('.$^', 1, 2), '([\[\]^.\-*+?(){}|$\\])', '\\\1', 'g') || ']' END), x -> NOT x = '')[2] END`,
-      },
-    });
     this.validateAll("SELECT STRTOK('a$b/cg', '$/.')", {
       write: {
         snowflake: "SELECT STRTOK('a$b/cg', '$/.', 1)",
@@ -1330,6 +1370,18 @@ class TestSnowflake extends Validator {
       },
     );
     this.validateAll(
+      'SELECT ARRAYS_OVERLAP(col1, col2)',
+      {
+        read: {
+          'snowflake': 'SELECT ARRAYS_OVERLAP(col1, col2)',
+        },
+        write: {
+          'snowflake': 'SELECT ARRAYS_OVERLAP(col1, col2)',
+          'duckdb': 'SELECT (col1 && col2) OR (ARRAY_LENGTH(col1) <> LIST_COUNT(col1) AND ARRAY_LENGTH(col2) <> LIST_COUNT(col2))',
+        },
+      },
+    );
+    this.validateAll(
       'SELECT ARRAY_INTERSECTION([1, 2], [2, 3])',
       {
         read: {
@@ -1626,6 +1678,24 @@ class TestSnowflake extends Validator {
       },
     );
     this.validateAll(
+      'SELECT ARRAY_GENERATE_RANGE(-5, -25, -10)',
+      {
+        write: {
+          'duckdb': 'SELECT RANGE(-5, -25, -10)',
+          'snowflake': 'SELECT ARRAY_GENERATE_RANGE(-5, -25, -10)',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT ARRAY_GENERATE_RANGE(5, 1, -1)',
+      {
+        write: {
+          'duckdb': 'SELECT RANGE(5, 1, -1)',
+          'snowflake': 'SELECT ARRAY_GENERATE_RANGE(5, 1, -1)',
+        },
+      },
+    );
+    this.validateAll(
       'SELECT DATE_PART(\'year\', TIMESTAMP \'2020-01-01\')',
       {
         write: {
@@ -1736,6 +1806,26 @@ class TestSnowflake extends Validator {
         );
       }
     }
+
+    this.validateAll(
+      'SELECT LEAD(is_deleted, 2, -10) RESPECT NULLS OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+      {
+        write: {
+          'snowflake': 'SELECT LEAD(is_deleted, 2, -10) RESPECT NULLS OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT LEAD(is_deleted, 2, -10 RESPECT NULLS) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LEAD(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+      {
+        write: {
+          'snowflake': 'SELECT LEAD(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+          'duckdb': 'SELECT LEAD(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
+        },
+      },
+    );
 
     this.validateAll(
       'SELECT LAG(amount) OVER (ORDER BY seq) AS basic_lag',
@@ -3612,6 +3702,38 @@ class TestSnowflake extends Validator {
             this.validateIdentity('SELECT ARRAY_CONTAINS(1, [1])');
 
             this.validateAll(
+              'SELECT ARRAY_CONTAINS(x, [1, NULL, 3])',
+              {
+                write: {
+                  'snowflake': 'SELECT ARRAY_CONTAINS(x, [1, NULL, 3])',
+                  'duckdb': 'SELECT CASE WHEN x IS NULL THEN NULLIF(ARRAY_LENGTH([1, NULL, 3]) <> LIST_COUNT([1, NULL, 3]), FALSE) ELSE ARRAY_CONTAINS([1, NULL, 3], x) END',
+                },
+              },
+            );
+
+            this.validateIdentity('SELECT ARRAY_DISTINCT([\'A\', \'B\', \'A\'])');
+
+            this.validateAll(
+              'SELECT ARRAY_DISTINCT([\'A\', NULL, \'B\', NULL])',
+              {
+                write: {
+                  'snowflake': 'SELECT ARRAY_DISTINCT([\'A\', NULL, \'B\', NULL])',
+                  'duckdb': 'SELECT CASE WHEN ARRAY_LENGTH([\'A\', NULL, \'B\', NULL]) <> LIST_COUNT([\'A\', NULL, \'B\', NULL]) THEN LIST_APPEND(LIST_DISTINCT(LIST_FILTER([\'A\', NULL, \'B\', NULL], _u -> NOT _u IS NULL)), NULL) ELSE LIST_DISTINCT([\'A\', NULL, \'B\', NULL]) END',
+                },
+              },
+            );
+
+            this.validateAll(
+              'SELECT ARRAY_DISTINCT([1, 2, 2, 3, 1])',
+              {
+                write: {
+                  'snowflake': 'SELECT ARRAY_DISTINCT([1, 2, 2, 3, 1])',
+                  'duckdb': 'SELECT CASE WHEN ARRAY_LENGTH([1, 2, 2, 3, 1]) <> LIST_COUNT([1, 2, 2, 3, 1]) THEN LIST_APPEND(LIST_DISTINCT(LIST_FILTER([1, 2, 2, 3, 1], _u -> NOT _u IS NULL)), NULL) ELSE LIST_DISTINCT([1, 2, 2, 3, 1]) END',
+                },
+              },
+            );
+
+            this.validateAll(
               'SELECT x\'ABCD\'',
               {
                 write: {
@@ -3819,6 +3941,28 @@ class TestSnowflake extends Validator {
         }
       }
     }
+
+    this.validateAll(
+      'SELECT CURRENT_VERSION()',
+      {
+        write: {
+          'snowflake': 'SELECT CURRENT_VERSION()',
+          'databricks': 'SELECT CURRENT_VERSION()',
+          'spark': 'SELECT VERSION()',
+          'mysql': 'SELECT VERSION()',
+          'singlestore': 'SELECT VERSION()',
+          'starrocks': 'SELECT CURRENT_VERSION()',
+          'postgres': 'SELECT VERSION()',
+          'redshift': 'SELECT VERSION()',
+          'clickhouse': 'SELECT VERSION()',
+          'trino': 'SELECT VERSION()',
+          'duckdb': 'SELECT VERSION()',
+        },
+      },
+    );
+
+    this.validateIdentity('SELECT CURRENT_DATABASE()');
+    this.validateIdentity('SELECT CURRENT_SCHEMA()');
   }
 
   testNullTreatment () {
@@ -5509,6 +5653,19 @@ FROM persons AS p, LATERAL FLATTEN(input => p.c, path => 'contact') AS _flattene
       this.validateIdentity(`DESC ${kind} ${objName}`, `DESCRIBE ${kind} ${objName}`);
     }
 
+    // Verify keyword tokens used by DESCRIBE work as identifiers and aliases
+    const describeTokens = [
+      'api', 'application', 'catalog', 'compute', 'database', 'dynamic',
+      'external', 'hybrid', 'iceberg', 'integration', 'masking', 'materialized',
+      'network', 'package', 'policy', 'pool', 'role', 'rule', 'security', 'volume',
+    ];
+    for (const token of describeTokens) {
+      this.validateIdentity(`SELECT ${token} FROM t`);
+      this.validateIdentity(`SELECT 1 AS ${token}`);
+    }
+    const cols = describeTokens.map((t) => `${t} VARCHAR`).join(', ');
+    this.validateIdentity(`CREATE TABLE t (${cols})`);
+
     this.validateAll(
       'ENDSWITH(\'abc\', \'c\')',
       {
@@ -5658,6 +5815,186 @@ FROM persons AS p, LATERAL FLATTEN(input => p.c, path => 'contact') AS _flattene
     this.validateIdentity('SELECT REGEXP_COUNT(\'hello world\', \'l \')');
     this.validateIdentity('SELECT REGEXP_COUNT(\'hello world\', \'l\', 1)');
     this.validateIdentity('SELECT REGEXP_COUNT(\'hello world\', \'l\', 1, \'i\')');
+
+    // DuckDB transpilation tests for REGEXP_SUBSTR
+    // DuckDB's default (no group) is semantically equivalent to group=0
+    this.validateAll(
+      'REGEXP_SUBSTR(subject, pattern)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR(subject, pattern)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR(subject, pattern, 3)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT(NULLIF(SUBSTRING(subject, 3), \'\'), pattern)',
+          'snowflake': 'REGEXP_SUBSTR(subject, pattern, 3)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR(subject, pattern, 1, 2)',
+      {
+        write: {
+          'duckdb': 'ARRAY_EXTRACT(REGEXP_EXTRACT_ALL(subject, pattern), 2)',
+          'snowflake': 'REGEXP_SUBSTR(subject, pattern, 1, 2)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR(subject, pattern, 1, 1, \'e\')',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR(subject, pattern, 1, 1, \'e\')',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR(subject, pattern, 1, 1, \'e\', 0)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR(subject, pattern, 1, 1, \'e\')',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR_ALL(subject, pattern)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT_ALL(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR_ALL(subject, pattern)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR_ALL(subject, pattern, 3)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT_ALL(SUBSTRING(subject, 3), pattern)',
+          'snowflake': 'REGEXP_SUBSTR_ALL(subject, pattern, 3)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR_ALL(subject, pattern, 1, 2)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT_ALL(subject, pattern)[2:]',
+          'snowflake': 'REGEXP_SUBSTR_ALL(subject, pattern, 1, 2)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR_ALL(subject, pattern, 1, 1, \'e\')',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT_ALL(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR_ALL(subject, pattern, 1, 1, \'e\')',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_SUBSTR_ALL(subject, pattern, 1, 1, \'e\', 0)',
+      {
+        write: {
+          'duckdb': 'REGEXP_EXTRACT_ALL(subject, pattern)',
+          'snowflake': 'REGEXP_SUBSTR_ALL(subject, pattern, 1, 1, \'e\')',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT REGEXP_COUNT(\'hello\', \'l\')',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_COUNT(\'hello\', \'l\')',
+          'duckdb': 'SELECT CASE WHEN \'l\' = \'\' THEN 0 ELSE LENGTH(REGEXP_EXTRACT_ALL(\'hello\', \'l\')) END',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT REGEXP_COUNT(\'hello world\', \'l\', 7)',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_COUNT(\'hello world\', \'l\', 7)',
+          'duckdb': 'SELECT CASE WHEN \'l\' = \'\' THEN 0 ELSE LENGTH(REGEXP_EXTRACT_ALL(SUBSTRING(\'hello world\', 7), \'l\')) END',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT REGEXP_COUNT(\'Hello World\', \'L\', 1, \'im\')',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_COUNT(\'Hello World\', \'L\', 1, \'im\')',
+          'duckdb': 'SELECT CASE WHEN \'L\' = \'\' THEN 0 ELSE LENGTH(REGEXP_EXTRACT_ALL(SUBSTRING(\'Hello World\', 1), \'L\')) END',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT REGEXP_COUNT(subject, pattern)',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_COUNT(subject, pattern)',
+          'duckdb': 'SELECT CASE WHEN pattern = \'\' THEN 0 ELSE LENGTH(REGEXP_EXTRACT_ALL(subject, pattern)) END',
+        },
+      },
+    );
+
+    this.validateIdentity('SELECT REGEXP_INSTR(\'abc\', \'a\')');
+    this.validateIdentity('SELECT REGEXP_INSTR(\'abc\', \'a\', 1, 1, 0, \'i\')');
+
+    // Basic transpilation
+    this.validateAll(
+      'SELECT REGEXP_INSTR(subject, pattern)',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_INSTR(subject, pattern)',
+          'duckdb': 'SELECT CASE WHEN subject IS NULL OR pattern IS NULL THEN NULL WHEN pattern = \'\' THEN 0 WHEN LENGTH(REGEXP_EXTRACT_ALL(subject, pattern)) < 1 THEN 0 ELSE 1 + COALESCE(LIST_SUM(LIST_TRANSFORM(STRING_SPLIT_REGEX(subject, pattern)[1:1], x -> LENGTH(x))), 0) + COALESCE(LIST_SUM(LIST_TRANSFORM(REGEXP_EXTRACT_ALL(subject, pattern)[1:1 - 1], x -> LENGTH(x))), 0) + 0 END',
+        },
+      },
+    );
+
+    // With position offset
+    this.validateAll(
+      'SELECT REGEXP_INSTR(subject, pattern, 5)',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_INSTR(subject, pattern, 5)',
+          'duckdb': 'SELECT CASE WHEN subject IS NULL OR pattern IS NULL OR 5 IS NULL THEN NULL WHEN pattern = \'\' THEN 0 WHEN LENGTH(REGEXP_EXTRACT_ALL(SUBSTRING(subject, 5), pattern)) < 1 THEN 0 ELSE 1 + COALESCE(LIST_SUM(LIST_TRANSFORM(STRING_SPLIT_REGEX(SUBSTRING(subject, 5), pattern)[1:1], x -> LENGTH(x))), 0) + COALESCE(LIST_SUM(LIST_TRANSFORM(REGEXP_EXTRACT_ALL(SUBSTRING(subject, 5), pattern)[1:1 - 1], x -> LENGTH(x))), 0) + 5 - 1 END',
+        },
+      },
+    );
+
+    // With occurrence
+    this.validateAll(
+      'SELECT REGEXP_INSTR(subject, pattern, 1, 2)',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_INSTR(subject, pattern, 1, 2)',
+          'duckdb': 'SELECT CASE WHEN subject IS NULL OR pattern IS NULL OR 1 IS NULL OR 2 IS NULL THEN NULL WHEN pattern = \'\' THEN 0 WHEN LENGTH(REGEXP_EXTRACT_ALL(subject, pattern)) < 2 THEN 0 ELSE 1 + COALESCE(LIST_SUM(LIST_TRANSFORM(STRING_SPLIT_REGEX(subject, pattern)[1:2], x -> LENGTH(x))), 0) + COALESCE(LIST_SUM(LIST_TRANSFORM(REGEXP_EXTRACT_ALL(subject, pattern)[1:2 - 1], x -> LENGTH(x))), 0) + 0 END',
+        },
+      },
+    );
+
+    // With flags
+    this.validateAll(
+      'SELECT REGEXP_INSTR(subject, pattern, 1, 1, 0, \'im\')',
+      {
+        write: {
+          'snowflake': 'SELECT REGEXP_INSTR(subject, pattern, 1, 1, 0, \'im\')',
+          'duckdb': 'SELECT CASE WHEN subject IS NULL OR pattern IS NULL OR 1 IS NULL OR 1 IS NULL OR 0 IS NULL OR \'im\' IS NULL THEN NULL WHEN pattern = \'\' THEN 0 WHEN LENGTH(REGEXP_EXTRACT_ALL(subject, pattern)) < 1 THEN 0 ELSE 1 + COALESCE(LIST_SUM(LIST_TRANSFORM(STRING_SPLIT_REGEX(subject, pattern)[1:1], x -> LENGTH(x))), 0) + COALESCE(LIST_SUM(LIST_TRANSFORM(REGEXP_EXTRACT_ALL(subject, pattern)[1:1 - 1], x -> LENGTH(x))), 0) + 0 END',
+        },
+      },
+    );
   }
 
   testRegexpReplace () {
@@ -5729,6 +6066,43 @@ FROM persons AS p, LATERAL FLATTEN(input => p.c, path => 'contact') AS _flattene
           'snowflake': 'REGEXP_REPLACE(subject, pattern, replacement, 1, 0, \'c\')',
           'duckdb': 'REGEXP_REPLACE(subject, pattern, replacement, \'cg\')',
           'postgres': 'REGEXP_REPLACE(subject, pattern, replacement, 1, 0, \'cg\')',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_REPLACE(subject, pattern, replacement, 1, 1)',
+      {
+        write: {
+          'snowflake': 'REGEXP_REPLACE(subject, pattern, replacement, 1, 1)',
+          'duckdb': 'REGEXP_REPLACE(subject, pattern, replacement)',
+          'postgres': 'REGEXP_REPLACE(subject, pattern, replacement, 1, 1)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_REPLACE(subject, pattern, replacement, 3, 0)',
+      {
+        write: {
+          'snowflake': 'REGEXP_REPLACE(subject, pattern, replacement, 3, 0)',
+          'duckdb': 'SUBSTRING(subject, 1, 2) || REGEXP_REPLACE(SUBSTRING(subject, 3), pattern, replacement, \'g\')',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_REPLACE(subject, pattern, replacement, 3, 1)',
+      {
+        write: {
+          'snowflake': 'REGEXP_REPLACE(subject, pattern, replacement, 3, 1)',
+          'duckdb': 'SUBSTRING(subject, 1, 2) || REGEXP_REPLACE(SUBSTRING(subject, 3), pattern, replacement)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_REPLACE(subject, pattern, replacement, 1, 0, \'i\')',
+      {
+        write: {
+          'snowflake': 'REGEXP_REPLACE(subject, pattern, replacement, 1, 0, \'i\')',
+          'duckdb': 'REGEXP_REPLACE(subject, pattern, replacement, \'ig\')',
         },
       },
     );
@@ -5996,24 +6370,24 @@ MATCH_RECOGNIZE (
     expect(ast.find(TableExpr)?.sql({
       dialect: 'snowflake',
     })).toBe('db1.schema1');
-    expect(ast.args.iceberg).toBeFalsy();
+    expect(ast.getArgKey('iceberg')).toBeFalsy();
 
     const ast2 = parseOne('SHOW ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
 
     expect(ast2.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
-    expect(ast2.args.iceberg).toBe(true);
+    expect(ast2.getArgKey('iceberg')).toBe(true);
 
     const ast3 = parseOne('SHOW TERSE ICEBERG TABLES IN db1.schema1', { read: 'snowflake' });
 
     expect(ast3.find(TableExpr)?.sql({ dialect: 'snowflake' })).toBe('db1.schema1');
-    expect(ast3.args.terse).toBe(true);
-    expect(ast3.args.iceberg).toBe(true);
+    expect(ast3.getArgKey('terse')).toBe(true);
+    expect(ast3.getArgKey('iceberg')).toBe(true);
   }
 
   testAlterIcebergTable () {
     const ast = this.validateIdentity('ALTER ICEBERG TABLE t RENAME TO x');
 
-    expect(ast.args.iceberg).toBe(true);
+    expect(ast.getArgKey('iceberg')).toBe(true);
 
     this.validateAll(
       'ALTER ICEBERG TABLE t RENAME TO x',
@@ -6029,11 +6403,11 @@ MATCH_RECOGNIZE (
   testDropIcebergTable () {
     const ast = this.validateIdentity('DROP ICEBERG TABLE t');
 
-    expect(ast.args.iceberg).toBe(true);
+    expect(ast.getArgKey('iceberg')).toBe(true);
     this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t');
     const ast2 = this.validateIdentity('DROP ICEBERG TABLE t RESTRICT');
 
-    expect(ast2.args.restrict).toBe(true);
+    expect(ast2.getArgKey('restrict')).toBe(true);
     this.validateIdentity('DROP ICEBERG TABLE IF EXISTS t RESTRICT');
   }
 
@@ -6471,6 +6845,88 @@ SINGLE = TRUE`,
     this.validateIdentity('SELECT t.$17:a[0].b[0].c', 'SELECT GET_PATH(t.$17, \'a[0].b[0].c\')');
 
     this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"a": [1, 2]}\') AS v), s AS (SELECT 1 AS x) SELECT t.v:a[s.x] FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"a": [1, 2]}\') AS v), s AS (SELECT 1 AS x) SELECT GET_PATH(t.v, \'a\')[s.x] FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"a": [1, 2]}\') AS v), s AS (SELECT 1 AS x) SELECT (t.v -> \'$.a\')[s.x] FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:c[s.x]:r FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT GET_PATH(GET_PATH(t.v, \'c\')[s.x], \'r\') FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT (t.v -> \'$.c\')[s.x] -> \'$.r\' FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:c[s.x]:r:d::varchar FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT CAST(GET_PATH(GET_PATH(t.v, \'c\')[s.x], \'r.d\') AS VARCHAR) FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT CAST((t.v -> \'$.c\')[s.x] -> \'$.r.d\' AS TEXT) FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [1, 2]}}\') AS v), s AS (SELECT 1 AS x) SELECT t.v:a:b[s.x] FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [1, 2]}}\') AS v), s AS (SELECT 1 AS x) SELECT GET_PATH(t.v, \'a.b\')[s.x] FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"a": {"b": [1, 2]}}\') AS v), s AS (SELECT 1 AS x) SELECT (t.v -> \'$.a.b\')[s.x] FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:c[s.x].r FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT GET_PATH(GET_PATH(t.v, \'c\')[s.x], \'r\') FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"c": [{"r": 1}]}\') AS v), s AS (SELECT 0 AS x) SELECT (t.v -> \'$.c\')[s.x] -> \'$.r\' FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:c[s.x].r.d FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT GET_PATH(GET_PATH(t.v, \'c\')[s.x], \'r.d\') FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"c": [{"r": {"d": 1}}]}\') AS v), s AS (SELECT 0 AS x) SELECT (t.v -> \'$.c\')[s.x] -> \'$.r.d\' FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": {"e": 1}}}]}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:c[s.x].r.d.e FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"c": [{"r": {"d": {"e": 1}}}]}\') AS v), s AS (SELECT 0 AS x) SELECT GET_PATH(GET_PATH(t.v, \'c\')[s.x], \'r.d.e\') FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"c": [{"r": {"d": {"e": 1}}}]}\') AS v), s AS (SELECT 0 AS x) SELECT (t.v -> \'$.c\')[s.x] -> \'$.r.d.e\' FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [{"r": {"d": 1}}]}}\') AS v), s AS (SELECT 0 AS x) SELECT t.v:a.b[s.x].r.d FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [{"r": {"d": 1}}]}}\') AS v), s AS (SELECT 0 AS x) SELECT GET_PATH(GET_PATH(t.v, \'a.b\')[s.x], \'r.d\') FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"a": {"b": [{"r": {"d": 1}}]}}\') AS v), s AS (SELECT 0 AS x) SELECT (t.v -> \'$.a.b\')[s.x] -> \'$.r.d\' FROM t, s',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [{"r": {"d": [10, 20, 30]}}]}}\') AS v), s AS (SELECT 0 AS x, 2 AS y) SELECT t.v:a.b[s.x].r.d[s.y] FROM t, s',
+      {
+        write: {
+          'snowflake': 'WITH t AS (SELECT PARSE_JSON(\'{"a": {"b": [{"r": {"d": [10, 20, 30]}}]}}\') AS v), s AS (SELECT 0 AS x, 2 AS y) SELECT GET_PATH(GET_PATH(t.v, \'a.b\')[s.x], \'r.d\')[s.y] FROM t, s',
+          'duckdb': 'WITH t AS (SELECT JSON(\'{"a": {"b": [{"r": {"d": [10, 20, 30]}}]}}\') AS v), s AS (SELECT 0 AS x, 2 AS y) SELECT ((t.v -> \'$.a.b\')[s.x] -> \'$.r.d\')[s.y] FROM t, s',
+        },
+      },
+    );
+
+    this.validateAll(
       `
             SELECT col:"customer's department"
             `,
@@ -6808,6 +7264,15 @@ SINGLE = TRUE`,
     expect(() => {
       parseOne("CREATE VIEW v WITH ROW ACCESS POLICY p AS SELECT 1", { dialect: 'snowflake' });
     }).toThrow(ParseError);
+    this.validateIdentity(
+      'CREATE VIEW v WITH ROW ACCESS POLICY #unknown_policy AS SELECT 1',
+    );
+    expect(
+      parseOne('CREATE VIEW v WITH ROW ACCESS POLICY #unknown_policy AS SELECT 1', { dialect: 'snowflake' }).sql({
+        dialect: 'snowflake',
+        identify: true,
+      }),
+    ).toBe('CREATE VIEW "v" WITH ROW ACCESS POLICY #unknown_policy AS SELECT 1');
   }
 
   testSemanticView () {
@@ -6878,10 +7343,11 @@ SINGLE = TRUE`,
         `SELECT * FROM SEMANTIC_VIEW(tbl${dimensionsString}${factString}${metricsString}${whereString})`,
         `SELECT * FROM SEMANTIC_VIEW(tbl${metricsString}${dimensionsString}${factString}${whereString})`,
       );
+    }
 
-      this.validateIdentity(
-        'SELECT * FROM SEMANTIC_VIEW(foo METRICS a.b, a.c DIMENSIONS a.b, a.c WHERE a.b > \'1995-01-01\')',
-        `SELECT
+    this.validateIdentity(
+      'SELECT * FROM SEMANTIC_VIEW(foo METRICS a.b, a.c DIMENSIONS a.b, a.c WHERE a.b > \'1995-01-01\')',
+      `SELECT
   *
 FROM SEMANTIC_VIEW(
   foo
@@ -6889,11 +7355,14 @@ FROM SEMANTIC_VIEW(
   DIMENSIONS a.b, a.c
   WHERE a.b > '1995-01-01'
 )`,
-        {
-          pretty: true,
-        },
-      );
-    }
+      {
+        pretty: true,
+      },
+    );
+
+    this.validateIdentity(
+      'SELECT col1, col2, metric1 FROM SEMANTIC_VIEW(mydb.myschema.my_semantic_view METRICS metric1 DIMENSIONS col1, DATE_TRUNC(\'MONTH\', timestamp_col) AS col2) ORDER BY col1, col2 DESC',
+    );
   }
 
   testGetExtract () {
@@ -7833,47 +8302,6 @@ FROM SEMANTIC_VIEW(
     );
   }
 
-  testRegexpFunctions () {
-    this.validateAll('REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)', {
-      write: {
-        bigquery: 'REGEXP_EXTRACT(subject, pattern, pos, occ)',
-        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
-        presto: 'REGEXP_EXTRACT(subject, pattern, "group")',
-        snowflake: "REGEXP_SUBSTR(subject, pattern, pos, occ, params, group)",
-        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
-      },
-    });
-    this.validateAll('REGEXP_SUBSTR(subject, pattern)', {
-      read: { bigquery: 'REGEXP_EXTRACT(subject, pattern)' },
-      write: {
-        bigquery: 'REGEXP_EXTRACT(subject, pattern)',
-        snowflake: 'REGEXP_SUBSTR(subject, pattern)',
-      },
-    });
-    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)", {
-      read: {
-        hive: 'REGEXP_EXTRACT(subject, pattern)',
-        spark: 'REGEXP_EXTRACT(subject, pattern)',
-        databricks: 'REGEXP_EXTRACT(subject, pattern)',
-      },
-      write: {
-        hive: 'REGEXP_EXTRACT(subject, pattern)',
-        spark: 'REGEXP_EXTRACT(subject, pattern)',
-        databricks: 'REGEXP_EXTRACT(subject, pattern)',
-        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', 1)",
-      },
-    });
-    this.validateAll("REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)", {
-      read: {
-        duckdb: 'REGEXP_EXTRACT(subject, pattern, group)',
-        hive: 'REGEXP_EXTRACT(subject, pattern, group)',
-        presto: 'REGEXP_EXTRACT(subject, pattern, group)',
-        snowflake: "REGEXP_SUBSTR(subject, pattern, 1, 1, 'c', group)",
-        spark: 'REGEXP_EXTRACT(subject, pattern, group)',
-      },
-    });
-  }
-
   testArrayFlatten () {
     // String array flattening
     this.validateAll(
@@ -8374,10 +8802,6 @@ describe('TestSnowflake', () => {
 
   test('test array position', () => {
     validator.testArrayPosition();
-  });
-
-  test('test regexp functions', () => {
-    validator.testRegexpFunctions();
   });
 
   test('test array flatten', () => {

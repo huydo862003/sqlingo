@@ -2,11 +2,11 @@
 	"$schema": "https://json.schemastore.org/package.json",
 	"name": "sqlingo",
 	"sqlglot": {
-		"commit": "800c0c44bb3a2f209be9118ba71b993a99d63e3a",
-		"version": "30.4.0",
+		"commit": "64d385f3664915e66cb5a82943b838041ae415ba",
+		"version": "30.5.0",
 		"url": "https://github.com/tobymao/sqlglot"
 	},
-	"version": "0.14.0",
+	"version": "0.15.0",
 	"type": "module",
 	"sideEffects": false,
 	"description": "SQL parser, transpiler, optimizer, and engine for JavaScript/TypeScript - 32 dialects (Postgres, MySQL, BigQuery, Snowflake, DuckDB, etc). Port of Python SQLGlot.",

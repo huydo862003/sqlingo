@@ -1427,6 +1427,27 @@ class TestParser {
       GrantPrivilegeExpr,
     );
   }
+
+  testMaxNodes () {
+    expect(parseOne('SELECT 1', { maxNodes: 1_000_000 })).toBeInstanceOf(SelectExpr);
+
+    const cols = Array.from({ length: 500 }, (_, i) => `col${i}`);
+    const sql = `SELECT ${cols.join(',')} FROM t`;
+    expect(parseOne(sql, { maxNodes: 1_000_000 })).toBeInstanceOf(SelectExpr);
+
+    const depth = 100;
+    const width = 10000;
+    const expr = 'x' + '=x'.repeat(depth);
+    const bigCols = Array.from({ length: width }, () => expr);
+    const bigSql = `SELECT ${bigCols.join(',')}`;
+
+    expect(() => parseOne(bigSql, { maxNodes: 1_000_000 })).toThrow('Maximum number of AST nodes');
+    expect(() => parseOne(bigSql, { maxNodes: 50_000 })).toThrow('(50000)');
+
+    // Hitting a limit in one parse doesn't affect the next
+    expect(() => parseOne('SELECT ' + Array.from({ length: 100 }, (_, i) => `x=${i}`).join(','), { maxNodes: 5 })).toThrow(ParseError);
+    expect(parseOne('SELECT 1, 2, 3')).toBeInstanceOf(SelectExpr);
+  }
 }
 
 const t = new TestParser();
@@ -1494,4 +1515,5 @@ describe('TestParser', () => {
   test('multiple_query_modifiers', () => t.testMultipleQueryModifiers());
   test('parse_into_grant_principal', () => t.testParseIntoGrantPrincipal());
   test('parse_into_grant_privilege', () => t.testParseIntoGrantPrivilege());
+  test('max_nodes', () => t.testMaxNodes());
 });

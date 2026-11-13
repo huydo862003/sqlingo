@@ -1162,8 +1162,70 @@ class TestHive extends Validator {
         },
       },
     );
+    this.validateAll(
+      'SELECT FIRST_VALUE(sample_col, TRUE)',
+      {
+        read: {
+          spark: 'SELECT FIRST_VALUE(sample_col, TRUE)',
+          databricks: 'SELECT FIRST_VALUE(sample_col, TRUE)',
+        },
+        write: {
+          hive: 'SELECT FIRST_VALUE(sample_col, TRUE)',
+          spark2: 'SELECT FIRST_VALUE(sample_col, TRUE)',
+          spark: 'SELECT FIRST_VALUE(sample_col) IGNORE NULLS',
+          databricks: 'SELECT FIRST_VALUE(sample_col) IGNORE NULLS',
+          duckdb: 'SELECT FIRST_VALUE(sample_col IGNORE NULLS)',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAST_VALUE(sample_col, TRUE)',
+      {
+        read: {
+          spark: 'SELECT LAST_VALUE(sample_col, TRUE)',
+          databricks: 'SELECT LAST_VALUE(sample_col, TRUE)',
+        },
+        write: {
+          hive: 'SELECT LAST_VALUE(sample_col, TRUE)',
+          spark2: 'SELECT LAST_VALUE(sample_col, TRUE)',
+          spark: 'SELECT LAST_VALUE(sample_col) IGNORE NULLS',
+          databricks: 'SELECT LAST_VALUE(sample_col) IGNORE NULLS',
+          duckdb: 'SELECT LAST_VALUE(sample_col IGNORE NULLS)',
+        },
+      },
+    );
+
+    this.validateAll(
+      'SELECT LAST(sample_col, TRUE)',
+      {
+        read: {
+          spark: 'SELECT LAST(sample_col, TRUE)',
+          databricks: 'SELECT LAST(sample_col, TRUE)',
+        },
+        write: {
+          hive: 'SELECT LAST(sample_col, TRUE)',
+          spark2: 'SELECT LAST(sample_col, TRUE)',
+          spark: 'SELECT LAST(sample_col) IGNORE NULLS',
+          databricks: 'SELECT LAST(sample_col) IGNORE NULLS',
+        },
+      },
+    );
+
     this.validateIdentity('DATE_SUB(CURRENT_DATE, 1 + 1)', 'DATE_ADD(CURRENT_DATE, (1 + 1) * -1)');
     this.validateIdentity('SELECT ELT(2, \'foo\', \'bar\', \'baz\') AS Result');
+
+    this.validateAll(
+      'WITH t AS (SELECT \'{"x-y": "z"}\' AS c) SELECT GET_JSON_OBJECT(c, \'$.x-y\') FROM t',
+      {
+        write: {
+          hive: 'WITH t AS (SELECT \'{"x-y": "z"}\' AS c) SELECT GET_JSON_OBJECT(c, \'$.x-y\') FROM t',
+          spark2: 'WITH t AS (SELECT \'{"x-y": "z"}\' AS c) SELECT GET_JSON_OBJECT(c, \'$.x-y\') FROM t',
+          spark: 'WITH t AS (SELECT \'{"x-y": "z"}\' AS c) SELECT GET_JSON_OBJECT(c, \'$.x-y\') FROM t',
+          databricks: 'WITH t AS (SELECT \'{"x-y": "z"}\' AS c) SELECT c:["x-y"] FROM t',
+        },
+      },
+    );
   }
 
   testEscapes () {

@@ -100,6 +100,9 @@ class TestOracle extends Validator {
       'SELECT COUNT(1) INTO V_Temp FROM TABLE(CAST(somelist AS data_list)) WHERE col LIKE \'%contact\'',
     );
     this.validateIdentity(
+      'SELECT * FROM t WHERE c LIKE (:v)',
+    );
+    this.validateIdentity(
       'SELECT department_id INTO v_department_id FROM departments FETCH FIRST 1 ROWS ONLY',
     );
     this.validateIdentity(
@@ -1006,6 +1009,24 @@ CONNECT BY PRIOR employee_id = manager_id AND LEVEL <= 4`;
     this.validateIdentity('SELECT CHR(187)');
   }
 
+  testMerge () {
+    this.validateAll(
+      'MERGE INTO target tgt USING (SELECT id, col1 FROM source_tbl) src ON tgt.id = src.id '
+      + 'WHEN MATCHED THEN UPDATE SET tgt.col1 = src.col1 WHERE tgt.some_column IS NULL '
+      + 'WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1) WHERE NOT src.col1 IS NULL',
+      {
+        write: {
+          oracle: 'MERGE INTO target tgt USING (SELECT id, col1 FROM source_tbl) src ON tgt.id = src.id '
+            + 'WHEN MATCHED THEN UPDATE SET tgt.col1 = src.col1 WHERE tgt.some_column IS NULL '
+            + 'WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1) WHERE NOT src.col1 IS NULL',
+          '': 'MERGE INTO target AS tgt USING (SELECT id, col1 FROM source_tbl) AS src ON tgt.id = src.id '
+            + 'WHEN MATCHED THEN UPDATE SET tgt.col1 = src.col1 '
+            + 'WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1)',
+        },
+      },
+    );
+  }
+
   testMergeBuilderAlias () {
     const mergeStmt = merge(
       [
@@ -1041,12 +1062,22 @@ CONNECT BY PRIOR employee_id = manager_id AND LEVEL <= 4`;
   testFullProcedure () {
     const sql = 'CREATE OR REPLACE PROCEDURE test_proc(a NUMBER) AS BEGIN a := a + 1; END';
     const exprs = parse(sql, { dialect: 'oracle' });
-    expect(exprs[0].sql({ dialect: 'oracle' })).toBe(sql);
+    expect(exprs[0]!.sql({ dialect: 'oracle' })).toBe(sql);
   }
 
   testCreateTrigger () {
     this.validateIdentity(
       "CREATE TRIGGER check_salary BEFORE INSERT ON employees FOR EACH ROW BEGIN :NEW.status := 'PENDING' END",
+      undefined,
+      { checkCommandWarning: true },
+    );
+    this.validateIdentity(
+      'CREATE TRIGGER audit_trigger AFTER UPDATE ON accounts FOR EACH ROW BEGIN INSERT INTO audit_log (user_id, old_balance, new_balance, changed_at) VALUES (:OLD.id, :OLD.balance, :NEW.balance, SYSDATE) END',
+      undefined,
+      { checkCommandWarning: true },
+    );
+    this.validateIdentity(
+      'CREATE TRIGGER view_insert INSTEAD OF INSERT ON employee_view FOR EACH ROW BEGIN INSERT INTO employees (id, name, dept_id) VALUES (:NEW.id, :NEW.name, :NEW.dept_id) END',
       undefined,
       { checkCommandWarning: true },
     );
@@ -1075,6 +1106,7 @@ describe('TestOracle', () => {
   test('prior', () => t.testPrior());
   test('testUtcTime', () => t.testUtcTime());
   test('chr', () => t.testChr());
+  test('testMerge', () => t.testMerge());
   test('testMergeBuilderAlias', () => t.testMergeBuilderAlias());
   test('testPseudocolumns', () => t.testPseudocolumns());
   test('testFullProcedure', () => t.testFullProcedure());
