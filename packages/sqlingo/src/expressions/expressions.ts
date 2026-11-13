@@ -1331,6 +1331,23 @@ export class Expression implements
   }
 
   /**
+   * Apply a function to this expression and return the result.
+   * `expr.pipe(fn, ...args)` is equivalent to `fn(expr, ...args)`.
+   */
+  pipe<R> (func: (expr: this, ...args: any[]) => R, ...args: any[]): R {
+    return func(this, ...args);
+  }
+
+  /**
+   * Apply a function to this expression for side effects, then return this expression.
+   * Useful for inspecting intermediate expressions in a method chain.
+   */
+  apply (func: (expr: this, ...args: any[]) => void, ...args: any[]): this {
+    func(this, ...args);
+    return this;
+  }
+
+  /**
    * Update this expression with positions from a token or other expression.
    *
    * @param other - a token or expression to update this expression with

@@ -117,6 +117,9 @@ export function ensureList<T> (value?: T | Iterable<T>): T[] {
   if (value instanceof Expression) {
     return [value];
   }
+  if (Array.isArray(value)) {
+    return value;
+  }
   if (typeof value !== 'string' && isIterable<T>(value)) {
     return [...value];
   }
