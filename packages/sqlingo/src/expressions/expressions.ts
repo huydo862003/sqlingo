@@ -24589,6 +24589,26 @@ export class JsonStripNullsExpr extends FuncExpr {
   }
 }
 
+export type StripNullValueExprArgs = Merge<[
+  FuncExprArgs,
+]>;
+
+export class StripNullValueExpr extends FuncExpr {
+  static key = ExpressionKey.STRIP_NULL_VALUE;
+
+  static argOrder = ['this'];
+
+  declare args: StripNullValueExprArgs;
+
+  constructor (args: StripNullValueExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
 export type JsonValueArrayExprArgs = Merge<[
   FuncExprArgs,
   {

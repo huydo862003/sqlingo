@@ -853,6 +853,7 @@ export enum ExpressionKey {
   STREAM = 'stream',
   STREAMING_TABLE_PROPERTY = 'streamingTableProperty',
   STRICT_PROPERTY = 'strictProperty',
+  STRIP_NULL_VALUE = 'stripNullValue',
   STRING = 'string',
   STRING_TO_ARRAY = 'stringToArray',
   STRUCT = 'struct',

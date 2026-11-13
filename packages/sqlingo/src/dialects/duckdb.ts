@@ -64,6 +64,7 @@ import type {
 
   ArrayUniqueAggExpr,
   CheckJsonExpr,
+  StripNullValueExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -5399,6 +5400,14 @@ class DuckDBGenerator extends Generator {
     }
 
     return this.func('JSON', [arg]);
+  }
+
+  stripNullValueSql (expression: StripNullValueExpr): string {
+    return this.sql(
+      new CaseExpr({})
+        .when(func('json_type', expression.args.this).eq(LiteralExpr.string('NULL')), null_())
+        .else(expression.args.this),
+    );
   }
 
   truncSql (expression: TruncExpr): string {
