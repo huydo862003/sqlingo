@@ -6301,3 +6301,11 @@ BIGINT;
 # dialect: duckdb
 EXTRACT('month' FROM tbl.timestamp_col);
 BIGINT;
+
+# dialect: snowflake
+ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col);
+ARRAY;
+
+# dialect: snowflake
+ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col) OVER (PARTITION BY tbl.text_col);
+ARRAY;

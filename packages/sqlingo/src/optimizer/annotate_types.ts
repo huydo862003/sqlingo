@@ -965,7 +965,6 @@ export class TypeAnnotator {
     let nonLiteralType: DataTypeExpr | DataTypeExprKind | undefined;
     let nestedType: ColumnDefExpr | DataTypeExpr | undefined;
 
-    outer:
     for (const arg of args) {
       let expressions: Expression[];
 
@@ -995,13 +994,19 @@ export class TypeAnnotator {
           continue;
         }
 
-        // Stop at the first nested type (e.g., ARRAY<INT>)
-        if (narrowedExprType.getArgKey('nested')) {
-          nestedType = narrowedExprType;
-          break outer;
+        if (narrowedExprType.isType(DataTypeExprKind.UNKNOWN)) {
+          this.setType(expression, DataTypeExprKind.UNKNOWN);
+          return;
         }
 
-        if (expr instanceof LiteralExpr) {
+        if (nestedType) {
+          continue;
+        }
+
+        // Stop coercing at the first nested data type found
+        if (narrowedExprType.getArgKey('nested')) {
+          nestedType = narrowedExprType;
+        } else if (expr instanceof LiteralExpr) {
           literalType = this.maybeCoerce(literalType ?? narrowedExprType, narrowedExprType);
         } else {
           nonLiteralType = this.maybeCoerce(nonLiteralType ?? narrowedExprType, narrowedExprType);

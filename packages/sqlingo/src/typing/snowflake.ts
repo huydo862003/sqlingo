@@ -161,6 +161,8 @@ function annotateWithinGroup (this: TypeAnnotator, expression: WithinGroupExpr):
     const firstType = isInstanceOf(firstThis, Expression) ? firstThis.type : undefined;
 
     this.setType(expression, isInstanceOf(firstType, DataTypeExpr) ? firstType : undefined);
+  } else {
+    this.setType(expression, isInstanceOf(inner, Expression) ? inner.type : undefined);
   }
 
   return expression;
