@@ -1,9 +1,9 @@
 import {
-  describe, test,
+  describe, expect, test,
 } from 'vitest';
 import {
   Expression,
-  ColumnExpr, DistinctExpr, ExistsExpr, LiteralExpr, QuantileExpr, TimestampTruncExpr,
+  ColumnExpr, CreateExpr, DistinctExpr, ExistsExpr, LiteralExpr, QuantileExpr, TimestampTruncExpr, UsingPropertyExpr,
 } from '../../../src/expressions';
 import {
   narrowInstanceOf,
@@ -1219,6 +1219,29 @@ class TestHive extends Validator {
     }
   }
 
+  testCreateFunctionUsing () {
+    this.validateIdentity(
+      "CREATE FUNCTION my_func AS 'com.example.MyFunc' USING JAR 'hdfs://path/to/my.jar'",
+    );
+    this.validateIdentity(
+      "CREATE OR REPLACE TEMPORARY FUNCTION some_func AS 'my_jar.SomeFunctionUDF' USING JAR 's3://bucket/my.jar'",
+    );
+    this.validateIdentity(
+      "CREATE FUNCTION my_func AS 'com.example.MyFunc' USING FILE 'hdfs://path/to/file.py'",
+    );
+    this.validateIdentity(
+      "CREATE FUNCTION my_func AS 'com.example.MyFunc' USING ARCHIVE 'hdfs://path/to/archive.zip'",
+    );
+
+    const expr = this.parseOne(
+      "CREATE FUNCTION my_func AS 'com.example.MyFunc' USING JAR 'hdfs://path/to/my.jar'",
+    );
+    expect(expr).toBeInstanceOf(CreateExpr);
+    const usingProp = expr.find(UsingPropertyExpr);
+    expect(usingProp).not.toBeNull();
+    expect(usingProp?.args.kind).toBe('JAR');
+  }
+
   testPercentile () {
     this.validateAll(
       'PERCENTILE(x, 0.5)',
@@ -1291,4 +1314,5 @@ describe('TestHive', () => {
   test('testDataType', () => t.testDataType());
   test('testJoinsWithoutOn', () => t.testJoinsWithoutOn());
   test('percentile', () => t.testPercentile());
+  test('testCreateFunctionUsing', () => t.testCreateFunctionUsing());
 });

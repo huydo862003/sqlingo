@@ -12712,6 +12712,28 @@ export class UnloggedPropertyExpr extends PropertyExpr {
   }
 }
 
+export type UsingPropertyExprArgs = Merge<[
+  PropertyExprArgs,
+  {
+    this?: Expression;
+    kind?: string;
+  },
+]>;
+
+export class UsingPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.USING_PROPERTY;
+
+  static requiredArgs = new Set(['this', 'kind']);
+
+  static availableArgs = new Set(['this', 'kind']);
+
+  declare args: UsingPropertyExprArgs;
+
+  constructor (args: UsingPropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type UsingTemplatePropertyExprArgs = Merge<[
   PropertyExprArgs,
   {

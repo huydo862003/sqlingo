@@ -463,6 +463,7 @@ import {
   UnloggedPropertyExpr,
   UppercaseColumnConstraintExpr,
   UsingDataExpr,
+  UsingPropertyExpr,
   UsingTemplatePropertyExpr,
   UtcDateExpr,
   UtcTimeExpr,
@@ -2368,6 +2369,10 @@ export class Generator {
       [
         UnloggedPropertyExpr,
         PropertiesLocation.POST_CREATE,
+      ],
+      [
+        UsingPropertyExpr,
+        PropertiesLocation.POST_EXPRESSION,
       ],
       [
         UsingTemplatePropertyExpr,
@@ -10194,6 +10199,10 @@ export class Generator {
     });
 
     return `MODIFY ${props}`;
+  }
+
+  usingPropertySql (expression: UsingPropertyExpr): string {
+    return `USING ${expression.args.kind} ${this.sql(expression, 'this')}`;
   }
 }
 

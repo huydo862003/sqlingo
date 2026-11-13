@@ -981,6 +981,7 @@ export enum ExpressionKey {
   USE = 'use',
   USER_DEFINED_FUNCTION = 'userDefinedFunction',
   USING_DATA = 'usingData',
+  USING_PROPERTY = 'usingProperty',
   USING_TEMPLATE_PROPERTY = 'usingTemplateProperty',
   UTC_DATE = 'utcDate',
   UTC_TIME = 'utcTime',

@@ -142,6 +142,7 @@ import {
   UnixToStrExpr,
   UnixToTimeExpr,
   UnixToTimeStrExpr,
+  UsingPropertyExpr,
   VarExpr,
   VarMapExpr,
   VolatilePropertyExpr,
@@ -723,6 +724,9 @@ class HiveParser extends Parser {
           expressions: this.parseWrappedCsv(() => this.parseProperty() as Expression | undefined),
         });
       },
+      USING: function (this: Parser) {
+        return (this as HiveParser).parseUsingProperty();
+      },
     };
   }
 
@@ -836,6 +840,18 @@ class HiveParser extends Parser {
     }
 
     return thisNode;
+  }
+
+  parseUsingProperty (): Expression {
+    if (this.matchTexts(['JAR', 'FILE', 'ARCHIVE'])) {
+      const kind = (this.prev?.text ?? '').toUpperCase();
+      return this.expression(UsingPropertyExpr, {
+        this: this.parseString(),
+        kind,
+      });
+    }
+
+    return this.parsePropertyAssignment(FileFormatPropertyExpr);
   }
 
   parseAlterTableChange (): Expression | undefined {
