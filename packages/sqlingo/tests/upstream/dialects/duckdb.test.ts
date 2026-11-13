@@ -543,6 +543,31 @@ class TestDuckDB extends Validator {
         snowflake: 'SELECT * FROM produce PIVOT(SUM(produce.sales) FOR produce.quarter IN (\'Q1\', \'Q2\'))',
       },
     });
+    this.validateAll("SELECT CAST('12.3456' AS DECIMAL(38, 0))", {
+      read: {
+        snowflake: "SELECT TO_NUMBER('12.3456')",
+      },
+      write: {
+        duckdb: "SELECT CAST('12.3456' AS DECIMAL(38, 0))",
+      },
+    });
+    this.validateAll("SELECT CAST('12.3456' AS DECIMAL(10, 0))", {
+      read: {
+        snowflake: "SELECT TO_NUMBER('12.3456', 10)",
+      },
+      write: {
+        duckdb: "SELECT CAST('12.3456' AS DECIMAL(10, 0))",
+      },
+    });
+    this.validateAll("SELECT CAST('12.3456' AS DECIMAL(10, 2))", {
+      read: {
+        snowflake: "SELECT TO_NUMBER('12.3456', 10, 2)",
+      },
+      write: {
+        duckdb: "SELECT CAST('12.3456' AS DECIMAL(10, 2))",
+      },
+    });
+
     this.validateAll('VAR_POP(x)', {
       read: {
         '': 'VARIANCE_POP(x)',

@@ -1164,13 +1164,29 @@ function buildGenerator (args: Expression[]): GeneratorExpr {
   return new GeneratorExpr(genArgs);
 }
 
-function buildTryToNumber (args: Expression[]): ToNumberExpr {
+function buildToNumber (args: Expression[], options: { safe?: boolean } = {}): ToNumberExpr {
+  const { safe = false } = options;
+  const secondArg = seqGet(args, 1);
+  let fmt: Expression | undefined;
+  let precision: Expression | undefined;
+  let scale: Expression | undefined;
+
+  if (secondArg && secondArg.isNumber) {
+    fmt = undefined;
+    precision = secondArg;
+    scale = seqGet(args, 2) ?? LiteralExpr.number(0);
+  } else {
+    fmt = secondArg;
+    precision = seqGet(args, 2) ?? LiteralExpr.number(38);
+    scale = seqGet(args, 3) ?? LiteralExpr.number(0);
+  }
+
   return new ToNumberExpr({
     this: seqGet(args, 0),
-    format: seqGet(args, 1),
-    precision: seqGet(args, 2),
-    scale: seqGet(args, 3),
-    safe: true,
+    format: fmt,
+    precision,
+    scale,
+    safe,
   });
 }
 
@@ -1769,9 +1785,9 @@ class SnowflakeParser extends Parser {
         TRY_TO_DATE: buildDatetime('TRY_TO_DATE', DataTypeExprKind.DATE, {
           safe: true,
         }),
-        TRY_TO_DECIMAL: buildTryToNumber,
-        TRY_TO_NUMBER: buildTryToNumber,
-        TRY_TO_NUMERIC: buildTryToNumber,
+        TRY_TO_DECIMAL: (args: Expression[]) => buildToNumber(args, { safe: true }),
+        TRY_TO_NUMBER: (args: Expression[]) => buildToNumber(args, { safe: true }),
+        TRY_TO_NUMERIC: (args: Expression[]) => buildToNumber(args, { safe: true }),
         TRY_TO_DOUBLE: (args: Expression[]) =>
           new ToDoubleExpr({
             this: seqGet(args, 0),
@@ -1801,27 +1817,9 @@ class SnowflakeParser extends Parser {
         }),
         TO_CHAR: buildTimeToStrOrToChar,
         TO_DATE: buildDatetime('TO_DATE', DataTypeExprKind.DATE),
-        TO_DECIMAL: (args: Expression[]) =>
-          new ToNumberExpr({
-            this: seqGet(args, 0),
-            format: seqGet(args, 1),
-            precision: seqGet(args, 2),
-            scale: seqGet(args, 3),
-          }),
-        TO_NUMBER: (args: Expression[]) =>
-          new ToNumberExpr({
-            this: seqGet(args, 0),
-            format: seqGet(args, 1),
-            precision: seqGet(args, 2),
-            scale: seqGet(args, 3),
-          }),
-        TO_NUMERIC: (args: Expression[]) =>
-          new ToNumberExpr({
-            this: seqGet(args, 0),
-            format: seqGet(args, 1),
-            precision: seqGet(args, 2),
-            scale: seqGet(args, 3),
-          }),
+        TO_DECIMAL: (args: Expression[]) => buildToNumber(args),
+        TO_NUMBER: (args: Expression[]) => buildToNumber(args),
+        TO_NUMERIC: (args: Expression[]) => buildToNumber(args),
         TO_TIME: buildDatetime('TO_TIME', DataTypeExprKind.TIME),
         TO_TIMESTAMP: buildDatetime('TO_TIMESTAMP', DataTypeExprKind.TIMESTAMP),
         TO_TIMESTAMP_LTZ: buildDatetime('TO_TIMESTAMP_LTZ', DataTypeExprKind.TIMESTAMPLTZ),
@@ -3268,17 +3266,6 @@ class SnowflakeGenerator extends Generator {
         },
       ],
       [
-        ToNumberExpr,
-        function (this: Generator, e: ToNumberExpr) {
-          return this.func(`${e.args.safe ? 'TRY_' : ''}TO_NUMBER`, [
-            e.args.this,
-            e.args.format,
-            e.args.precision,
-            e.args.scale,
-          ]);
-        },
-      ],
-      [
         JsonFormatExpr,
         renameFunc('TO_JSON'),
       ],
@@ -3729,11 +3716,26 @@ class SnowflakeGenerator extends Generator {
   }
 
   toNumberSql (expression: ToNumberExpr): string {
-    return this.func('TO_NUMBER', [
+    let precision = expression.args.precision;
+    let scale = expression.args.scale;
+
+    const defaultPrecision = precision instanceof LiteralExpr && precision.name === '38';
+    const defaultScale = scale instanceof LiteralExpr && scale.name === '0';
+
+    if (defaultPrecision && defaultScale) {
+      precision = undefined;
+      scale = undefined;
+    } else if (defaultScale) {
+      scale = undefined;
+    }
+
+    const funcName = expression.args.safe ? 'TRY_TO_NUMBER' : 'TO_NUMBER';
+
+    return this.func(funcName, [
       expression.args.this,
       expression.args.format,
-      expression.args.precision,
-      expression.args.scale,
+      precision,
+      scale,
     ]);
   }
 

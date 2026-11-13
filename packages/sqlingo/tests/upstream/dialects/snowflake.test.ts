@@ -16,7 +16,7 @@ import {
   ColumnExpr, DateTruncExpr, DirectoryStageExpr, EqExpr, ExplodeExpr,
   ExtractExpr, GetExpr, GetExtractExpr, IdentifierExpr, LiteralExpr,
   PlaceholderExpr, PutExpr, SearchExpr, SearchIpExpr, select, SetItemExpr,
-  SwapTableExpr, TableExpr, TruncExpr, TsOrDsToDateExpr, VarExpr,
+  SwapTableExpr, TableExpr, ToNumberExpr, TruncExpr, TsOrDsToDateExpr, VarExpr,
   WindowExpr,
 } from '../../../src/expressions';
 import {
@@ -537,9 +537,39 @@ class TestSnowflake extends Validator {
     this.validateIdentity('TO_DECIMAL(expr)', 'TO_NUMBER(expr)');
     this.validateIdentity('TO_DECIMAL(expr, fmt)', 'TO_NUMBER(expr, fmt)');
     this.validateIdentity('TO_DECIMAL(expr, fmt, precision, scale)', 'TO_NUMBER(expr, fmt, precision, scale)');
-    this.validateIdentity('TO_NUMBER(expr)');
-    this.validateIdentity('TO_NUMBER(expr, fmt)');
-    this.validateIdentity('TO_NUMBER(expr, fmt, precision, scale)');
+    this.validateIdentity("TO_NUMBER(expr, 38, 0)", "TO_NUMBER(expr)");
+    this.validateIdentity("TO_NUMBER(expr, 38)", "TO_NUMBER(expr)");
+
+    {
+      const ast = this.validateIdentity("TO_NUMBER('12.3456')").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('38');
+      expect(ast.args.scale?.name).toBe('0');
+    }
+    {
+      const ast = this.validateIdentity("TO_NUMBER('12.3456', 10, 1)").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('10');
+      expect(ast.args.scale?.name).toBe('1');
+    }
+    {
+      const ast = this.validateIdentity("TO_NUMBER('12.3456', '99.99')").assertIs(ToNumberExpr);
+      expect(ast.args.format?.name).toBe('99.99');
+      expect(ast.args.precision?.name).toBe('38');
+      expect(ast.args.scale?.name).toBe('0');
+    }
+    {
+      const ast = this.validateIdentity("TO_NUMBER('12.3456', '99.99', 10, 1)").assertIs(ToNumberExpr);
+      expect(ast.args.format?.name).toBe('99.99');
+      expect(ast.args.precision?.name).toBe('10');
+      expect(ast.args.scale?.name).toBe('1');
+    }
+    {
+      const ast = this.validateIdentity("TO_NUMBER('12.3456', 3)").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('3');
+      expect(ast.args.scale?.name).toBe('0');
+    }
     this.validateIdentity('TO_DECFLOAT(\'123.456\')');
     this.validateIdentity('TO_DECFLOAT(\'1,234.56\', \'999,999.99\')');
     this.validateIdentity('TRY_TO_DECFLOAT(\'123.456\')');
@@ -582,9 +612,44 @@ class TestSnowflake extends Validator {
     this.validateIdentity('TRY_TO_FILE(object_col)');
     this.validateIdentity('TRY_TO_FILE(\'file.csv\')');
     this.validateIdentity('TRY_TO_FILE(\'file.csv\', \'relativepath/\')');
-    this.validateIdentity('TRY_TO_NUMBER(\'123.45\')');
-    this.validateIdentity('TRY_TO_NUMBER(\'123.45\', \'999.99\')');
-    this.validateIdentity('TRY_TO_NUMBER(\'123.45\', \'999.99\', 10, 2)');
+    this.validateIdentity("TRY_TO_NUMBER(expr, 38, 0)", "TRY_TO_NUMBER(expr)");
+    this.validateIdentity("TRY_TO_NUMBER(expr, 38)", "TRY_TO_NUMBER(expr)");
+
+    {
+      const ast = this.validateIdentity("TRY_TO_NUMBER('12.3456')").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('38');
+      expect(ast.args.scale?.name).toBe('0');
+      expect(ast.args.safe).toBe(true);
+    }
+    {
+      const ast = this.validateIdentity("TRY_TO_NUMBER('12.3456', 10, 1)").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('10');
+      expect(ast.args.scale?.name).toBe('1');
+      expect(ast.args.safe).toBe(true);
+    }
+    {
+      const ast = this.validateIdentity("TRY_TO_NUMBER('12.3456', '99.99')").assertIs(ToNumberExpr);
+      expect(ast.args.format?.name).toBe('99.99');
+      expect(ast.args.precision?.name).toBe('38');
+      expect(ast.args.scale?.name).toBe('0');
+      expect(ast.args.safe).toBe(true);
+    }
+    {
+      const ast = this.validateIdentity("TRY_TO_NUMBER('12.3456', '99.99', 10, 1)").assertIs(ToNumberExpr);
+      expect(ast.args.format?.name).toBe('99.99');
+      expect(ast.args.precision?.name).toBe('10');
+      expect(ast.args.scale?.name).toBe('1');
+      expect(ast.args.safe).toBe(true);
+    }
+    {
+      const ast = this.validateIdentity("TRY_TO_NUMBER('12.3456', 3)").assertIs(ToNumberExpr);
+      expect(ast.args.format).toBeUndefined();
+      expect(ast.args.precision?.name).toBe('3');
+      expect(ast.args.scale?.name).toBe('0');
+      expect(ast.args.safe).toBe(true);
+    }
     this.validateIdentity('TO_NUMERIC(\'123.45\')', 'TO_NUMBER(\'123.45\')');
     this.validateIdentity('TO_NUMERIC(\'123.45\', \'999.99\')', 'TO_NUMBER(\'123.45\', \'999.99\')');
     this.validateIdentity('TO_NUMERIC(\'123.45\', \'999.99\', 10, 2)', 'TO_NUMBER(\'123.45\', \'999.99\', 10, 2)');

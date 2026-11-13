@@ -69,6 +69,7 @@ import type {
   UnicodeExpr,
   CompressExpr,
   CollationExpr,
+  ToNumberExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -4482,6 +4483,20 @@ class DuckDBGenerator extends Generator {
     return `(${this.sql(replacePlaceholders((this._constructor as typeof DuckDBGenerator).BITMAP_CONSTRUCT_AGG_TEMPLATE.copy(), [], {
       arg,
     }))})`;
+  }
+
+  toNumberSql (expression: ToNumberExpr): string {
+    const fmt = expression.args.format;
+    const precision = expression.args.precision;
+    const scale = expression.args.scale;
+
+    if (!fmt && precision && scale) {
+      return this.sql(cast(expression.args.this as Expression, `DECIMAL(${precision.name}, ${scale.name})`, {
+        dialect: 'duckdb',
+      }));
+    }
+
+    return super.toNumberSql(expression);
   }
 
   compressSql (expression: CompressExpr): string {
