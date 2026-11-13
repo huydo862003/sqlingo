@@ -174,6 +174,7 @@ import {
   SkewnessExpr,
   WeekOfYearExpr,
   WeekExpr,
+  UnicodeExpr,
   ModelAttributeExpr,
   ApproxDistinctExpr,
   ArgMaxExpr,
@@ -1843,6 +1844,7 @@ class SnowflakeParser extends Parser {
           emptyDelimiterReturnsWhole: true,
         }),
         SYSTIMESTAMP: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
+        UNICODE: (args: unknown[]) => new UnicodeExpr({ this: args[0] as Expression, emptyIsZero: true }),
         WEEKISO: (args: unknown[]) => WeekOfYearExpr.fromArgList(args),
         WEEKOFYEAR: (args: unknown[]) => WeekExpr.fromArgList(args),
       };

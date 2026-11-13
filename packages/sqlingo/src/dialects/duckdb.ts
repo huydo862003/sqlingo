@@ -65,6 +65,7 @@ import type {
   ArrayUniqueAggExpr,
   CheckJsonExpr,
   StripNullValueExpr,
+  UnicodeExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -5408,6 +5409,18 @@ class DuckDBGenerator extends Generator {
         .when(func('json_type', expression.args.this).eq(LiteralExpr.string('NULL')), null_())
         .else(expression.args.this),
     );
+  }
+
+  unicodeSql (expression: UnicodeExpr): string {
+    if (expression.args.emptyIsZero) {
+      return this.sql(
+        new CaseExpr({})
+          .when(expression.args.this!.eq(LiteralExpr.string('')), LiteralExpr.number(0))
+          .else(new AnonymousExpr({ this: 'UNICODE', expressions: [expression.args.this] })),
+      );
+    }
+
+    return this.func('UNICODE', [expression.args.this]);
   }
 
   normalSql (expression: NormalExpr): string {

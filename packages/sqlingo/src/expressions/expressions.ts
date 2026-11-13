@@ -29871,10 +29871,18 @@ export class UnhexExpr extends FuncExpr {
 
 export type UnicodeExprArgs = Merge<[
   FuncExprArgs,
+  {
+    emptyIsZero?: boolean | Expression;
+  },
 ]>;
 
 export class UnicodeExpr extends FuncExpr {
   static key = ExpressionKey.UNICODE;
+
+  static availableArgs = new Set([
+    'this',
+    'emptyIsZero',
+  ]);
 
   static argOrder = ['this'];
 
