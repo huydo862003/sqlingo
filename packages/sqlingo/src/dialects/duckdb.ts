@@ -105,6 +105,7 @@ import {
   BitwiseOrExpr,
   BitwiseRightShiftExpr,
   BoolxorAggExpr,
+  BitLengthExpr,
   ByteLengthExpr,
   CeilExpr,
   CountIfExpr,
@@ -4834,6 +4835,20 @@ class DuckDBGenerator extends Generator {
     return this.sql(new CastClass({
       this: thisNode,
       to: timeType,
+    }));
+  }
+
+  bitlengthSql (expression: BitLengthExpr): string {
+    const arg = expression.args.this as Expression;
+
+    if (!isBinary(arg)) {
+      return this.func('BIT_LENGTH', [arg]);
+    }
+
+    const blob = cast(arg, DataTypeExprKind.VARBINARY);
+    return this.sql(new MulExpr({
+      this: new ByteLengthExpr({ this: blob }),
+      expression: LiteralExpr.number(8),
     }));
   }
 
