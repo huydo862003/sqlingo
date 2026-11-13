@@ -397,6 +397,16 @@ class TestSQLite extends Validator {
     );
   }
 
+  testVirtualTable () {
+    this.validateIdentity("CREATE VIRTUAL TABLE docs USING fts5(title, content)");
+    this.validateIdentity("CREATE VIRTUAL TABLE IF NOT EXISTS docs USING fts5(title, content)");
+    this.validateIdentity("CREATE VIRTUAL TABLE main.docs USING fts5(title, content)");
+    this.validateIdentity(
+      "CREATE VIRTUAL TABLE demo_index USING rtree(id, minX, maxX, minY, maxY)",
+    );
+    this.validateIdentity("CREATE VIRTUAL TABLE t USING module_name");
+  }
+
   testCreateTrigger () {
     this.validateIdentity(
       "CREATE TRIGGER log_insert AFTER INSERT ON users BEGIN INSERT INTO audit_log (user_id, action, created_at) VALUES (NEW.id, 'INSERT', datetime('now')) END",
@@ -424,5 +434,6 @@ describe('TestSQLite', () => {
   test('ddl', () => t.testDdl());
   test('analyze', () => t.testAnalyze());
   test('testWarnings', () => t.testWarnings());
+  test('testVirtualTable', () => t.testVirtualTable());
   test('testCreateTrigger', () => t.testCreateTrigger());
 });

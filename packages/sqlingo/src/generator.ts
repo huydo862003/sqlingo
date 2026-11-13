@@ -470,6 +470,8 @@ import {
   VariadicExpr,
   VarMapExpr,
   ViewAttributePropertyExpr,
+  VirtualPropertyExpr,
+  ModulePropertyExpr,
   VolatilePropertyExpr,
   WithJournalTablePropertyExpr,
   WithOperatorExpr,
@@ -1904,6 +1906,10 @@ export class Generator {
           },
         ],
         [
+          VirtualPropertyExpr,
+          () => 'VIRTUAL',
+        ],
+        [
           VolatilePropertyExpr,
           () => 'VOLATILE',
         ],
@@ -2184,6 +2190,10 @@ export class Generator {
         PropertiesLocation.POST_NAME,
       ],
       [
+        ModulePropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
         NetworkPropertyExpr,
         PropertiesLocation.POST_CREATE,
       ],
@@ -2366,6 +2376,10 @@ export class Generator {
       [
         ViewAttributePropertyExpr,
         PropertiesLocation.POST_SCHEMA,
+      ],
+      [
+        VirtualPropertyExpr,
+        PropertiesLocation.POST_CREATE,
       ],
       [
         VolatilePropertyExpr,
@@ -4235,6 +4249,13 @@ export class Generator {
     const percent = expression.args.percent ? ' PERCENT' : '';
 
     return `MERGEBLOCKRATIO=${this.sql(expression, 'this')}${percent}`;
+  }
+
+  modulePropertySql (expression: ModulePropertyExpr): string {
+    const expressions = this.expressions(expression, { flat: true });
+    const exprStr = expressions ? `(${expressions})` : '';
+
+    return `USING ${this.sql(expression, 'this')}${exprStr}`;
   }
 
   dataBlocksizePropertySql (expression: DataBlocksizePropertyExpr): string {

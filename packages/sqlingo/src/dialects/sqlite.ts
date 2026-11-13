@@ -73,7 +73,9 @@ import {
   TryCastExpr,
   PropertiesLocation,
   LikePropertyExpr,
+  ModulePropertyExpr,
   TemporaryPropertyExpr,
+  VirtualPropertyExpr,
   TableAliasExpr,
   DistinctExpr,
   OrderExpr,
@@ -320,6 +322,19 @@ class SQLiteParser extends Parser {
   }
 
   @cache
+  static get PROPERTY_PARSERS (): Record<string, (this: Parser, ...args: unknown[]) => Expression | Expression[] | undefined> {
+    return {
+      ...Parser.PROPERTY_PARSERS,
+      'USING': function (this: Parser) {
+        return (this as SQLiteParser).parseModuleProperty();
+      },
+      'VIRTUAL': function (this: Parser) {
+        return this.expression(VirtualPropertyExpr);
+      },
+    };
+  }
+
+  @cache
   static get STATEMENT_PARSERS (): Partial<Record<TokenType, (this: Parser) => Expression | undefined>> {
     return {
       ...Parser.STATEMENT_PARSERS,
@@ -340,6 +355,20 @@ class SQLiteParser extends Parser {
       ...Parser.RANGE_PARSERS,
       [TokenType.MATCH]: binaryRangeParser(MatchExpr),
     };
+  }
+
+  parseModuleProperty (): ModulePropertyExpr {
+    const name = this.parseIdVar();
+    const expressions = this.match(TokenType.L_PAREN, {
+      advance: false,
+    })
+      ? this.parseWrappedCsv(this.parseIdVar.bind(this))
+      : undefined;
+
+    return this.expression(ModulePropertyExpr, {
+      this: name,
+      expressions,
+    });
   }
 
   parseUnique (): UniqueColumnConstraintExpr {
@@ -650,7 +679,9 @@ class SQLiteGenerator extends Generator {
 
     // Override specific supported properties
     locations.set(LikePropertyExpr, PropertiesLocation.POST_SCHEMA);
+    locations.set(ModulePropertyExpr, PropertiesLocation.POST_SCHEMA);
     locations.set(TemporaryPropertyExpr, PropertiesLocation.POST_CREATE);
+    locations.set(VirtualPropertyExpr, PropertiesLocation.POST_CREATE);
 
     return locations;
   }

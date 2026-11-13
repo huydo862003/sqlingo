@@ -11765,6 +11765,24 @@ export class MergeBlockRatioPropertyExpr extends PropertyExpr {
   }
 }
 
+export type ModulePropertyExprArgs = Merge<[
+  PropertyExprArgs,
+  {
+    this?: Expression;
+    expressions?: Expression[];
+  },
+]>;
+
+export class ModulePropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.MODULE_PROPERTY;
+  static requiredArgs = new Set(['this']);
+  static availableArgs = new Set(['this', 'expressions']);
+  declare args: ModulePropertyExprArgs;
+  constructor (args: ModulePropertyExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type NoPrimaryIndexPropertyExprArgs = Merge<[
   PropertyExprArgs,
   {
@@ -12517,6 +12535,12 @@ export class TemporaryPropertyExpr extends PropertyExpr {
   constructor (args: TemporaryPropertyExprArgs = {}) {
     super(args);
   }
+}
+
+export class VirtualPropertyExpr extends PropertyExpr {
+  static key = ExpressionKey.VIRTUAL_PROPERTY;
+  static requiredArgs = new Set<string>();
+  static availableArgs = new Set<string>();
 }
 
 export type SecurePropertyExprArgs = Merge<[
