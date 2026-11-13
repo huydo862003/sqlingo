@@ -5406,12 +5406,12 @@ class DuckDBGenerator extends Generator {
   }
 
   parseJsonSql (expression: ParseJsonExpr): string {
-    const arg = expression.args.this;
+    const arg = expression.args.this as Expression;
 
     if (expression.args.safe) {
       return this.sql(
         new CaseExpr({})
-          .when(this.func('json_valid', [arg ?? null_()]), cast(arg?.copy(), 'JSON'))
+          .when(func('json_valid', arg), arg)
           .else(null_()),
       );
     }
@@ -5420,33 +5420,32 @@ class DuckDBGenerator extends Generator {
   }
 
   stripNullValueSql (expression: StripNullValueExpr): string {
+    const arg = expression.args.this as Expression;
+
     return this.sql(
       new CaseExpr({})
-        .when(func('json_type', expression.args.this).eq(LiteralExpr.string('NULL')), null_())
-        .else(expression.args.this),
+        .when(func('json_type', arg).eq(LiteralExpr.string('NULL')), null_())
+        .else(arg),
     );
   }
 
   unicodeSql (expression: UnicodeExpr): string {
+    const arg = expression.args.this as Expression;
+
     if (expression.args.emptyIsZero) {
       return this.sql(
         new CaseExpr({})
-          .when(expression.args.this!.eq(LiteralExpr.string('')), LiteralExpr.number(0))
-          .else(new AnonymousExpr({ this: 'UNICODE', expressions: [expression.args.this] })),
+          .when(arg.eq(LiteralExpr.string('')), LiteralExpr.number(0))
+          .else(new AnonymousExpr({ this: 'UNICODE', expressions: [arg] })),
       );
     }
 
-    return this.func('UNICODE', [expression.args.this]);
+    return this.func('UNICODE', [arg]);
   }
 
   truncSql (expression: TruncExpr): string {
-    let decimals = expression.args.decimals;
-
-    if (expression.args.fractionsSupported && decimals && !decimals.isType(DataTypeExprKind.INT)) {
-      decimals = cast(decimals, DataTypeExprKind.INT, { dialect: 'duckdb' });
-    }
-
-    return this.func('TRUNC', [expression.args.this, decimals]);
+    unsupportedArgs.call(this, expression, 'decimals');
+    return this.func('TRUNC', [expression.args.this]);
   }
 
   normalSql (expression: NormalExpr): string {
@@ -5816,6 +5815,16 @@ class DuckDBGenerator extends Generator {
     return super.tableSampleSql(expression, {
       tablesampleKeyword: keyword,
     });
+  }
+
+  columnDefSql (expression: ColumnDefExpr, options: {
+    sep?: string;
+  } = {}): string {
+    if (expression.parent instanceof UserDefinedFunctionExpr) {
+      return this.sql(expression, 'this');
+    }
+
+    return super.columnDefSql(expression, options);
   }
 
   joinSql (expression: JoinExpr): string {

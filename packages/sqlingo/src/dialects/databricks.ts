@@ -36,6 +36,7 @@ import {
   ToCharExpr,
   CastExpr,
   CreateExpr,
+  CreateExprKind,
   CurrentCatalogExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   RegexpLikeExpr,
@@ -238,10 +239,10 @@ class DatabricksGenerator extends Spark.Generator {
     if (
       body
       && !(body instanceof ReturnExpr)
-      && expression.args.kind === 'FUNCTION'
+      && expression.args.kind === CreateExprKind.FUNCTION
       && [...expression.findAll(ReturnsPropertyExpr)].some((p) => p.args.isTable)
     ) {
-      expression.set('expression', new ReturnExpr({ this: body }));
+      expression.setArgKey('expression', new ReturnExpr({ this: body }));
     }
 
     return super.createSql(expression);
