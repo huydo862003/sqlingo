@@ -4852,6 +4852,16 @@ class DuckDBGenerator extends Generator {
     }));
   }
 
+  chrSql (expression: ChrExpr): string {
+    const arg = expression.args.expressions?.[0] as Expression;
+
+    if (arg?.isType(DataTypeExpr.REAL_TYPES)) {
+      return this.func('CHR', [cast(arg, DataTypeExprKind.INT)]);
+    }
+
+    return this.func('CHR', [arg]);
+  }
+
   private validateRegexpFlags (flags: Expression | undefined, supportedFlags: string): string | undefined {
     if (!(flags instanceof Expression)) {
       return undefined;
