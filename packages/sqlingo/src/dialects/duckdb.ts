@@ -5393,7 +5393,7 @@ class DuckDBGenerator extends Generator {
     if (expression.args.safe) {
       return this.sql(
         new CaseExpr({})
-          .when(this.func('json_valid', [arg ?? null_()]), (arg instanceof Expression || typeof arg === 'string') ? arg : '')
+          .when(this.func('json_valid', [arg ?? null_()]), cast(arg?.copy(), 'JSON'))
           .else(null_()),
       );
     }
