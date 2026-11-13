@@ -68,6 +68,7 @@ import type {
   StripNullValueExpr,
   UnicodeExpr,
   CompressExpr,
+  CollationExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -4485,6 +4486,11 @@ class DuckDBGenerator extends Generator {
 
   compressSql (expression: CompressExpr): string {
     this.unsupported('DuckDB does not support the COMPRESS() function');
+    return this.functionFallbackSql(expression);
+  }
+
+  collationSql (expression: CollationExpr): string {
+    this.unsupported('COLLATION function is not supported by DuckDB');
     return this.functionFallbackSql(expression);
   }
 
