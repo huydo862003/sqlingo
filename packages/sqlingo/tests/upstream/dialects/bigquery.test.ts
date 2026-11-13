@@ -3450,6 +3450,10 @@ OPTIONS (
         },
       );
     }
+
+    this.validateIdentity(
+      "WITH foo AS (SELECT [1, 2, 3] AS array_col) SELECT array_col[offset] FROM foo CROSS JOIN UNNEST(array_col) WITH OFFSET AS offset",
+    );
   }
 
   testGenerateDateArray () {

@@ -1737,8 +1737,9 @@ export class BigQueryParser extends Parser {
     if (bracket instanceof BracketExpr) {
       for (const expression of bracket.args.expressions ?? []) {
         const name = expression.name.toUpperCase();
+        const expressions = expression.args.expressions;
 
-        if (!(name in (this._constructor as typeof BigQueryParser).BRACKET_OFFSETS)) {
+        if (!(name in (this._constructor as typeof BigQueryParser).BRACKET_OFFSETS) || !expressions?.length) {
           break;
         }
 
@@ -1749,7 +1750,7 @@ export class BigQueryParser extends Parser {
 
         bracket.setArgKey('offset', offset);
         bracket.setArgKey('safe', safe);
-        expression.replace(narrowInstanceOf(expression.args.expressions?.[0], Expression));
+        expression.replace(narrowInstanceOf(expressions[0], Expression));
       }
     }
 
