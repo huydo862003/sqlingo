@@ -230,7 +230,9 @@ function dateAddSql (kind: string) {
 
     let e = expr.args.expression && this.simplifyUnlessLiteral(expr.args.expression);
 
-    if (e instanceof LiteralExpr) {
+    if (e instanceof IntervalExpr) {
+      return `${thisSql} ${kind} ${this.sql(e)}`;
+    } else if (e instanceof LiteralExpr) {
       e.setArgKey('isString', true);
     } else if (e && e.isNumber) {
       e = LiteralExpr.string(e.toValue()!);
