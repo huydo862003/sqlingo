@@ -2092,6 +2092,7 @@ WHERE
     this.validateIdentity(
       'EXPORT DATA WITH CONNECTION myproject.us.myconnection OPTIONS (URI=\'gs://path*.csv.gz\', FORMAT=\'CSV\') AS SELECT * FROM all_rows',
     );
+    this.validateIdentity("EXPORT DATA OPTIONS (URI='gs://bucket/folder/*.csv') AS (SELECT 1)");
 
     this.validateAll(
       'SELECT * FROM t1, UNNEST(`t1`) AS `col`',
