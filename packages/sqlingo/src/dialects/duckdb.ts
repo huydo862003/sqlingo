@@ -5436,7 +5436,7 @@ class DuckDBGenerator extends Generator {
     if (expression.args.safe) {
       return this.sql(
         new CaseExpr({})
-          .when(func('json_valid', arg), arg)
+          .when(func('json_valid', arg), cast(arg.copy() as Expression, DataTypeExprKind.JSON))
           .else(null_()),
       );
     }

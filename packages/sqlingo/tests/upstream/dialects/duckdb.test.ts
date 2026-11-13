@@ -96,10 +96,10 @@ class TestDuckDB extends Validator {
       },
     });
     this.validateAll(
-      'SELECT CASE WHEN JSON_VALID(\'{"x: 1}\') THEN \'{"x: 1}\' ELSE NULL END',
+      'SELECT CASE WHEN JSON_VALID(\'{"x: 1}\') THEN CAST(\'{"x: 1}\' AS JSON) ELSE NULL END',
       {
         read: {
-          duckdb: 'SELECT CASE WHEN JSON_VALID(\'{"x: 1}\') THEN \'{"x: 1}\' ELSE NULL END',
+          duckdb: 'SELECT CASE WHEN JSON_VALID(\'{"x: 1}\') THEN CAST(\'{"x: 1}\' AS JSON) ELSE NULL END',
           snowflake: 'SELECT TRY_PARSE_JSON(\'{"x: 1}\')',
         },
       },

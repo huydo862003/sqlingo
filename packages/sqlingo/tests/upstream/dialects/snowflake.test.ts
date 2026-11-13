@@ -7873,6 +7873,15 @@ FROM SEMANTIC_VIEW(
     });
   }
 
+  testTryParseJson () {
+    this.validateAll('SELECT TRY_PARSE_JSON(x)', {
+      write: {
+        snowflake: 'SELECT TRY_PARSE_JSON(x)',
+        duckdb: 'SELECT CASE WHEN JSON_VALID(x) THEN CAST(x AS JSON) ELSE NULL END',
+      },
+    });
+  }
+
   testDirectedJoins () {
     this.validateIdentity('SELECT * FROM a CROSS DIRECTED JOIN b USING (id)');
     this.validateIdentity('SELECT * FROM a INNER DIRECTED JOIN b USING (id)');
@@ -8276,5 +8285,8 @@ describe('TestSnowflake', () => {
 
   test('test charindex', () => {
     validator.testCharindex();
+  });
+  test('test try_parse_json', () => {
+    validator.testTryParseJson();
   });
 });
