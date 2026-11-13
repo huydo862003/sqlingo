@@ -18,6 +18,8 @@ These are available on every `Expression` instance.
 | `.walk()` | `Iterable<Expression>` | All nodes, depth-first |
 | `.transform(fn)` | `Expression` | Replace nodes by returning a new node from `fn` |
 | `.copy()` | `Expression` | Deep copy the entire subtree |
+| `.pipe(fn, ...args)` | `R` | Apply `fn(this, ...args)` and return the result. Enables fluent chaining with any function |
+| `.apply(fn, ...args)` | `this` | Call `fn(this, ...args)` for side effects, then return the same expression |
 
 ## Operator methods
 
@@ -72,4 +74,22 @@ Pass a dialect to `.sql()` to get output that matches a specific database.
 import { Postgres } from "sqlingo/postgres";
 
 ast.sql({ dialect: Postgres });
+```
+
+## Example: pipe and apply
+
+Use `.pipe()` to chain any function into a fluent expression. Use `.apply()` to inspect intermediate values without breaking the chain.
+
+```typescript
+import { parseOne, optimize } from "sqlingo";
+
+// pipe passes the expression as the first argument
+const optimized = parseOne("SELECT * FROM t WHERE 1 = 1")
+  .pipe(optimize);
+
+// apply is useful for debugging - it runs the function for side effects and returns the expression
+const result = parseOne("SELECT a FROM t")
+  .apply((e) => console.log("before:", e.sql()))
+  .transform((node) => node)
+  .apply((e) => console.log("after:", e.sql()));
 ```
