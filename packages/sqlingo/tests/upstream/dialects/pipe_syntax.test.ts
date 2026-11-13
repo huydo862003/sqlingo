@@ -451,6 +451,25 @@ WHERE
     );
   }
 
+  testDistinct () {
+    this.validateIdentity(
+      'SELECT 1 AS col1 UNION ALL SELECT 1 AS col1 |> DISTINCT',
+      'SELECT DISTINCT * FROM (SELECT 1 AS col1 UNION ALL SELECT 1 AS col1)',
+    );
+    this.validateIdentity(
+      'FROM x |> DISTINCT',
+      'SELECT DISTINCT * FROM x',
+    );
+    this.validateIdentity(
+      'FROM x |> DISTINCT |> WHERE x1 > 1',
+      'SELECT DISTINCT * FROM x WHERE x1 > 1',
+    );
+    this.validateIdentity(
+      'FROM x |> SELECT x1, x2 |> DISTINCT',
+      'WITH __tmp1 AS (SELECT x1, x2 FROM x) SELECT DISTINCT * FROM __tmp1',
+    );
+  }
+
   testTablesample () {
     this.validateIdentity(
       'FROM x |> TABLESAMPLE SYSTEM (1 PERCENT)',
@@ -499,5 +518,8 @@ describe('TestPipeSyntax', () => {
   });
   test('test_tablesample', () => {
     validator.testTablesample();
+  });
+  test('test_distinct', () => {
+    validator.testDistinct();
   });
 });

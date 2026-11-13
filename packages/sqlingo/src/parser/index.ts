@@ -2590,6 +2590,10 @@ export class Parser {
           aliasCte: this.parseTableAlias(),
         });
       },
+      'DISTINCT': function (this: Parser, query: SelectExpr) {
+        this.advance();
+        return query.distinct(undefined, { copy: false });
+      },
       'EXTEND': function (this: Parser, query: SelectExpr) {
         return this.parsePipeSyntaxExtend(query);
       },
