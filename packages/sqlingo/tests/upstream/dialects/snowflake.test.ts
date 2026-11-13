@@ -6784,6 +6784,29 @@ SINGLE = TRUE`,
 
   }
 
+  testCreateViewRowAccessPolicy () {
+    this.validateIdentity(
+      "CREATE VIEW v WITH ROW ACCESS POLICY mypolicy ON (col1) AS SELECT col1 FROM t1",
+    );
+    this.validateIdentity(
+      "CREATE OR REPLACE VIEW v WITH ROW ACCESS POLICY db.schema.mypolicy ON (col1, col2) AS SELECT col1, col2 FROM t1",
+    );
+    this.validateIdentity(
+      "CREATE VIEW v (COL1 COMMENT 'description') WITH ROW ACCESS POLICY db.schema.policy ON (COL1) COMMENT='some comment' AS (SELECT a FROM t1 LEFT JOIN t2 ON t1.id = t2.id)",
+    );
+    this.validateIdentity(
+      "CREATE VIEW v ROW ACCESS POLICY p ON (c) AS SELECT c FROM t",
+      "CREATE VIEW v WITH ROW ACCESS POLICY p ON (c) AS SELECT c FROM t",
+    );
+    this.validateIdentity(
+      "CREATE TABLE t (c INT) ROW ACCESS POLICY p ON (c)",
+      "CREATE TABLE t (c INT) WITH ROW ACCESS POLICY p ON (c)",
+    );
+    expect(() => {
+      parseOne("CREATE VIEW v WITH ROW ACCESS POLICY p AS SELECT 1", { dialect: 'snowflake' });
+    }).toThrow(ParseError);
+  }
+
   testSemanticView () {
     for (const [
       dimensions,
@@ -8240,6 +8263,10 @@ describe('TestSnowflake', () => {
 
   test('test create view copy grants', () => {
     validator.testCreateViewCopyGrants();
+  });
+
+  test('test create view row access policy', () => {
+    validator.testCreateViewRowAccessPolicy();
   });
 
   test('test semantic view', () => {

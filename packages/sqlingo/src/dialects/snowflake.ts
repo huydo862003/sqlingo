@@ -1951,6 +1951,11 @@ class SnowflakeParser extends Parser {
       LOCATION: function (this: Parser) {
         return (this as SnowflakeParser).parseLocationProperty();
       },
+      ROW: function (this: Parser) {
+        return (this as SnowflakeParser).matchTextSeq(['ACCESS', 'POLICY'])
+          ? (this as SnowflakeParser).parseRowAccessPolicy()
+          : (this as SnowflakeParser).parseRow();
+      },
       TAG: function (this: Parser) {
         return (this as SnowflakeParser).parseTag();
       },
@@ -2321,7 +2326,22 @@ class SnowflakeParser extends Parser {
       return this.parseTag();
     }
 
+    if (this.matchTextSeq(['ROW', 'ACCESS', 'POLICY'])) {
+      return this.parseRowAccessPolicy();
+    }
+
     return super.parseWithProperty();
+  }
+
+  parseRowAccessPolicy (): RowAccessPropertyExpr {
+    const policy = this.parseColumn();
+    if (!this.match(TokenType.ON)) {
+      this.raiseError('Expected ON after ROW ACCESS POLICY name');
+    }
+    return this.expression(RowAccessPropertyExpr, {
+      this: policy instanceof ColumnExpr ? policy.toDot() : policy,
+      expressions: this.parseWrappedCsv(() => this.parseIdVar()),
+    });
   }
 
   parseCreate (): CreateExpr | CommandExpr {
@@ -3300,6 +3320,12 @@ class SnowflakeGenerator extends Generator {
         regexpILikeSql,
       ],
       [
+        RowAccessPropertyExpr,
+        function (this: Generator, e: RowAccessPropertyExpr) {
+          return (this as SnowflakeGenerator).rowAccessPropertySql(e);
+        },
+      ],
+      [
         SelectExpr,
         preprocess([
           eliminateWindowClause,
@@ -3636,6 +3662,10 @@ class SnowflakeGenerator extends Generator {
         PropertiesLocation.POST_SCHEMA,
       ],
       [
+        RowAccessPropertyExpr,
+        PropertiesLocation.POST_SCHEMA,
+      ],
+      [
         SetPropertyExpr,
         PropertiesLocation.UNSUPPORTED,
       ],
@@ -3879,6 +3909,14 @@ class SnowflakeGenerator extends Generator {
       : `${this.sql(value)} FROM `;
 
     return `${prefix}${explode}${aliasPart}`;
+  }
+
+  rowAccessPropertySql (expression: RowAccessPropertyExpr): string {
+    if (!expression.args.this) {
+      return 'ROW ACCESS';
+    }
+    const on = ` ON (${this.expressions(expression, { flat: true })})`;
+    return `WITH ROW ACCESS POLICY ${this.sql(expression, 'this')}${on}`;
   }
 
   showSql (expression: ShowExpr): string {

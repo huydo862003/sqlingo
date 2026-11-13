@@ -2270,7 +2270,7 @@ export class Generator {
       ],
       [
         RowAccessPropertyExpr,
-        PropertiesLocation.POST_CREATE,
+        PropertiesLocation.UNSUPPORTED,
       ],
       [
         SamplePropertyExpr,

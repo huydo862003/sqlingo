@@ -12612,10 +12612,20 @@ export class NetworkPropertyExpr extends PropertyExpr {
   static availableArgs = new Set<string>();
 }
 
+export type RowAccessPropertyExprArgs = Merge<[
+  PropertyExprArgs,
+  {
+    this?: Expression;
+    expressions?: Expression[];
+  },
+]>;
+
 export class RowAccessPropertyExpr extends PropertyExpr {
   static key = ExpressionKey.ROW_ACCESS_PROPERTY;
   static requiredArgs = new Set<string>();
-  static availableArgs = new Set<string>();
+  static availableArgs = new Set(['this', 'expressions']);
+  static argOrder = ['this', 'expressions'];
+  declare args: RowAccessPropertyExprArgs;
 }
 
 export class SecurityIntegrationPropertyExpr extends PropertyExpr {
