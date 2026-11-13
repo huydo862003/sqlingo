@@ -7305,7 +7305,21 @@ class DuckDBGenerator extends Generator {
   }
 
   strPositionSql (expression: StrPositionExpr): string {
+    const thisNode = expression.args.this as Expression;
+    const substr = expression.args.substr as Expression | undefined;
     const position = expression.args.position;
+
+    if (isBinary(thisNode)) {
+      const hexStrpos = new StrPositionExpr({
+        this: new HexExpr({ this: thisNode }),
+        substr: new HexExpr({ this: substr }),
+      });
+
+      return this.sql(cast(
+        new DivExpr({ this: new AddExpr({ this: hexStrpos, expression: LiteralExpr.number(1) }), expression: LiteralExpr.number(2) }),
+        DataTypeExprKind.INT,
+      ));
+    }
 
     if (expression.args.clampPosition && position) {
       expression = expression.copy() as StrPositionExpr;

@@ -2353,6 +2353,14 @@ class SnowflakeParser extends Parser {
     });
   }
 
+  parsePosition (options: {
+    haystackFirst?: boolean;
+  } = {}): StrPositionExpr {
+    const result = super.parsePosition(options);
+    result.setArgKey('clampPosition', true);
+    return result;
+  }
+
   parseBracketKeyValue (options: {
     isMap?: boolean;
   } = {}): Expression | undefined {
