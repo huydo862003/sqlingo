@@ -13,6 +13,7 @@ import {
   eliminateQualify,
   removePrecisionParameterizedTypes,
   eliminateJoinMarks,
+  eliminateSemiAndAntiJoins,
   eliminateWindowClause,
   inheritStructFieldNames,
 } from '../../src/transforms';
@@ -164,6 +165,34 @@ class TestTransforms {
     );
   }
 
+  testEliminateSemiAndAntiJoins () {
+    this.validate(
+      eliminateSemiAndAntiJoins,
+      'SELECT t1.id FROM t1 JOIN t2 ON t1.id = t2.id ANTI JOIN t3 ON t1.id = t3.id',
+      'SELECT t1.id FROM t1 JOIN t2 ON t1.id = t2.id WHERE NOT EXISTS(SELECT 1 FROM t3 WHERE t1.id = t3.id)',
+    );
+    this.validate(
+      eliminateSemiAndAntiJoins,
+      'SELECT t1.id FROM t1 JOIN t2 ON t1.id = t2.id SEMI JOIN t3 ON t1.id = t3.id',
+      'SELECT t1.id FROM t1 JOIN t2 ON t1.id = t2.id WHERE EXISTS(SELECT 1 FROM t3 WHERE t1.id = t3.id)',
+    );
+    this.validate(
+      eliminateSemiAndAntiJoins,
+      'SELECT t1.id FROM t1 ANTI JOIN t2 ON t1.id = t2.id ANTI JOIN t3 ON t1.id = t3.id',
+      'SELECT t1.id FROM t1 WHERE NOT EXISTS(SELECT 1 FROM t2 WHERE t1.id = t2.id) AND NOT EXISTS(SELECT 1 FROM t3 WHERE t1.id = t3.id)',
+    );
+    this.validate(
+      eliminateSemiAndAntiJoins,
+      'SELECT t1.id FROM t1 ANTI JOIN t2 ON t1.id = t2.id ANTI JOIN t3 ON t1.id = t3.id ANTI JOIN t4 ON t1.id = t4.id',
+      'SELECT t1.id FROM t1 WHERE (NOT EXISTS(SELECT 1 FROM t2 WHERE t1.id = t2.id) AND NOT EXISTS(SELECT 1 FROM t3 WHERE t1.id = t3.id)) AND NOT EXISTS(SELECT 1 FROM t4 WHERE t1.id = t4.id)',
+    );
+    this.validate(
+      eliminateSemiAndAntiJoins,
+      'SELECT t1.id FROM t1 SEMI JOIN t2 ON t1.id = t2.id SEMI JOIN t3 ON t1.id = t3.id',
+      'SELECT t1.id FROM t1 WHERE EXISTS(SELECT 1 FROM t2 WHERE t1.id = t2.id) AND EXISTS(SELECT 1 FROM t3 WHERE t1.id = t3.id)',
+    );
+  }
+
   testEliminateJoinMarks () {
     for (const dialect of [
       'oracle',
@@ -299,5 +328,6 @@ describe('TestTransforms', () => {
   test('testEliminateWindowClause', () => t.testEliminateWindowClause());
   test('testInheritStructFieldNames', () => t.testInheritStructFieldNames());
   test('testRemovePrecisionParameterizedTypes', () => t.testRemovePrecisionParameterizedTypes());
+  test('testEliminateSemiAndAntiJoins', () => t.testEliminateSemiAndAntiJoins());
   test('testEliminateJoinMarks', () => t.testEliminateJoinMarks());
 });
