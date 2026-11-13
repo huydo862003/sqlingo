@@ -2821,10 +2821,11 @@ export function buildTrunc (
     dateTruncUnabbreviate?: boolean;
     defaultDateTruncUnit?: string;
     dateTruncRequiresPart?: boolean;
+    fractionsSupported?: boolean;
   },
 ): DateTruncExpr | TruncExpr | AnonymousExpr {
   const {
-    dialect, dateTruncUnabbreviate = true, defaultDateTruncUnit, dateTruncRequiresPart = true,
+    dialect, dateTruncUnabbreviate = true, defaultDateTruncUnit, dateTruncRequiresPart = true, fractionsSupported = false,
   } = options;
   let thisArg = seqGet(args, 0);
   let second = seqGet(args, 1);
@@ -2863,6 +2864,7 @@ export function buildTrunc (
     return new TruncExpr({
       this: thisArg,
       decimals: second,
+      fractionsSupported,
     });
   }
 

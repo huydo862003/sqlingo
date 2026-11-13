@@ -28019,6 +28019,7 @@ export type TruncExprArgs = Merge<[
   {
     this?: Expression;
     decimals?: Expression;
+    fractionsSupported?: boolean;
   },
 ]>;
 
@@ -28033,6 +28034,7 @@ export class TruncExpr extends FuncExpr {
   static availableArgs = new Set([
     'this',
     'decimals',
+    'fractionsSupported',
   ]);
 
   static argOrder = [
