@@ -29,6 +29,7 @@ import {
 } from '../expressions/expressions';
 import {
   DataTypeExprKind,
+  SelectExprKind,
 } from '../expressions/types';
 import {
   cache, isInstanceOf,
@@ -161,18 +162,28 @@ function annotateArray (annotator: TypeAnnotator, expression: ArrayExpr): ArrayE
       const queryTypeRaw = unnested.meta?.queryType;
       const queryType = isInstanceOf(queryTypeRaw, DataTypeExpr) ? queryTypeRaw : undefined;
 
-      if (
-        queryType
-        && queryType.isType(DataTypeExprKind.STRUCT)
-        && queryType.args.expressions?.length === 1
-      ) {
-        const colDef = queryType.args.expressions[0];
+      if (queryType && queryType.isType(DataTypeExprKind.STRUCT)) {
+        const queryExprs = queryType.args.expressions ?? [];
 
-        if (isInstanceOf(colDef, ColumnDefExpr)) {
-          const colKind: unknown = colDef.args.kind;
+        const colDefs = queryExprs.filter((e) =>
+          isInstanceOf(e, ColumnDefExpr) && !(
+            e.args.kind
+            && isInstanceOf(e.args.kind, DataTypeExpr)
+            && e.args.kind.isType(DataTypeExprKind.UNKNOWN)
+          )
+        ) as ColumnDefExpr[];
 
-          if (isInstanceOf(colKind, DataTypeExpr) && !colKind.isType(DataTypeExprKind.UNKNOWN)) {
-            projectionType = colKind;
+        if (colDefs.length === queryExprs.length) {
+          if (unnested.args.kind === SelectExprKind.STRUCT) {
+            // ARRAY(SELECT AS STRUCT ...) -> ARRAY<STRUCT<col1, col2, ...>>
+            projectionType = queryType;
+          } else if (colDefs.length === 1) {
+            // ARRAY(SELECT col FROM ...) -> ARRAY<col_type>
+            const colKind: unknown = colDefs[0].args.kind;
+
+            if (isInstanceOf(colKind, DataTypeExpr) && !colKind.isType(DataTypeExprKind.UNKNOWN)) {
+              projectionType = colKind;
+            }
           }
         }
       }

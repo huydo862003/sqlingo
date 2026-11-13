@@ -179,9 +179,11 @@ class TestPostgres extends Validator {
     );
     this.validateIdentity(
       'SELECT TO_TIMESTAMP(\'05 Dec 2000 10:00 AM\', \'DD Mon YYYY HH:MI AM\')',
+      'SELECT TO_TIMESTAMP(\'05 Dec 2000 10:00 AM\', \'DD Mon YYYY HH12:MI AM\')',
     );
     this.validateIdentity(
       'SELECT TO_TIMESTAMP(\'05 Dec 2000 10:00 PM\', \'DD Mon YYYY HH:MI PM\')',
+      'SELECT TO_TIMESTAMP(\'05 Dec 2000 10:00 PM\', \'DD Mon YYYY HH12:MI AM\')',
     );
     this.validateIdentity(
       'SELECT * FROM foo, LATERAL (SELECT * FROM bar WHERE bar.id = foo.bar_id) AS ss',
@@ -1162,6 +1164,73 @@ FROM json_data, field_ids`,
         },
       },
     );
+
+    // TO_CHAR format token conversions: month names, weekday names, AM/PM, HH
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'Mon YYYY')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%b %Y')",
+          postgres: "SELECT TO_CHAR(dt, 'Mon YYYY')",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'Month YYYY')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%B %Y')",
+          postgres: "SELECT TO_CHAR(dt, 'Month YYYY')",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'Day')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%A')",
+          postgres: "SELECT TO_CHAR(dt, 'Day')",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'Dy')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%a')",
+          postgres: "SELECT TO_CHAR(dt, 'Dy')",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'HH12:MI AM')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%I:%M %p')",
+          postgres: "SELECT TO_CHAR(dt, 'HH12:MI AM')",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'DD Mon YYYY HH24:MI')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%d %b %Y %H:%M')",
+          postgres: "SELECT TO_CHAR(dt, 'DD Mon YYYY HH24:MI')",
+        },
+      },
+    );
+    // Bare HH (no 12/24 suffix) defaults to 12-hour in PostgreSQL
+    this.validateAll(
+      "SELECT TO_CHAR(dt, 'HH:MI')",
+      {
+        write: {
+          clickhouse: "SELECT formatDateTime(dt, '%I:%M')",
+          postgres: "SELECT TO_CHAR(dt, 'HH12:MI')",
+        },
+      },
+    );
+
     this.validateAll(
       'CREATE TABLE table1 (a INT, b INT, PRIMARY KEY (a))',
       {

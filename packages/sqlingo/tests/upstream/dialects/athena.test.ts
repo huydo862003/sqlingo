@@ -3,7 +3,7 @@ import {
 } from 'vitest';
 import {
   PartitionedByPropertyExpr, PartitionedByBucketExpr, PartitionByTruncateExpr, SchemaExpr,
-  CreateExpr, ColumnDefExpr, DataTypeExpr, ExternalPropertyExpr, FileFormatPropertyExpr,
+  CreateExpr, CreateExprKind, ColumnDefExpr, DataTypeExpr, ExternalPropertyExpr, FileFormatPropertyExpr,
   LocationPropertyExpr, LiteralExpr, PropertyExpr, PropertiesExpr, var_,
   toTable, toIdentifier, toColumn, select,
 } from '../../../src/expressions';
@@ -234,7 +234,7 @@ class TestAthena extends Validator {
 
     const ctHive = new CreateExpr({
       this: tableSchema,
-      kind: 'TABLE',
+      kind: CreateExprKind.TABLE,
       properties: new PropertiesExpr({
         expressions: [
           new ExternalPropertyExpr({}),
@@ -255,7 +255,7 @@ class TestAthena extends Validator {
   testCtas () {
     const ctasHive = new CreateExpr({
       this: toTable('foo.bar'),
-      kind: 'TABLE',
+      kind: CreateExprKind.TABLE,
       properties: new PropertiesExpr({
         expressions: [
           new FileFormatPropertyExpr({ this: LiteralExpr.string('parquet') }),

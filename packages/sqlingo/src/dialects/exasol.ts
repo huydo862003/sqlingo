@@ -532,6 +532,7 @@ class ExasolTokenizer extends Tokenizer {
       'REGEXP_LIKE': TokenType.RLIKE,
       'SEPARATOR': TokenType.SEPARATOR,
       'SYSTIMESTAMP': TokenType.SYSTIMESTAMP,
+      'MINUS': TokenType.EXCEPT,
     };
 
     delete (keywords as any)['DIV'];

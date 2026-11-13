@@ -40,6 +40,22 @@ class TestStarrocks extends Validator {
     );
 
     this.validateIdentity('CURRENT_VERSION()');
+    this.validateIdentity('SELECT t1.id FROM t1 LEFT ANTI JOIN t2 ON t1.id = t2.id');
+    this.validateIdentity('SELECT t1.id FROM t1 LEFT SEMI JOIN t2 ON t1.id = t2.id');
+  }
+
+  testDateAddSub () {
+    // Standard INTERVAL form
+    this.validateIdentity("SELECT DATE_ADD(x, INTERVAL '3' DAY)");
+    this.validateIdentity("SELECT DATE_SUB(x, INTERVAL '3' MONTH)");
+
+    // Two-argument shorthand - default unit DAY
+    this.validateIdentity('SELECT DATE_SUB(x, 3)', 'SELECT DATE_SUB(x, INTERVAL 3 DAY)');
+    this.validateIdentity('SELECT DATE_ADD(x, 7)', 'SELECT DATE_ADD(x, INTERVAL 7 DAY)');
+
+    // ADDDATE / SUBDATE aliases
+    this.validateIdentity('SELECT ADDDATE(x, 7)', 'SELECT DATE_ADD(x, INTERVAL 7 DAY)');
+    this.validateIdentity('SELECT SUBDATE(x, 7)', 'SELECT DATE_SUB(x, INTERVAL 7 DAY)');
   }
 
   testDdl () {
@@ -348,6 +364,20 @@ class TestStarrocks extends Validator {
       'CREATE TABLE test_table (col1 DATE) PARTITION BY RANGE (col1) (START (\'2019-01-01\') END (\'2021-01-01\') EVERY (INTERVAL 1 YEAR), START (\'2021-01-01\') END (\'2021-05-01\') EVERY (INTERVAL 1 MONTH), START (\'2021-05-01\') END (\'2021-05-04\') EVERY (INTERVAL 1 DAY))',
     );
   }
+
+  testDistinctOn () {
+    this.validateIdentity(
+      "SELECT DISTINCT ON (a) a, b FROM x ORDER BY c DESC",
+      "SELECT a, b FROM (SELECT a AS a, b AS b, ROW_NUMBER() OVER (PARTITION BY a ORDER BY c DESC) AS _row_number FROM x) AS _t WHERE _row_number = 1",
+    );
+  }
+
+  testGenerateDateArray () {
+    this.validateIdentity(
+      "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)",
+      "WITH RECURSIVE _generated_dates(date_week) AS (SELECT CAST('2020-01-01' AS DATE) AS date_week UNION ALL SELECT CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_week FROM _generated_dates) AS _generated_dates",
+    );
+  }
 }
 
 const t = new TestStarrocks();
@@ -362,4 +392,7 @@ describe('TestStarrocks', () => {
   test('analyze', () => t.testAnalyze());
   test('between', () => t.testBetween());
   test('partition', () => t.testPartition());
+  test('testDateAddSub', () => t.testDateAddSub());
+  test('testDistinctOn', () => t.testDistinctOn());
+  test('testGenerateDateArray', () => t.testGenerateDateArray());
 });

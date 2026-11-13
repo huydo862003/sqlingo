@@ -216,6 +216,7 @@ import {
   SemanticViewExpr,
   CredentialsPropertyExpr,
   BoolnotExpr,
+  JsonArrayExpr,
   JsonExtractArrayExpr,
   InExpr,
   QueryExpr,
@@ -260,6 +261,7 @@ import {
   LeftExpr,
   RightExpr,
   true_,
+  SubstringExpr,
 } from '../expressions';
 import {
   Generator, unsupportedArgs,
@@ -1450,6 +1452,7 @@ class SnowflakeParser extends Parser {
           this: seqGet(args, 0),
           expression: seqGet(args, 1),
           caseInsensitive: true,
+          integerScale: true,
         }),
         ARRAY_DISTINCT: (args: Expression[]) => new ArrayDistinctExpr({
           this: seqGet(args, 0),
@@ -1900,6 +1903,9 @@ class SnowflakeParser extends Parser {
         },
         SEMANTIC_VIEW: function (this: Parser) {
           return (this as SnowflakeParser).parseSemanticView();
+        },
+        SUBSTR: function (this: Parser) {
+          return (this as SnowflakeParser).parseSubstring();
         },
       };
 
@@ -2355,6 +2361,14 @@ class SnowflakeParser extends Parser {
   }
 
   parseRowAccessPolicy (): RowAccessPropertyExpr {
+    // GET_DDL outputs #unknown_policy when the user lacks privileges to see the policy name
+    if (this.match(TokenType.HASH)) {
+      const policyVar = this.parseVar({ anyToken: true });
+      const policy = policyVar ? new VarExpr({ this: `#${policyVar.name}` }) : undefined;
+
+      return this.expression(RowAccessPropertyExpr, { this: policy });
+    }
+
     const policy = this.parseColumn();
 
     if (!this.match(TokenType.ON)) {
@@ -2412,6 +2426,14 @@ class SnowflakeParser extends Parser {
     const result = super.parsePosition(options);
 
     result.setArgKey('clampPosition', true);
+
+    return result;
+  }
+
+  parseSubstring (): SubstringExpr {
+    const result = super.parseSubstring();
+
+    result.setArgKey('zeroStart', true);
 
     return result;
   }
@@ -3203,6 +3225,12 @@ class SnowflakeGenerator extends Generator {
         ifSql('IFF', 'NULL'),
       ],
       [
+        JsonArrayExpr,
+        function (this: Generator, e: JsonArrayExpr) {
+          return this.func('TO_VARIANT', [this.func('ARRAY_CONSTRUCT', e.args.expressions || [])]);
+        },
+      ],
+      [
         JsonExtractArrayExpr,
         jsonExtractValueArraySql,
       ],
@@ -3655,6 +3683,10 @@ class SnowflakeGenerator extends Generator {
         'DOUBLE',
       ],
       [
+        DataTypeExprKind.JSON,
+        'VARIANT',
+      ],
+      [
         DataTypeExprKind.NESTED,
         'OBJECT',
       ],
@@ -3946,9 +3978,9 @@ class SnowflakeGenerator extends Generator {
     if (!expression.args.this) {
       return 'ROW ACCESS';
     }
-    const on = ` ON (${this.expressions(expression, {
+    const on = expression.args.expressions ? ` ON (${this.expressions(expression, {
       flat: true,
-    })})`;
+    })})` : '';
 
     return `WITH ROW ACCESS POLICY ${this.sql(expression, 'this')}${on}`;
   }

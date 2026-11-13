@@ -305,6 +305,7 @@ import {
   JsonExtractExpr,
   ConnectorExpr,
   AlterRenameExpr,
+  RenameIndexExpr,
   BracketExpr,
   DateAddExpr,
   DateDiffExpr,
@@ -485,6 +486,7 @@ import {
   WithOperatorExpr,
   WithProcedureOptionsExpr,
   WithSchemaBindingPropertyExpr,
+  InvisibleColumnConstraintExpr,
   ZeroFillColumnConstraintExpr,
   AlgorithmPropertyExpr,
   AutoIncrementPropertyExpr,
@@ -713,6 +715,9 @@ export class Generator {
 
   // Whether MERGE ... WHEN MATCHED BY SOURCE is allowed
   static MATCHED_BY_SOURCE = true;
+
+  // Whether MERGE ... WHEN MATCHED/NOT MATCHED THEN UPDATE/INSERT ... WHERE is supported
+  static SUPPORTS_MERGE_WHERE = false;
 
   // Whether the INTERVAL expression works only with values like '1 day'
   static SINGLE_STRING_INTERVAL = false;
@@ -1693,6 +1698,10 @@ export class Generator {
           function (this: Generator, e) {
             return `PROJECTION POLICY ${this.sql(e, 'this')}`;
           },
+        ],
+        [
+          InvisibleColumnConstraintExpr,
+          () => 'INVISIBLE',
         ],
         [
           ZeroFillColumnConstraintExpr,
@@ -3683,6 +3692,7 @@ export class Generator {
   }
 
   deleteSql (expression: DeleteExpr): string {
+    const hint = this.sql(expression, 'hint');
     const thisStr = this.sql(expression, 'this');
     const thisClause = thisStr ? ` FROM ${thisStr}` : '';
     let using = this.expressions(expression, {
@@ -3710,7 +3720,7 @@ export class Generator {
       expressionSql = `${returning}${thisClause}${using}${cluster}${where}${order}${limit}`;
     }
 
-    return this.prependCtes(expression, `DELETE${tables}${expressionSql}`);
+    return this.prependCtes(expression, `DELETE${hint}${tables}${expressionSql}`);
   }
 
   dropSql (expression: DropExpr): string {
@@ -4856,6 +4866,7 @@ export class Generator {
   }
 
   updateSql (expression: UpdateExpr): string {
+    const hint = this.sql(expression, 'hint');
     const thisStr = this.sql(expression, 'this');
     const [
       joinSql,
@@ -4880,7 +4891,7 @@ export class Generator {
     });
 
     options = options ? ` OPTION(${options})` : '';
-    const sql = `UPDATE ${thisStr}${joinSql} SET ${setSql}${expressionSql}${order}${limit}${options}`;
+    const sql = `UPDATE${hint} ${thisStr}${joinSql} SET ${setSql}${expressionSql}${order}${limit}${options}`;
 
     return this.prependCtes(expression, sql);
   }
@@ -5432,10 +5443,21 @@ export class Generator {
   }
 
   loadDataSql (expression: LoadDataExpr): string {
+    const isOverwrite = !!expression.args.overwrite;
+    const overwrite = isOverwrite ? ' OVERWRITE' : '';
+    const thisName = this.sql(expression, 'this');
+    const files = expression.args.files;
+
+    if (files) {
+      const filesSql = `FILES${this.wrap(this.expressions(files, { flat: true }))}`;
+      const thisStr = isOverwrite ? ` ${thisName}` : ` INTO TABLE ${thisName}`;
+
+      return `LOAD DATA${overwrite}${thisStr} FROM ${filesSql}`;
+    }
+
     const local = expression.args.local ? ' LOCAL' : '';
     const inpath = ` INPATH ${this.sql(expression, 'inpath')}`;
-    const overwrite = expression.args.overwrite ? ' OVERWRITE' : '';
-    const thisStr = ` INTO TABLE ${this.sql(expression, 'this')}`;
+    const thisStr = ` INTO TABLE ${thisName}`;
     const partition = this.sql(expression, 'partition');
     const partitionStr = partition ? ` ${partition}` : '';
     const inputFormat = this.sql(expression, 'inputFormat');
@@ -5817,10 +5839,10 @@ export class Generator {
     const exclude = expression.args.exclude;
 
     if (!genClass.STAR_EXCLUDE_REQUIRES_DERIVED_TABLE && exclude) {
-      const excludeSql = this.expressions({
+      const excludeSql = this.expressions(undefined, {
         sqls: exclude,
         flat: true,
-      } as any);
+      });
 
       expressions = `${expressions}${this.seg('EXCLUDE')} (${excludeSql})`;
     }
@@ -7174,6 +7196,13 @@ export class Generator {
     return `RENAME${toKw} ${thisStr}`;
   }
 
+  alterRenameIndexSql (expression: RenameIndexExpr): string {
+    const thisStr = this.sql(expression, 'this');
+    const to = this.sql(expression, 'to');
+
+    return `RENAME INDEX ${thisStr} TO ${to}`;
+  }
+
   renameColumnSql (expression: RenameColumnExpr): string {
     const exists = expression.args.exists ? ' IF EXISTS' : '';
     const oldColumn = this.sql(expression, 'this');
@@ -7927,13 +7956,25 @@ export class Generator {
       const thenExpr = this.sql(thenExpression, 'expression');
 
       then = thenExpr ? `${thisStr} VALUES ${thenExpr}` : thisStr;
+      let insertWhere = this.sql(thenExpression, 'where');
+
+      if (insertWhere && !this._constructor.SUPPORTS_MERGE_WHERE) {
+        this.unsupported('WHERE clause in MERGE INSERT is not supported');
+        insertWhere = '';
+      }
+      then = `${then}${insertWhere}`;
     } else if (thenExpression instanceof UpdateExpr) {
       if (thenExpression.getArgKey('expressions') instanceof StarExpr) {
         then = `UPDATE ${this.sql(thenExpression, 'expressions')}`;
       } else {
         const expressionsSql = this.expressions(thenExpression);
+        let updateWhere = this.sql(thenExpression, 'where');
 
-        then = expressionsSql ? `UPDATE SET${this.sep()}${expressionsSql}` : 'UPDATE';
+        if (updateWhere && !this._constructor.SUPPORTS_MERGE_WHERE) {
+          this.unsupported('WHERE clause in MERGE UPDATE is not supported');
+          updateWhere = '';
+        }
+        then = expressionsSql ? `UPDATE SET${this.sep()}${expressionsSql}${updateWhere}` : 'UPDATE';
       }
     } else {
       then = this.sql(thenExpression);

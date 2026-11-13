@@ -11,7 +11,9 @@ import {
 import {
   TruncExpr, ArrayOverlapsExpr,
   InstallExpr, ShowExpr, CreateExpr,
-  AnonymousExpr, ColumnExpr,
+  AnonymousExpr, ColumnExpr, UdtfExpr,
+  SummarizeExpr, IdentifierExpr, PropertyEqExpr,
+  LocaltimestampExpr, SelectExpr, Expression,
 } from '../../../src/expressions';
 import {
   Validator,
@@ -52,6 +54,16 @@ class TestDuckDB extends Validator {
     expect(() => parseOne('1 //', {
       read: 'duckdb',
     })).toThrow();
+
+    const expr = annotateTypes(
+      this.validateIdentity(
+        "WITH _data AS (SELECT [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}] AS col) SELECT t.col['b'] FROM _data, UNNEST(_data.col) AS t(col) WHERE t.col['a'] = 1",
+        "WITH _data AS (SELECT [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}] AS col) SELECT t.col['b'] FROM _data JOIN UNNEST(_data.col) AS t(col) ON TRUE WHERE t.col['a'] = 1",
+      ),
+    );
+    expect(expr.sql({ dialect: 'bigquery' })).toBe(
+      "WITH _data AS (SELECT [STRUCT(1 AS a, 2 AS b), STRUCT(2 AS a, 3 AS b)] AS col) SELECT col.b FROM _data, UNNEST(_data.col) AS col WHERE col.a = 1",
+    );
 
     this.validateAll(
       '(c LIKE \'a\' OR c LIKE \'b\') AND other_cond',
@@ -157,8 +169,8 @@ class TestDuckDB extends Validator {
       },
     });
     this.validateIdentity('SELECT SUM(x) OVER (ORDER BY x GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t');
-    this.validateIdentity("SELECT file[:256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
-    this.validateIdentity("SELECT file[256] FROM GLOB('*')").selects[0].getArgKey('this')!.assertIs(ColumnExpr);
+    expect((this.validateIdentity("SELECT file[:256] FROM GLOB('*')") as SelectExpr).selects[0].getArgKey('this')).toBeInstanceOf(ColumnExpr);
+    expect((this.validateIdentity("SELECT file[256] FROM GLOB('*')") as SelectExpr).selects[0].getArgKey('this')).toBeInstanceOf(ColumnExpr);
     this.validateIdentity('SELECT LAST_VALUE(x ORDER BY x IGNORE NULLS) OVER (ORDER BY x) FROM t');
     this.validateIdentity('SELECT LAST_VALUE(x ORDER BY x RESPECT NULLS) OVER (ORDER BY x) FROM t');
     this.validateIdentity("SELECT SPLIT_PART('11.22.33', '.', 1)");
@@ -176,6 +188,7 @@ class TestDuckDB extends Validator {
     this.validateIdentity('SELECT GET_BIT(CAST(\'0110010\' AS BIT), 2)');
     this.validateIdentity('SELECT 1 WHERE x > $1');
     this.validateIdentity('SELECT 1 WHERE x > $name');
+    this.validateIdentity('SELECT 1 AS a$b');
     this.validateIdentity('SELECT \'{"x": 1}\' -> c FROM t');
 
     this.validateAll('{\'a\': 1, \'b\': \'2\'}', {
@@ -218,7 +231,7 @@ class TestDuckDB extends Validator {
           snowflake: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
           spark: `SELECT * FROM t1 ${joinType} JOIN t2 ON t1.x = t2.x`,
           sqlite: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
-          starrocks: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
+          starrocks: `SELECT * FROM t1 ${joinType} JOIN t2 ON t1.x = t2.x`,
           teradata: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
           trino: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
           tsql: `SELECT * FROM t1 WHERE ${exists}(SELECT 1 FROM t2 WHERE t1.x = t2.x)`,
@@ -239,6 +252,7 @@ class TestDuckDB extends Validator {
       write: {
         duckdb: 'SELECT RANGE(1, 5)',
         spark: 'SELECT SEQUENCE(1, 4)',
+        snowflake: 'SELECT ARRAY_GENERATE_RANGE(1, 5)',
       },
     });
     this.validateAll('SELECT RANGE(1, 5, 2)', {
@@ -257,6 +271,7 @@ class TestDuckDB extends Validator {
       write: {
         duckdb: 'SELECT RANGE(5, 1, -1)',
         spark: 'SELECT SEQUENCE(5, 2, -1)',
+        snowflake: 'SELECT ARRAY_GENERATE_RANGE(5, 1, -1)',
       },
     });
     this.validateAll('SELECT RANGE(5, 1, 0)', {
@@ -269,6 +284,18 @@ class TestDuckDB extends Validator {
       write: {
         duckdb: 'WITH t AS (SELECT 5 AS c) SELECT RANGE(1, c) FROM t',
         spark: 'WITH t AS (SELECT 5 AS c) SELECT IF((c - 1) < 1, ARRAY(), SEQUENCE(1, (c - 1))) FROM t',
+      },
+    });
+    this.validateAll('WITH t AS (SELECT 2 AS c) SELECT RANGE(1, c) FROM t', {
+      write: {
+        duckdb: 'WITH t AS (SELECT 2 AS c) SELECT RANGE(1, c) FROM t',
+        spark: 'WITH t AS (SELECT 2 AS c) SELECT IF((c - 1) < 1, ARRAY(), SEQUENCE(1, (c - 1))) FROM t',
+      },
+    });
+    this.validateAll('SELECT RANGE(1, 2)', {
+      write: {
+        duckdb: 'SELECT RANGE(1, 2)',
+        spark: 'SELECT SEQUENCE(1, 1)',
       },
     });
     this.validateAll('SELECT JSON_EXTRACT(\'{"duck": [1, 2, 3]}\', \'/duck/0\')', {
@@ -329,6 +356,139 @@ class TestDuckDB extends Validator {
         snowflake: 'SELECT AVG(IFF(TRUE, x, NULL)) FROM t',
       },
     });
+    this.validateAll('SELECT UNNEST(ARRAY[1, 2, 3]), UNNEST(ARRAY[4, 5]), UNNEST(ARRAY[6])', {
+      write: {
+        bigquery: "SELECT IF(pos = pos_2, col, NULL) AS col, IF(pos = pos_3, col_2, NULL) AS col_2, IF(pos = pos_4, col_3, NULL) AS col_3 FROM UNNEST(GENERATE_ARRAY(0, GREATEST(ARRAY_LENGTH([1, 2, 3]), ARRAY_LENGTH([4, 5]), ARRAY_LENGTH([6])) - 1)) AS pos CROSS JOIN UNNEST([1, 2, 3]) AS col WITH OFFSET AS pos_2 CROSS JOIN UNNEST([4, 5]) AS col_2 WITH OFFSET AS pos_3 CROSS JOIN UNNEST([6]) AS col_3 WITH OFFSET AS pos_4 WHERE ((pos = pos_2 OR (pos > (ARRAY_LENGTH([1, 2, 3]) - 1) AND pos_2 = (ARRAY_LENGTH([1, 2, 3]) - 1))) AND (pos = pos_3 OR (pos > (ARRAY_LENGTH([4, 5]) - 1) AND pos_3 = (ARRAY_LENGTH([4, 5]) - 1)))) AND (pos = pos_4 OR (pos > (ARRAY_LENGTH([6]) - 1) AND pos_4 = (ARRAY_LENGTH([6]) - 1)))",
+        presto: "SELECT IF(_u.pos = _u_2.pos_2, _u_2.col) AS col, IF(_u.pos = _u_3.pos_3, _u_3.col_2) AS col_2, IF(_u.pos = _u_4.pos_4, _u_4.col_3) AS col_3 FROM UNNEST(SEQUENCE(1, GREATEST(CARDINALITY(ARRAY[1, 2, 3]), CARDINALITY(ARRAY[4, 5]), CARDINALITY(ARRAY[6])))) AS _u(pos) CROSS JOIN UNNEST(ARRAY[1, 2, 3]) WITH ORDINALITY AS _u_2(col, pos_2) CROSS JOIN UNNEST(ARRAY[4, 5]) WITH ORDINALITY AS _u_3(col_2, pos_3) CROSS JOIN UNNEST(ARRAY[6]) WITH ORDINALITY AS _u_4(col_3, pos_4) WHERE ((_u.pos = _u_2.pos_2 OR (_u.pos > CARDINALITY(ARRAY[1, 2, 3]) AND _u_2.pos_2 = CARDINALITY(ARRAY[1, 2, 3]))) AND (_u.pos = _u_3.pos_3 OR (_u.pos > CARDINALITY(ARRAY[4, 5]) AND _u_3.pos_3 = CARDINALITY(ARRAY[4, 5])))) AND (_u.pos = _u_4.pos_4 OR (_u.pos > CARDINALITY(ARRAY[6]) AND _u_4.pos_4 = CARDINALITY(ARRAY[6])))",
+      },
+    });
+
+    this.validateAll('SELECT UNNEST(ARRAY[1, 2, 3]), UNNEST(ARRAY[4, 5]), UNNEST(ARRAY[6]) FROM x', {
+      write: {
+        bigquery: "SELECT IF(pos = pos_2, col, NULL) AS col, IF(pos = pos_3, col_2, NULL) AS col_2, IF(pos = pos_4, col_3, NULL) AS col_3 FROM x CROSS JOIN UNNEST(GENERATE_ARRAY(0, GREATEST(ARRAY_LENGTH([1, 2, 3]), ARRAY_LENGTH([4, 5]), ARRAY_LENGTH([6])) - 1)) AS pos CROSS JOIN UNNEST([1, 2, 3]) AS col WITH OFFSET AS pos_2 CROSS JOIN UNNEST([4, 5]) AS col_2 WITH OFFSET AS pos_3 CROSS JOIN UNNEST([6]) AS col_3 WITH OFFSET AS pos_4 WHERE ((pos = pos_2 OR (pos > (ARRAY_LENGTH([1, 2, 3]) - 1) AND pos_2 = (ARRAY_LENGTH([1, 2, 3]) - 1))) AND (pos = pos_3 OR (pos > (ARRAY_LENGTH([4, 5]) - 1) AND pos_3 = (ARRAY_LENGTH([4, 5]) - 1)))) AND (pos = pos_4 OR (pos > (ARRAY_LENGTH([6]) - 1) AND pos_4 = (ARRAY_LENGTH([6]) - 1)))",
+        presto: "SELECT IF(_u.pos = _u_2.pos_2, _u_2.col) AS col, IF(_u.pos = _u_3.pos_3, _u_3.col_2) AS col_2, IF(_u.pos = _u_4.pos_4, _u_4.col_3) AS col_3 FROM x CROSS JOIN UNNEST(SEQUENCE(1, GREATEST(CARDINALITY(ARRAY[1, 2, 3]), CARDINALITY(ARRAY[4, 5]), CARDINALITY(ARRAY[6])))) AS _u(pos) CROSS JOIN UNNEST(ARRAY[1, 2, 3]) WITH ORDINALITY AS _u_2(col, pos_2) CROSS JOIN UNNEST(ARRAY[4, 5]) WITH ORDINALITY AS _u_3(col_2, pos_3) CROSS JOIN UNNEST(ARRAY[6]) WITH ORDINALITY AS _u_4(col_3, pos_4) WHERE ((_u.pos = _u_2.pos_2 OR (_u.pos > CARDINALITY(ARRAY[1, 2, 3]) AND _u_2.pos_2 = CARDINALITY(ARRAY[1, 2, 3]))) AND (_u.pos = _u_3.pos_3 OR (_u.pos > CARDINALITY(ARRAY[4, 5]) AND _u_3.pos_3 = CARDINALITY(ARRAY[4, 5])))) AND (_u.pos = _u_4.pos_4 OR (_u.pos > CARDINALITY(ARRAY[6]) AND _u_4.pos_4 = CARDINALITY(ARRAY[6])))",
+      },
+    });
+    this.validateAll('SELECT UNNEST(x) + 1', {
+      write: {
+        bigquery: "SELECT IF(pos = pos_2, col, NULL) + 1 AS col FROM UNNEST(GENERATE_ARRAY(0, GREATEST(ARRAY_LENGTH(x)) - 1)) AS pos CROSS JOIN UNNEST(x) AS col WITH OFFSET AS pos_2 WHERE pos = pos_2 OR (pos > (ARRAY_LENGTH(x) - 1) AND pos_2 = (ARRAY_LENGTH(x) - 1))",
+      },
+    });
+    this.validateAll('SELECT UNNEST(x) + 1 AS y', {
+      write: {
+        bigquery: "SELECT IF(pos = pos_2, y, NULL) + 1 AS y FROM UNNEST(GENERATE_ARRAY(0, GREATEST(ARRAY_LENGTH(x)) - 1)) AS pos CROSS JOIN UNNEST(x) AS y WITH OFFSET AS pos_2 WHERE pos = pos_2 OR (pos > (ARRAY_LENGTH(x) - 1) AND pos_2 = (ARRAY_LENGTH(x) - 1))",
+      },
+    });
+    this.validateAll("SELECT DATE_DIFF('DAY', CAST('2020-01-01' AS DATE), CAST('2025-10-12' AS DATE))", {
+      read: {
+        snowflake: "SELECT DATEDIFF('day', '2020-01-01', '2025-10-12')",
+      },
+    });
+    this.validateAll("SELECT DATE_DIFF('SECOND', CAST('2020-01-01' AS DATE), CAST('2025-10-12 00:56:42.345' AS TIMESTAMP))", {
+      read: {
+        duckdb: "SELECT DATE_DIFF('SECOND', CAST('2020-01-01' AS DATE), CAST('2025-10-12 00:56:42.345' AS TIMESTAMP))",
+        snowflake: "SELECT DATEDIFF('second', '2020-01-01', '2025-10-12 00:56:42.345')",
+      },
+    });
+    this.validateAll("SELECT DATE_DIFF('SECOND', CAST('2020-01-01' AS DATE), CAST('2025-10-12 00:56:42.345+07:00' AS TIMESTAMPTZ))", {
+      read: {
+        duckdb: "SELECT DATE_DIFF('SECOND', CAST('2020-01-01' AS DATE), CAST('2025-10-12 00:56:42.345+07:00' AS TIMESTAMPTZ))",
+        snowflake: "SELECT DATEDIFF('second', '2020-01-01', '2025-10-12 00:56:42.345+07:00')",
+      },
+    });
+
+    this.validateIdentity(
+      'SELECT tbl.x*1e4+tbl.y FROM tbl',
+      'SELECT tbl.x * 1e4 + tbl.y FROM tbl',
+    );
+    this.validateIdentity('DAYNAME(x)');
+    this.validateIdentity('MONTHNAME(x)');
+    this.validateIdentity(
+      'SELECT LIST_TRANSFORM([5, NULL, 6], (x, y) -> COALESCE(x, y, 0) + 1)',
+    );
+    this.validateIdentity(
+      'SELECT LIST_TRANSFORM([5, NULL, 6], LAMBDA x, y : COALESCE(x, y, 0) + 1)',
+    );
+    this.validateIdentity(
+      'SELECT LIST_TRANSFORM(LIST_FILTER([0, 1, 2, 3, 4, 5], LAMBDA x : x % 2 = 0), LAMBDA y : y * y)',
+    );
+    this.validateIdentity(
+      'ARG_MIN({\'d\': "DATE", \'ts\': "TIMESTAMP", \'i\': "INT", \'b\': "BIGINT", \'s\': "VARCHAR"}, "DOUBLE")',
+    );
+    this.validateIdentity(
+      'ARG_MAX(keyword_name, keyword_category, 3 ORDER BY keyword_name DESC)',
+    );
+    this.validateIdentity('INSERT INTO t DEFAULT VALUES RETURNING (c1)');
+    this.validateIdentity('CREATE TABLE notes (watermark TEXT)');
+    this.validateIdentity('SELECT LIST_TRANSFORM([5, NULL, 6], LAMBDA x : COALESCE(x, 0) + 1)');
+    this.validateIdentity('SELECT LIST_TRANSFORM(nbr, LAMBDA x : x + 1) FROM article AS a');
+    this.validateIdentity('SELECT * FROM my_ducklake.demo AT (VERSION => 2)');
+    this.validateIdentity('SELECT TO_BINARY(\'test\')');
+    this.validateIdentity('SELECT UUIDV7()');
+    this.validateIdentity('SELECT TRY(LOG(0))');
+    this.validateIdentity('x::timestamp', 'CAST(x AS TIMESTAMP)');
+    this.validateIdentity('x::timestamp without time zone', 'CAST(x AS TIMESTAMP)');
+    this.validateIdentity('x::timestamp with time zone', 'CAST(x AS TIMESTAMPTZ)');
+    this.validateIdentity('CAST(x AS FOO)');
+    (this.validateIdentity('SELECT UNNEST([1, 2])') as SelectExpr).selects[0].assertIs(UdtfExpr);
+    (this.validateIdentity("'red' IN flags").getArgKey('field') as Expression).assertIs(ColumnExpr);
+    this.validateIdentity("'red' IN tbl.flags");
+    this.validateIdentity('CREATE TABLE tbl1 (u UNION(num INT, str TEXT))');
+    this.validateIdentity('INSERT INTO x BY NAME SELECT 1 AS y');
+    this.validateIdentity('SELECT 1 AS x UNION ALL BY NAME SELECT 2 AS x');
+    this.validateIdentity('SELECT SUM(x) FILTER (x = 1)', 'SELECT SUM(x) FILTER(WHERE x = 1)');
+    this.validateIdentity('SELECT * FROM GLOB(x)');
+    this.validateIdentity('SELECT MAP([\'key1\', \'key2\', \'key3\'], [10, 20, 30])');
+    this.validateIdentity('SELECT MAP {\'x\': 1}');
+    this.validateIdentity('SELECT (MAP {\'x\': 1})[\'x\']');
+    this.validateIdentity('SELECT df1.*, df2.* FROM df1 POSITIONAL JOIN df2');
+    this.validateIdentity('MAKE_TIMESTAMP(1992, 9, 20, 13, 34, 27.123456)');
+    this.validateIdentity('MAKE_TIMESTAMP(1667810584123456)');
+    this.validateIdentity('SELECT EPOCH_MS(10) AS t');
+    this.validateIdentity('SELECT MAKE_TIMESTAMP(10) AS t');
+    this.validateIdentity('SELECT TO_TIMESTAMP(10) AS t');
+    this.validateIdentity('SELECT UNNEST(col, recursive := TRUE) FROM t');
+    this.validateIdentity('VAR_POP(a)');
+    this.validateIdentity('SELECT * FROM foo ASOF LEFT JOIN bar ON a = b');
+    this.validateIdentity('SELECT {\'a\': 1} AS x');
+    this.validateIdentity('SELECT {\'a\': {\'b\': {\'c\': 1}}, \'d\': {\'e\': 2}} AS x');
+    this.validateIdentity('SELECT {\'x\': 1, \'y\': 2, \'z\': 3}');
+    this.validateIdentity('SELECT {\'key1\': \'string\', \'key2\': 1, \'key3\': 12.345}');
+    this.validateIdentity('SELECT ROW(x, x + 1, y) FROM (SELECT 1 AS x, \'a\' AS y)');
+    this.validateIdentity('SELECT (x, x + 1, y) FROM (SELECT 1 AS x, \'a\' AS y)');
+    this.validateIdentity('SELECT a.x FROM (SELECT {\'x\': 1, \'y\': 2, \'z\': 3} AS a)');
+    this.validateIdentity('FROM  x SELECT x UNION SELECT 1', 'SELECT x FROM x UNION SELECT 1');
+    this.validateIdentity('FROM (FROM tbl)', 'SELECT * FROM (SELECT * FROM tbl)');
+    this.validateIdentity('FROM tbl', 'SELECT * FROM tbl');
+    this.validateIdentity("x -> '$.family'");
+    this.validateIdentity('CREATE TABLE color (name ENUM(\'RED\', \'GREEN\', \'BLUE\'))');
+    this.validateIdentity('SELECT * FROM foo WHERE bar > $baz AND bla = $bob');
+    this.validateIdentity('SUMMARIZE tbl').assertIs(SummarizeExpr);
+    this.validateIdentity('SUMMARIZE SELECT * FROM tbl').assertIs(SummarizeExpr);
+    this.validateIdentity('CREATE TABLE tbl_summary AS SELECT * FROM (SUMMARIZE tbl)');
+    this.validateIdentity('SELECT STAR(tbl, exclude := [foo])');
+    (this.validateIdentity('UNION_VALUE(k1 := 1)').find(PropertyEqExpr)!.getArgKey('this') as Expression).assertIs(IdentifierExpr);
+    this.validateIdentity(
+      'MERGE INTO people USING (SELECT 1 AS id, 98000.0 AS salary) AS salary_updates USING (id) WHEN MATCHED THEN UPDATE SET salary = salary_updates.salary',
+    );
+    this.validateIdentity(
+      'MERGE INTO people USING (SELECT 1 AS id, 98000.0 AS salary) AS salary_updates USING (id) WHEN MATCHED THEN UPDATE',
+    );
+    this.validateIdentity(
+      'SELECT species, island, COUNT(*) FROM t GROUP BY GROUPING SETS (species), GROUPING SETS (island)',
+    );
+    this.validateIdentity(
+      'SELECT species, island, COUNT(*) FROM t GROUP BY CUBE (species), CUBE (island)',
+    );
+    this.validateIdentity(
+      'SELECT species, island, COUNT(*) FROM t GROUP BY ROLLUP (species), ROLLUP (island)',
+    );
+    this.validateIdentity(
+      "SUMMARIZE TABLE 'https://blobs.duckdb.org/data/Star_Trek-Season_1.csv'",
+    ).assertIs(SummarizeExpr);
+    this.validateIdentity(
+      'COPY (SELECT * FROM "input.parquet" USING SAMPLE RESERVOIR (5000 ROWS)) TO \'output.parquet\' WITH (FORMAT PARQUET, KV_METADATA {\'origin\': \'Dagster\', \'dagster_run_id\': \'98c85a11-d05c-4935-bfa2-198214c2204\'})',
+    );
 
     for (const joinType of [
       'LEFT',
@@ -354,6 +514,30 @@ class TestDuckDB extends Validator {
       'SELECT * FROM t PIVOT(FIRST(t) AS t, FOR quarter IN (\'Q1\', \'Q2\'))',
       'SELECT * FROM t PIVOT(FIRST(t) AS t FOR quarter IN (\'Q1\', \'Q2\'))',
     );
+    this.validateAll("SELECT JSON_ARRAY('a', 'b', 'c')", {
+      write: {
+        duckdb: "SELECT JSON_ARRAY('a', 'b', 'c')",
+        snowflake: "SELECT TO_VARIANT(ARRAY_CONSTRUCT('a', 'b', 'c'))",
+      },
+    });
+    this.validateAll("SELECT JSON_ARRAY(NULL, 'a', 1)", {
+      write: {
+        duckdb: "SELECT JSON_ARRAY(NULL, 'a', 1)",
+        snowflake: "SELECT TO_VARIANT(ARRAY_CONSTRUCT(NULL, 'a', 1))",
+      },
+    });
+    this.validateAll("SELECT JSON_ARRAY(NULL)", {
+      write: {
+        duckdb: "SELECT JSON_ARRAY(NULL)",
+        snowflake: "SELECT TO_VARIANT(ARRAY_CONSTRUCT(NULL))",
+      },
+    });
+    this.validateAll("SELECT JSON_ARRAY()", {
+      write: {
+        duckdb: "SELECT JSON_ARRAY()",
+        snowflake: "SELECT TO_VARIANT(ARRAY_CONSTRUCT())",
+      },
+    });
     this.validateIdentity(
       'SELECT JSON_EXTRACT_STRING(\'{ "family": "anatidae", "species": [ "duck", "goose", "swan", null ] }\', [\'$.family\', \'$.species\'])',
       'SELECT \'{ "family": "anatidae", "species": [ "duck", "goose", "swan", null ] }\' ->> [\'$.family\', \'$.species\']',
@@ -536,6 +720,10 @@ class TestDuckDB extends Validator {
         duckdb: 'SELECT \'{"x": 1}\'::JSON',
         postgres: 'SELECT \'{"x": 1}\'::JSONB',
       },
+      write: {
+        duckdb: 'SELECT CAST(\'{"x": 1}\' AS JSON)',
+        snowflake: 'SELECT CAST(\'{"x": 1}\' AS VARIANT)',
+      },
     });
     this.validateAll('SELECT * FROM produce PIVOT(SUM(sales) FOR quarter IN (\'Q1\', \'Q2\'))', {
       read: {
@@ -543,6 +731,13 @@ class TestDuckDB extends Validator {
         snowflake: 'SELECT * FROM produce PIVOT(SUM(produce.sales) FOR produce.quarter IN (\'Q1\', \'Q2\'))',
       },
     });
+    this.validateAll('SELECT UNNEST([1, 2, 3])', {
+      write: {
+        duckdb: 'SELECT UNNEST([1, 2, 3])',
+        snowflake: "SELECT IFF(_u.pos = _u_2.pos_2, _u_2.col, NULL) AS col FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, (GREATEST(ARRAY_SIZE([1, 2, 3])) - 1) + 1))) AS _u(seq, key, path, index, pos, this) CROSS JOIN TABLE(FLATTEN(INPUT => [1, 2, 3])) AS _u_2(seq, key, path, pos_2, col, this) WHERE _u.pos = _u_2.pos_2 OR (_u.pos > (ARRAY_SIZE([1, 2, 3]) - 1) AND _u_2.pos_2 = (ARRAY_SIZE([1, 2, 3]) - 1))",
+      },
+    });
+
     this.validateAll("SELECT CAST('12.3456' AS DECIMAL(38, 0))", {
       read: {
         snowflake: "SELECT TO_NUMBER('12.3456')",
@@ -664,7 +859,10 @@ class TestDuckDB extends Validator {
         duckdb: 'SELECT ARRAY_LENGTH([0], 1) AS x',
       },
     });
-    this.validateIdentity('REGEXP_REPLACE(this, pattern, replacement, modifiers)');
+    this.validateIdentity('REGEXP_REPLACE(this, pattern, replacement)');
+    this.validateIdentity('REGEXP_REPLACE(this, pattern, replacement, \'g\')');
+    this.validateIdentity('REGEXP_REPLACE(this, pattern, replacement, \'gi\')');
+    this.validateIdentity('REGEXP_REPLACE(this, pattern, replacement, \'ims\')');
     this.validateIdentity(
       'SELECT NTH_VALUE(is_deleted, 2) OVER (PARTITION BY id) AS nth_is_deleted FROM my_table',
     );
@@ -758,6 +956,8 @@ class TestDuckDB extends Validator {
         spark: 'ARRAY_SUM(ARRAY(1, 2))',
       },
     });
+    this.validateIdentity('SELECT LIST_MAX(values) FROM table1');
+    this.validateIdentity('SELECT LIST_MIN(values) FROM table1');
     this.validateAll('STRUCT_PACK(x := 1, y := \'2\')', {
       write: {
         bigquery: 'STRUCT(1 AS x, \'2\' AS y)',
@@ -796,6 +996,15 @@ class TestDuckDB extends Validator {
         spark: 'SORT_ARRAY(x)',
       },
     });
+    this.validateIdentity('SELECT LIST_SORT(x, \'ASC\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DESC\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'ASC\', \'NULLS FIRST\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'ASC\', \'NULLS LAST\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DESC\', \'NULLS FIRST\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DESC\', \'NULLS LAST\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DE\' || \'SC\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DESC\', \'NULLS\' || \' FIRST\')');
+    this.validateIdentity('SELECT LIST_SORT(x, \'DE\' || \'SC\', \'NULLS\' || \' FIRST\')');
     this.validateAll(
       'SELECT fname, lname, age FROM person ORDER BY age DESC NULLS FIRST, fname ASC NULLS LAST, lname',
       {
@@ -902,6 +1111,19 @@ class TestDuckDB extends Validator {
     );
     this.validateIdentity('SELECT REGEXP_EXTRACT(a, \'pattern\', 0, \'i\')');
     this.validateIdentity('SELECT REGEXP_EXTRACT(a, \'pattern\', 1, \'i\')');
+
+    this.validateIdentity(
+      'SELECT REGEXP_EXTRACT_ALL(s, \'pattern\', 0)',
+      'SELECT REGEXP_EXTRACT_ALL(s, \'pattern\')',
+    );
+    this.validateIdentity('SELECT REGEXP_EXTRACT_ALL(s, \'pattern\', 1)');
+    this.validateIdentity('SELECT REGEXP_EXTRACT_ALL(s, \'pattern\', 0, \'i\')');
+    this.validateIdentity('SELECT REGEXP_EXTRACT_ALL(s, \'pattern\', 1, \'im\')');
+    this.validateIdentity(
+      'SELECT REGEXP_EXTRACT_ALL(s, \'pattern\', 0)[2:]',
+      'SELECT REGEXP_EXTRACT_ALL(s, \'pattern\')[2:]',
+    );
+
     this.validateIdentity('SELECT ISNAN(x)');
     this.validateAll('SELECT COUNT_IF(x)', {
       write: {
@@ -1115,8 +1337,6 @@ class TestDuckDB extends Validator {
     this.validateIdentity('FROM t1, t2 SELECT *', 'SELECT * FROM t1, t2');
     this.validateIdentity('ROUND(2.256, 1)');
     this.validateIdentity('SELECT MAKE_DATE(DATE_PART([\'year\', \'month\', \'day\'], CURRENT_DATE))');
-    this.validateIdentity('SELECT TODAY()', 'SELECT CURRENT_DATE');
-    this.validateIdentity('SELECT GET_CURRENT_TIME()', 'SELECT CURRENT_TIME');
     this.validateIdentity('SELECT * FROM t PIVOT(SUM(y) FOR foo IN y_enum)');
     this.validateIdentity(
       'SELECT 20_000 AS literal',
@@ -1165,8 +1385,20 @@ class TestDuckDB extends Validator {
       },
     );
 
+    this.validateAll(
+      'ARRAY_CONTAINS(MAP_KEYS(CAST({\'k1\': \'v1\', \'k2\': \'v2\', \'k3\': \'v3\'} AS MAP(TEXT, TEXT))), \'k1\')',
+      {
+        read: {
+          snowflake: "MAP_CONTAINS_KEY('k1', {'k1': 'v1', 'k2': 'v2', 'k3': 'v3'}::MAP(VARCHAR, VARCHAR))",
+        },
+      },
+    );
+
     this.validateIdentity('SELECT [1, 2, 3][1 + 1:LENGTH([1, 2, 3]) + -1]');
     this.validateIdentity('VERSION()');
+    this.validateIdentity('SELECT TODAY()', 'SELECT CURRENT_DATE');
+    this.validateIdentity('SELECT GET_CURRENT_TIME()', 'SELECT CURRENT_TIME');
+    this.validateIdentity('CURRENT_LOCALTIMESTAMP()', 'LOCALTIMESTAMP').assertIs(LocaltimestampExpr);
 
     this.validateIdentity("UNICODE(foo)");
     this.validateAll("CASE WHEN foo = '' THEN 0 ELSE UNICODE(foo) END", {
@@ -1884,6 +2116,22 @@ class TestDuckDB extends Validator {
       'SELECT * FROM r: range(10), v: (VALUES (42)), s: (FROM range(10))',
       'SELECT * FROM RANGE(0, 10) AS r, (VALUES (42)) AS v, (SELECT * FROM RANGE(0, 10)) AS s',
     );
+    this.validateIdentity(
+      `
+            SELECT
+                l_returnflag,
+                l_linestatus,
+                sum_qty:        sum(l_quantity),
+                sum_base_price: sum(l_extendedprice),
+                sum_disc_price: sum(l_extendedprice * (1-l_discount)),
+                sum_charge:     sum(l_extendedprice * (1-l_discount) * (1+l_tax)),
+                avg_qty:        avg(l_quantity),
+                avg_price:      avg(l_extendedprice),
+                avg_disc:       avg(l_discount),
+                count_order:    count(*)
+            `,
+      'SELECT l_returnflag, l_linestatus, SUM(l_quantity) AS sum_qty, SUM(l_extendedprice) AS sum_base_price, SUM(l_extendedprice * (1 - l_discount)) AS sum_disc_price, SUM(l_extendedprice * (1 - l_discount) * (1 + l_tax)) AS sum_charge, AVG(l_quantity) AS avg_qty, AVG(l_extendedprice) AS avg_price, AVG(l_discount) AS avg_disc, COUNT(*) AS count_order',
+    );
   }
 
   testAtSignToAbs () {
@@ -2153,6 +2401,28 @@ class TestDuckDB extends Validator {
   }
   testMapInsert () {
     this.validateAll(
+      "SELECT MAP_CONCAT(CAST({'a': 1, 'b': 2} AS MAP(TEXT, DECIMAL(38, 0))), MAP {'c': CAST(3 AS DECIMAL(38, 0))})",
+      {
+        read: {
+          snowflake: "SELECT MAP_INSERT({'a':1,'b':2}::MAP(VARCHAR,NUMBER),'c',3)",
+        },
+        write: {
+          duckdb: "SELECT MAP_CONCAT(CAST({'a': 1, 'b': 2} AS MAP(TEXT, DECIMAL(38, 0))), MAP {'c': CAST(3 AS DECIMAL(38, 0))})",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT MAP_CONCAT(CAST({'a': 1} AS MAP(TEXT, DECIMAL(38, 0))), MAP {'a': CAST(99 AS DECIMAL(38, 0))})",
+      {
+        read: {
+          snowflake: "SELECT MAP_INSERT({'a':1}::MAP(VARCHAR,NUMBER),'a',99,TRUE)",
+        },
+        write: {
+          duckdb: "SELECT MAP_CONCAT(CAST({'a': 1} AS MAP(TEXT, DECIMAL(38, 0))), MAP {'a': CAST(99 AS DECIMAL(38, 0))})",
+        },
+      },
+    );
+    this.validateAll(
       "SELECT id, MAP_CONCAT(attrs, MAP {'new_key': 'new_value'}) AS attrs_with_insert FROM demo_maps",
       {
         read: {
@@ -2160,6 +2430,15 @@ class TestDuckDB extends Validator {
         },
         write: {
           duckdb: "SELECT id, MAP_CONCAT(attrs, MAP {'new_key': 'new_value'}) AS attrs_with_insert FROM demo_maps",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT TO_VARIANT('1')",
+      {
+        write: {
+          duckdb: "SELECT CAST('1' AS VARIANT)",
+          snowflake: "SELECT TO_VARIANT('1')",
         },
       },
     );
@@ -2174,6 +2453,17 @@ class TestDuckDB extends Validator {
         },
         write: {
           duckdb: "SELECT CASE WHEN 'hello, snowman' IS NULL THEN NULL ELSE ['hello, snowman'] END AS result",
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT CASE WHEN 4.2 IS NULL THEN NULL ELSE [4.2] END AS result',
+      {
+        read: {
+          snowflake: 'SELECT TO_ARRAY(4.2) AS result',
+        },
+        write: {
+          duckdb: 'SELECT CASE WHEN 4.2 IS NULL THEN NULL ELSE [4.2] END AS result',
         },
       },
     );

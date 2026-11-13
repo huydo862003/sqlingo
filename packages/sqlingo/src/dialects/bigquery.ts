@@ -202,6 +202,10 @@ import {
   PercentRankExpr,
   RankExpr,
   RowNumberExpr,
+  AnonymousExpr,
+  AiEmbedExpr,
+  AiSimilarityExpr,
+  AiGenerateExpr,
 } from '../expressions';
 import {
   annotateTypes, TypeAnnotator,
@@ -898,6 +902,7 @@ export class BigQueryTokenizer extends Tokenizer {
       'EXCEPTION': TokenType.COMMAND,
       'EXPORT': TokenType.EXPORT,
       'FLOAT64': TokenType.DOUBLE,
+      'FOR SYSTEM TIME': TokenType.TIMESTAMP_SNAPSHOT,
       'FOR SYSTEM_TIME': TokenType.TIMESTAMP_SNAPSHOT,
       'LOOP': TokenType.COMMAND,
       'MODEL': TokenType.MODEL,
@@ -1921,11 +1926,23 @@ export class BigQueryParser extends Parser {
       } else if (detectedPrefix === 'AI' || detectedPrefix === 'ML') {
         // Fallback for cases where super succeeded but produced wrong results
         this.retreat(funcIndex);
-        const parsed = this.parseFunction({
+        let parsed = this.parseFunction({
           anyToken: true,
         });
 
         if (parsed) {
+          if (detectedPrefix === 'AI' && parsed instanceof AnonymousExpr) {
+            const aiScalars: Record<string, new (args: any) => any> = {
+              EMBED: AiEmbedExpr,
+              SIMILARITY: AiSimilarityExpr,
+              GENERATE: AiGenerateExpr,
+            };
+            const ExprClass = aiScalars[parsed.name.toUpperCase()];
+
+            if (ExprClass) {
+              parsed = new ExprClass({ expressions: parsed.args.expressions });
+            }
+          }
           result = new DotExpr({
             this: result.args.this,
             expression: parsed,

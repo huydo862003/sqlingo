@@ -3903,6 +3903,28 @@ export class AlterRenameExpr extends Expression {
   }
 }
 
+export type RenameIndexExprArgs = Merge<[
+  BaseExpressionArgs,
+  {
+    this?: Expression;
+    to?: Expression;
+  },
+]>;
+
+export class RenameIndexExpr extends Expression {
+  static key = ExpressionKey.ALTER_RENAME_INDEX;
+
+  static requiredArgs = new Set(['this', 'to']);
+
+  static availableArgs = new Set(['this', 'to']);
+
+  declare args: RenameIndexExprArgs;
+
+  constructor (args: RenameIndexExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type AlterModifySqlSecurityExprArgs = Merge<[
   BaseExpressionArgs,
   {
@@ -4261,6 +4283,7 @@ export type DeleteExprArgs = Merge<[
     limit?: number | Expression;
     tables?: Expression[];
     cluster?: Expression;
+    hint?: Expression;
     this?: Expression;
   },
 ]>;
@@ -4280,6 +4303,7 @@ export class DeleteExpr extends DmlExpr {
     'limit',
     'tables',
     'cluster',
+    'hint',
   ]);
 
   declare args: DeleteExprArgs;
@@ -5235,6 +5259,7 @@ export type LoadDataExprArgs = Merge<[
     local?: Expression;
     overwrite?: Expression;
     inpath?: Expression;
+    files?: Expression;
     partition?: Expression;
     inputFormat?: string;
     serde?: Expression;
@@ -5247,7 +5272,6 @@ export class LoadDataExpr extends Expression {
 
   static requiredArgs = new Set([
     'this',
-    'inpath',
   ]);
 
   static availableArgs = new Set([
@@ -5255,6 +5279,7 @@ export class LoadDataExpr extends Expression {
     'local',
     'overwrite',
     'inpath',
+    'files',
     'partition',
     'inputFormat',
     'serde',
@@ -9613,6 +9638,24 @@ export class AutoIncrementColumnConstraintExpr extends ColumnConstraintKindExpr 
   }
 }
 
+export type InvisibleColumnConstraintExprArgs = Merge<[
+  ColumnConstraintKindExprArgs,
+]>;
+
+export class InvisibleColumnConstraintExpr extends ColumnConstraintKindExpr {
+  static key = ExpressionKey.INVISIBLE_COLUMN_CONSTRAINT;
+
+  static requiredArgs = new Set<string>();
+
+  static availableArgs = new Set<string>();
+
+  declare args: InvisibleColumnConstraintExprArgs;
+
+  constructor (args: InvisibleColumnConstraintExprArgs = {}) {
+    super(args);
+  }
+}
+
 export type ZeroFillColumnConstraintExprArgs = Merge<[
   ColumnConstraintExprArgs,
 ]>;
@@ -13342,6 +13385,7 @@ export type UpdateExprArgs = Merge<[
     order?: Expression;
     limit?: number | Expression;
     options?: Expression[];
+    hint?: Expression;
   },
 ]>;
 
@@ -13360,6 +13404,7 @@ export class UpdateExpr extends DmlExpr {
     'order',
     'limit',
     'options',
+    'hint',
   ]);
 
   declare args: UpdateExprArgs;
@@ -15577,7 +15622,7 @@ export type DivExprArgs = Merge<[
   {
     this?: ExpressionValue;
     expression?: ExpressionValue;
-    typed?: Expression;
+    typed?: Expression | boolean;
     safe?: boolean;
   },
 ]>;
@@ -17051,6 +17096,7 @@ export type JarowinklerSimilarityExprArgs = Merge<[
     this?: Expression;
     expression?: Expression;
     caseInsensitive?: boolean;
+    integerScale?: boolean;
   },
 ]>;
 
@@ -17066,6 +17112,7 @@ export class JarowinklerSimilarityExpr extends FuncExpr {
     'this',
     'expression',
     'caseInsensitive',
+    'integerScale',
   ]);
 
   static argOrder = [
@@ -18458,6 +18505,63 @@ export class AiClassifyExpr extends FuncExpr {
   declare args: AiClassifyExprArgs;
 
   constructor (args: AiClassifyExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
+export type AiEmbedExprArgs = Merge<[
+  FuncExprArgs,
+]>;
+
+export class AiEmbedExpr extends FuncExpr {
+  static key = ExpressionKey.AI_EMBED;
+  static isVarLenArgs = true;
+  static _sqlNames = ['EMBED'];
+  static availableArgs = new Set(['expressions']);
+  declare args: AiEmbedExprArgs;
+  constructor (args: AiEmbedExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
+export type AiSimilarityExprArgs = Merge<[
+  FuncExprArgs,
+]>;
+
+export class AiSimilarityExpr extends FuncExpr {
+  static key = ExpressionKey.AI_SIMILARITY;
+  static isVarLenArgs = true;
+  static _sqlNames = ['SIMILARITY'];
+  static availableArgs = new Set(['expressions']);
+  declare args: AiSimilarityExprArgs;
+  constructor (args: AiSimilarityExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
+export type AiGenerateExprArgs = Merge<[
+  FuncExprArgs,
+]>;
+
+export class AiGenerateExpr extends FuncExpr {
+  static key = ExpressionKey.AI_GENERATE;
+  static isVarLenArgs = true;
+  static _sqlNames = ['GENERATE'];
+  static availableArgs = new Set(['expressions']);
+  declare args: AiGenerateExprArgs;
+  constructor (args: AiGenerateExprArgs = {}) {
     super(args);
   }
 
@@ -28976,6 +29080,7 @@ export type SubstringExprArgs = Merge<[
     this?: Expression;
     start?: Expression;
     length?: number | Expression;
+    zeroStart?: boolean;
   },
 ]>;
 
@@ -28990,6 +29095,7 @@ export class SubstringExpr extends FuncExpr {
     'this',
     'start',
     'length',
+    'zeroStart',
   ]);
 
   static argOrder = [

@@ -2373,13 +2373,22 @@ export function buildDateDelta<T extends Expression> (
 
 export function buildDateDeltaWithInterval<T extends Expression> (
   ExpClass: new (args: any) => T,
+  defaultUnit?: string,
 ): (args: any) => T {
   return (args: any) => {
-    if (args.length < 2) throw new ParseError(`Expected at least 2 arguments but got ${args.length}`);
+    if (args.length < 2) return new ExpClass({ this: args[0] });
     const interval = args[1];
 
     if (!(interval instanceof IntervalExpr)) {
-      throw new ParseError(`INTERVAL expression expected but got '${interval}'`);
+      if (defaultUnit === undefined) {
+        throw new ParseError(`INTERVAL expression expected but got '${interval}'`);
+      }
+
+      return new ExpClass({
+        this: args[0],
+        expression: interval,
+        unit: LiteralExpr.string(defaultUnit),
+      });
     }
 
     return new ExpClass({

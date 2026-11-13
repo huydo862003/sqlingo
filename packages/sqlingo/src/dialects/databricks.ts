@@ -15,6 +15,7 @@ import type {
 } from '../expressions';
 import {
   JsonExtractScalarExpr,
+  IfExpr,
   Expression,
   JsonPathRootExpr,
   GroupConcatExpr,
@@ -136,6 +137,7 @@ class DatabricksParser extends Spark.Parser {
   }) => Expression> {
     return {
       ...Spark.Parser.FUNCTIONS,
+      IFF: (args: unknown[]) => IfExpr.fromArgList(args),
       GETDATE: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
       DATEADD: buildDateDelta(DateAddExpr, undefined, {
         defaultUnit: 'DAY',

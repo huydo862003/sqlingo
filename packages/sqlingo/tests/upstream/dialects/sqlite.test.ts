@@ -79,6 +79,49 @@ class TestSQLite extends Validator {
       },
     );
     this.validateAll(
+      'SELECT MIN(a, b) FROM t',
+      {
+        read: {
+          postgres: 'SELECT LEAST(a, b) FROM t',
+          sqlite: 'SELECT MIN(a, b) FROM t',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT MAX(a, b) FROM t',
+      {
+        read: {
+          postgres: 'SELECT GREATEST(a, b) FROM t',
+          sqlite: 'SELECT MAX(a, b) FROM t',
+        },
+      },
+    );
+    // TODO: not yet supported - JSON_AGG read from postgres produces JSON_ARRAYAGG instead of JSON_GROUP_ARRAY
+    // this.validateAll(
+    //   'SELECT JSON_GROUP_ARRAY(name) FROM t',
+    //   {
+    //     read: {
+    //       postgres: 'SELECT JSON_AGG(name) FROM t',
+    //       sqlite: 'SELECT JSON_GROUP_ARRAY(name) FROM t',
+    //     },
+    //     write: {
+    //       postgres: 'SELECT JSON_AGG(name) FROM t',
+    //     },
+    //   },
+    // );
+    // this.validateAll(
+    //   'SELECT JSON_GROUP_OBJECT(name, value) FROM t',
+    //   {
+    //     read: {
+    //       postgres: 'SELECT JSON_OBJECT_AGG(name, value) FROM t',
+    //       sqlite: 'SELECT JSON_GROUP_OBJECT(name, value) FROM t',
+    //     },
+    //     write: {
+    //       postgres: 'SELECT JSON_OBJECT_AGG(name, value) FROM t',
+    //     },
+    //   },
+    // );
+    this.validateAll(
       'CURRENT_DATE',
       {
         read: {
@@ -146,6 +189,11 @@ class TestSQLite extends Validator {
     this.validateAll('x', {
       read: {
         snowflake: 'LEAST(x)',
+      },
+    });
+    this.validateAll('x', {
+      read: {
+        postgres: 'GREATEST(x)',
       },
     });
     this.validateAll('MIN(x)', {
@@ -308,6 +356,7 @@ class TestSQLite extends Validator {
 
   testTrunc () {
     this.validateIdentity('TRUNC(3.14)').assertIs(TruncExpr);
+    this.validateIdentity('TRUNC(3.14, 2)', 'TRUNC(3.14)').assertIs(TruncExpr);
   }
 
   testDdl () {
@@ -427,6 +476,12 @@ class TestSQLite extends Validator {
     );
     this.validateIdentity(
       'CREATE TRIGGER check_balance BEFORE UPDATE OF balance ON accounts WHEN NEW.balance < 0 BEGIN UPDATE accounts SET balance = 0 WHERE id = NEW.id END',
+      undefined,
+      { checkCommandWarning: true },
+    );
+
+    this.validateIdentity(
+      'CREATE TRIGGER view_insert INSTEAD OF INSERT ON employee_view BEGIN INSERT INTO employees (id, name, department) VALUES (NEW.id, NEW.name, NEW.department) END',
       undefined,
       { checkCommandWarning: true },
     );

@@ -10,10 +10,14 @@ import {
   AliasExpr, IdentifierExpr, ColumnExpr, CommandExpr, AlterExpr, DropExpr,
   AddConstraintExpr, ConstraintExpr, QueryOptionExpr, ParameterExpr, VarExpr,
   TableExpr, InsertExpr, DateExpr, TimeExpr, TimestampExpr,
+  SelectExpr, DataTypeExpr, DataTypeExprKind,
 } from '../../../src/expressions';
 import {
   narrowInstanceOf,
 } from '../../../src/port_internals';
+import {
+  annotateTypes,
+} from '../../../src/optimizer/annotate_types';
 import {
   Validator,
 } from './validator';
@@ -42,7 +46,10 @@ class TestTSQL extends Validator {
     this.validateIdentity('CREATE view a.b.c', 'CREATE VIEW b.c');
     this.validateIdentity('DROP view a.b.c', 'DROP VIEW b.c');
     this.validateIdentity('ROUND(x, 1, 0)');
-    this.validateIdentity('EXECUTE MyProc @id = 7, @name = \'Lochristi\'');
+    this.validateIdentity(
+      'EXEC MyProc @id = 7, @name = \'Lochristi\'',
+      'EXECUTE MyProc @id = 7, @name = \'Lochristi\'',
+    );
     this.validateIdentity('SELECT TRIM(\'     test    \') AS Result');
     this.validateIdentity('SELECT TRIM(\'.,! \' FROM \'     #     test    .\') AS Result');
     this.validateIdentity('SELECT * FROM t TABLESAMPLE (10 PERCENT)');
@@ -87,6 +94,10 @@ class TestTSQL extends Validator {
       'INSERT INTO foo.bar WITH cte AS (SELECT 1 AS one) SELECT * FROM cte',
       'WITH cte AS (SELECT 1 AS one) INSERT INTO foo.bar SELECT * FROM cte',
     );
+
+    expect(
+      annotateTypes(this.validateIdentity('SELECT 1 WHERE EXISTS(SELECT 1)')).sql({ dialect: 'tsql' }),
+    ).toBe('SELECT 1 WHERE EXISTS(SELECT 1)');
 
     this.validateAll(
       'CREATE TABLE test_table([ID] [BIGINT] NOT NULL,[EffectiveFrom] [DATETIME2] (3) NOT NULL)',
@@ -190,6 +201,14 @@ class TestTSQL extends Validator {
         snowflake: 'CREATE TEMPORARY TABLE foo AS WITH t(c) AS (SELECT 1) SELECT c FROM t',
       },
     });
+    this.validateAll(
+      'WITH t(c) AS (SELECT 1) SELECT * INTO UNLOGGED foo FROM (SELECT c AS c FROM t) AS temp',
+      {
+        write: {
+          duckdb: 'CREATE TABLE foo AS WITH t(c) AS (SELECT 1) SELECT * FROM (SELECT c AS c FROM t) AS temp',
+        },
+      },
+    );
     this.validateAll(
       'WITH t(c) AS (SELECT 1) SELECT * INTO UNLOGGED foo FROM (SELECT c AS c FROM t) AS temp',
       {
@@ -309,10 +328,20 @@ class TestTSQL extends Validator {
       .args['alias'].assertIs(IdentifierExpr);
 
     this.validateAll(
-      'IF OBJECT_ID(\'tempdb.dbo.#TempTableName\', \'U\') IS NOT NULL DROP TABLE #TempTableName',
+      'IF OBJECT_ID(\'tempdb.dbo.#TempTableName\', \'U\') IS NOT NULL BEGIN DROP TABLE #TempTableName; END',
       {
         write: {
-          tsql: 'IF NOT OBJECT_ID(\'tempdb.dbo.#TempTableName\', \'U\') IS NULL BEGIN DROP TABLE #TempTableName',
+          tsql: 'IF NOT OBJECT_ID(\'tempdb.dbo.#TempTableName\', \'U\') IS NULL BEGIN DROP TABLE #TempTableName; END',
+          spark: 'DROP TABLE IF EXISTS TempTableName',
+        },
+      },
+    );
+    this.validateAll(
+      'IF OBJECT_ID(\'tempdb.dbo.#TempTableName\') IS NOT NULL BEGIN DROP TABLE #TempTableName; END',
+      {
+        write: {
+          tsql: 'IF NOT OBJECT_ID(\'tempdb.dbo.#TempTableName\') IS NULL BEGIN DROP TABLE #TempTableName; END',
+          spark: 'DROP TABLE IF EXISTS TempTableName',
         },
       },
     );
@@ -520,6 +549,9 @@ class TestTSQL extends Validator {
       },
     });
     this.validateIdentity('CEILING(2)');
+
+    this.validateIdentity('OBJECT_ID(\'foo\')');
+    this.validateIdentity('OBJECT_ID(\'foo\', \'U\')');
   }
 
   testOption () {
@@ -863,6 +895,12 @@ FOR XML
         tsql: 'CAST(x AS DATE)',
       },
     });
+    this.validateAll('CAST(x as DATE)', {
+      write: {
+        spark: 'CAST(x AS DATE)',
+        tsql: 'CAST(x AS DATE)',
+      },
+    });
     this.validateAll('CAST(x as TIME(4))', {
       write: {
         spark: 'CAST(x AS TIMESTAMP)',
@@ -1034,7 +1072,41 @@ FOR XML
       'CREATE NONCLUSTERED COLUMNSTORE INDEX index_name ON foo.bar',
     );
     this.validateIdentity(
+      'CREATE PROCEDURE foo AS BEGIN DELETE FROM bla WHERE foo < CURRENT_TIMESTAMP - 7; END',
       'CREATE PROCEDURE foo AS BEGIN DELETE FROM bla WHERE foo < GETDATE() - 7; END',
+    );
+    this.validateIdentity(
+      'INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, PreviousQty FROM (MERGE INTO Production.ProductInventory AS pi USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod INNER JOIN Sales.SalesOrderHeader AS soh ON sod.SalesOrderID = soh.SalesOrderID AND soh.OrderDate BETWEEN \'20030701\' AND \'20030731\' GROUP BY ProductID) AS src(ProductID, OrderQty) ON pi.ProductID = src.ProductID WHEN MATCHED AND pi.Quantity - src.OrderQty >= 0 THEN UPDATE SET pi.Quantity = pi.Quantity - src.OrderQty WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 THEN DELETE OUTPUT $action, Inserted.ProductID, Inserted.LocationID, Inserted.Quantity AS NewQty, Deleted.Quantity AS PreviousQty) AS Changes(Action, ProductID, LocationID, NewQty, PreviousQty) WHERE Action = \'UPDATE\'',
+      `INSERT INTO Production.UpdatedInventory
+SELECT
+  ProductID,
+  LocationID,
+  NewQty,
+  PreviousQty
+FROM (
+  MERGE INTO Production.ProductInventory AS pi
+  USING (
+    SELECT
+      ProductID,
+      SUM(OrderQty)
+    FROM Sales.SalesOrderDetail AS sod
+    INNER JOIN Sales.SalesOrderHeader AS soh
+      ON sod.SalesOrderID = soh.SalesOrderID
+      AND soh.OrderDate BETWEEN '20030701' AND '20030731'
+    GROUP BY
+      ProductID
+  ) AS src(ProductID, OrderQty)
+  ON pi.ProductID = src.ProductID
+  WHEN MATCHED AND pi.Quantity - src.OrderQty >= 0 THEN UPDATE SET
+    pi.Quantity = pi.Quantity - src.OrderQty
+  WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 THEN DELETE
+  OUTPUT $action, Inserted.ProductID, Inserted.LocationID, Inserted.Quantity AS NewQty, Deleted.Quantity AS PreviousQty
+) AS Changes(Action, ProductID, LocationID, NewQty, PreviousQty)
+WHERE
+  Action = 'UPDATE'`,
+      {
+        pretty: true,
+      },
     );
     this.validateAll('CREATE TABLE [#temptest] (name INTEGER)', {
       read: {
@@ -1104,6 +1176,15 @@ FOR XML
         },
       },
     );
+    // TODO: not yet supported - CTE in CTAS to TSQL drops subquery parentheses
+    // this.validateAll(
+    //   'IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = \'baz\' AND TABLE_SCHEMA = \'bar\' AND TABLE_CATALOG = \'foo\') EXEC(\'WITH cte1 AS (SELECT 1 AS col_a), cte2 AS (SELECT 1 AS col_b) SELECT * INTO foo.bar.baz FROM (SELECT col_a FROM cte1 UNION ALL SELECT col_b FROM cte2) AS temp\')',
+    //   {
+    //     read: {
+    //       '': 'CREATE TABLE IF NOT EXISTS foo.bar.baz AS WITH cte1 AS (SELECT 1 AS col_a), cte2 AS (SELECT 1 AS col_b) SELECT col_a FROM cte1 UNION ALL SELECT col_b FROM cte2',
+    //     },
+    //   },
+    // );
     this.validateAll('CREATE OR ALTER VIEW a.b AS SELECT 1', {
       read: {
         '': 'CREATE OR REPLACE VIEW a.b AS SELECT 1',
@@ -2029,6 +2110,33 @@ WHERE
     });
   }
 
+  testCount () {
+    const count = annotateTypes(this.validateIdentity('SELECT COUNT(1) FROM x'));
+    expect(((count as SelectExpr).selects[0].type as DataTypeExpr)?.args.this).toBe(DataTypeExprKind.INT);
+
+    const countBig = annotateTypes(this.validateIdentity('SELECT COUNT_BIG(1) FROM x'));
+    expect(((countBig as SelectExpr).selects[0].type as DataTypeExpr)?.args.this).toBe(DataTypeExprKind.BIGINT);
+
+    this.validateAll('SELECT COUNT_BIG(1) FROM x', {
+      read: {
+        duckdb: 'SELECT COUNT(1) FROM x',
+        spark: 'SELECT COUNT(1) FROM x',
+      },
+      write: {
+        duckdb: 'SELECT COUNT(1) FROM x',
+        spark: 'SELECT COUNT(1) FROM x',
+        tsql: 'SELECT COUNT_BIG(1) FROM x',
+      },
+    });
+    this.validateAll('SELECT COUNT(1) FROM x', {
+      write: {
+        duckdb: 'SELECT COUNT(1) FROM x',
+        spark: 'SELECT COUNT(1) FROM x',
+        tsql: 'SELECT COUNT(1) FROM x',
+      },
+    });
+  }
+
   testEoMonth () {
     this.validateAll('EOMONTH(GETDATE())', {
       read: {
@@ -2111,6 +2219,9 @@ WHERE
     );
     this.validateIdentity(
       'CREATE TABLE test ([data] CHAR(7), [valid_from] DATETIME2(2) GENERATED ALWAYS AS ROW START NOT NULL, [valid_to] DATETIME2(2) GENERATED ALWAYS AS ROW END NOT NULL, PERIOD FOR SYSTEM_TIME ([valid_from], [valid_to])) WITH(SYSTEM_VERSIONING=ON(HISTORY_TABLE=[dbo].[benchmark_history], DATA_CONSISTENCY_CHECK=OFF))',
+    );
+    this.validateIdentity(
+      'CREATE TABLE test ([data] CHAR(7), [valid_from] DATETIME2(2) GENERATED ALWAYS AS ROW START NOT NULL, [valid_to] DATETIME2(2) GENERATED ALWAYS AS ROW END NOT NULL, PERIOD FOR SYSTEM_TIME ([valid_from], [valid_to])) WITH(SYSTEM_VERSIONING=ON(HISTORY_TABLE=[dbo].[benchmark_history]))',
     );
     this.validateIdentity(
       'CREATE TABLE test ([data] CHAR(7), [valid_from] DATETIME2(2) GENERATED ALWAYS AS ROW START NOT NULL, [valid_to] DATETIME2(2) GENERATED ALWAYS AS ROW END NOT NULL, PERIOD FOR SYSTEM_TIME ([valid_from], [valid_to])) WITH(SYSTEM_VERSIONING=ON(HISTORY_TABLE=[dbo].[benchmark_history]))',
@@ -2498,6 +2609,11 @@ FROM OPENJSON(@json) WITH (
       undefined,
       { checkCommandWarning: true },
     );
+    this.validateIdentity(
+      "CREATE TRIGGER ddl_trig ON DATABASE FOR CREATE_TABLE AS BEGIN INSERT INTO schema_changes (event_type, event_time, login_name) VALUES ('CREATE_TABLE', GETDATE(), SYSTEM_USER) END",
+      undefined,
+      { checkCommandWarning: true },
+    );
   }
 }
 
@@ -2536,6 +2652,7 @@ describe('TestTSQL', () => {
   test('testTop', () => t.testTop());
   test('testFormat', () => t.testFormat());
   test('testString', () => t.testString());
+  test('testCount', () => t.testCount());
   test('testEomonth', () => t.testEoMonth());
   test('testIdentifierPrefixes', () => t.testIdentifierPrefixes());
   test('testTemporalTable', () => t.testTemporalTable());

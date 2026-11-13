@@ -2015,12 +2015,20 @@ export class Postgres extends Dialect {
   @cache
   static get TIME_MAPPING () {
     return {
+      AM: '%p',
+      'A.M.': '%p',
       d: '%u',
       D: '%u',
+      day: '%A',
+      Day: '%A',
+      DAY: '%A',
       dd: '%d',
       DD: '%d',
       ddd: '%j',
       DDD: '%j',
+      dy: '%a',
+      Dy: '%a',
+      DY: '%a',
       FMDD: '%-d',
       FMDDD: '%-j',
       FMHH12: '%-I',
@@ -2028,13 +2036,27 @@ export class Postgres extends Dialect {
       FMMI: '%-M',
       FMMM: '%-m',
       FMSS: '%-S',
+      hh: '%I',
+      HH: '%I',
       HH12: '%I',
       HH24: '%H',
       mi: '%M',
       MI: '%M',
       mm: '%m',
       MM: '%m',
+      mon: '%b',
+      Mon: '%b',
+      MON: '%b',
+      month: '%B',
+      Month: '%B',
+      MONTH: '%B',
       OF: '%z',
+      PM: '%p',
+      'P.M.': '%p',
+      am: '%p',
+      'a.m.': '%p',
+      pm: '%p',
+      'p.m.': '%p',
       ss: '%S',
       SS: '%S',
       TMDay: '%A',
@@ -2049,6 +2071,20 @@ export class Postgres extends Dialect {
       YY: '%y',
       yyyy: '%Y',
       YYYY: '%Y',
+    };
+  }
+
+  // Prefer bare forms (Mon, Day, Dy, Month) over TM-prefixed forms when
+  // generating Postgres SQL from the internal strftime representation.
+  static get INVERSE_TIME_MAPPING () {
+    return {
+      ...super.INVERSE_TIME_MAPPING,
+      '%A': 'Day',
+      '%a': 'Dy',
+      '%b': 'Mon',
+      '%B': 'Month',
+      '%I': 'HH12',
+      '%p': 'AM',
     };
   }
 

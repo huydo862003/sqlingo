@@ -9,7 +9,7 @@ import {
   UnsupportedError,
 } from '../../../src/index';
 import { annotateTypes } from '../../../src/optimizer/annotate_types';
-import { DivExpr, DataTypeExprKind } from '../../../src/expressions';
+import { DivExpr, DataTypeExpr, DataTypeExprKind } from '../../../src/expressions';
 import {
   Validator,
 } from './validator';
@@ -260,7 +260,8 @@ class TestDremio extends Validator {
     const divResultType = (sql: string, dialect: string) => {
       const tree = parseOne(sql, { dialect });
       annotateTypes(tree, { dialect });
-      return tree.find(DivExpr)?.type?.args?.this;
+      const dtype = tree.find(DivExpr)?.type;
+      return dtype instanceof DataTypeExpr ? dtype.args.this : undefined;
     };
     expect(divResultType('SELECT 5 / 2', 'dremio')).toBe(DataTypeExprKind.BIGINT);
     expect(divResultType('SELECT 5 / 2', 'oracle')).toBe(DataTypeExprKind.DOUBLE);

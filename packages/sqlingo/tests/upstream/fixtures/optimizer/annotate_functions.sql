@@ -5288,6 +5288,14 @@ PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY tbl.bigint_col) OVER (PARTITION BY 
 BIGINT;
 
 # dialect: snowflake
+ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col);
+ARRAY;
+
+# dialect: snowflake
+ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col) OVER (PARTITION BY tbl.text_col);
+ARRAY;
+
+# dialect: snowflake
 PARSE_IP('192.168.1.1', 'INET');
 OBJECT;
 
@@ -5843,6 +5851,10 @@ FLOAT;
 DEGREES(tbl.bigint_col);
 BIGINT;
 
+# dialect: tsql 
+CURRENT_TIMESTAMP;
+DATETIME;
+
 --------------------------------------
 -- MySQL
 --------------------------------------
@@ -6251,6 +6263,14 @@ HUGEINT;
 DATE_DIFF('year', tbl.timestamp_col, tbl.timestamp_col);
 BIGINT;
 
+# dialect: duckdb
+EXTRACT('hour' FROM tbl.timestamp_col);
+BIGINT;
+
+# dialect: duckdb
+EXTRACT('month' FROM tbl.timestamp_col);
+BIGINT;
+
 --------------------------------------
 -- Presto / Trino
 --------------------------------------
@@ -6294,18 +6314,7 @@ BIGINT;
 # dialect: presto, trino
 WIDTH_BUCKET(tbl.double_col, tbl.array_col);
 BIGINT;
-# dialect: duckdb
-EXTRACT('hour' FROM tbl.timestamp_col);
-BIGINT;
 
-# dialect: duckdb
-EXTRACT('month' FROM tbl.timestamp_col);
-BIGINT;
-
-# dialect: snowflake
-ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col);
-ARRAY;
-
-# dialect: snowflake
-ARRAY_AGG(tbl.int_col) WITHIN GROUP (ORDER BY tbl.int_col) OVER (PARTITION BY tbl.text_col);
-ARRAY;
+# dialect: trino
+ARRAY_FIRST(ARRAY['a', 'b'], x -> x = 'b');
+VARCHAR;

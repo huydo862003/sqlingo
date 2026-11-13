@@ -2,6 +2,7 @@ import {
   describe, test,
 } from 'vitest';
 import {
+  CurrentSchemaExpr,
   TruncExpr, AnonymousExpr, DateTruncExpr,
 } from '../../../src/expressions';
 import {
@@ -19,6 +20,29 @@ class TestExasol extends Validator {
     this.validateIdentity('SYSTIMESTAMP', 'SYSTIMESTAMP()');
     this.validateIdentity('SELECT SYSTIMESTAMP()');
     this.validateIdentity('SELECT SYSTIMESTAMP(6)');
+    this.validateIdentity('SELECT CURDATE()', 'SELECT CURRENT_DATE');
+    this.validateIdentity('SELECT USER', 'SELECT CURRENT_USER');
+    this.validateIdentity('SELECT USER()', 'SELECT CURRENT_USER');
+    this.validateIdentity('SELECT CURRENT_USER', 'SELECT CURRENT_USER');
+    this.validateIdentity('CURRENT_SCHEMA').assertIs(CurrentSchemaExpr);
+    this.validateIdentity('SELECT NOW()', 'SELECT CURRENT_TIMESTAMP()');
+    this.validateIdentity('SELECT FROM_POSIX_TIME(1234567890)');
+    this.validateAll(
+      'SELECT FROM_POSIX_TIME(col)',
+      {
+        read: {
+          mysql: 'SELECT FROM_UNIXTIME(col)',
+        },
+        write: {
+          exasol: 'SELECT FROM_POSIX_TIME(col)',
+          mysql: 'SELECT FROM_UNIXTIME(col)',
+        },
+      },
+    );
+    this.validateIdentity(
+      'select foo, bar from table_1 minus select foo, bar from table_2',
+      'SELECT foo, bar FROM table_1 EXCEPT SELECT foo, bar FROM table_2',
+    );
   }
 
   testQualifyUnscopedStar () {
@@ -320,6 +344,14 @@ class TestExasol extends Validator {
     );
     this.validateIdentity('SELECT TO_CHAR(12345.6789) AS TO_CHAR');
     this.validateIdentity('SELECT TO_CHAR(-12345.67890, \'000G000G000D000000MI\') AS TO_CHAR');
+    this.validateAll(
+      'SELECT TO_CHAR(CAST(\'2009-10-04 22:23:00\' AS TIMESTAMP), \'DAY MONTH YYYY\')',
+      {
+        read: {
+          mysql: 'SELECT DATE_FORMAT(\'2009-10-04 22:23:00\', \'%W %M %Y\')',
+        },
+      },
+    );
 
     this.validateIdentity(
       'SELECT id, department, hire_date, GROUP_CONCAT(id ORDER BY hire_date SEPARATOR \',\') OVER (PARTITION BY department rows between 1 preceding and 1 following) GROUP_CONCAT_RESULT from employee_table ORDER BY department, hire_date',
@@ -489,7 +521,7 @@ class TestExasol extends Validator {
         write: {
           exasol: 'SELECT TO_CHAR(CAST(\'2024-07-08 13:45:00\' AS TIMESTAMP), \'DY\')',
           oracle: 'SELECT TO_CHAR(CAST(\'2024-07-08 13:45:00\' AS TIMESTAMP), \'DY\')',
-          postgres: 'SELECT TO_CHAR(CAST(\'2024-07-08 13:45:00\' AS TIMESTAMP), \'TMDy\')',
+          postgres: 'SELECT TO_CHAR(CAST(\'2024-07-08 13:45:00\' AS TIMESTAMP), \'Dy\')',
           databricks: 'SELECT DATE_FORMAT(CAST(\'2024-07-08 13:45:00\' AS TIMESTAMP), \'EEE\')',
         },
       },
@@ -1016,6 +1048,12 @@ class TestExasol extends Validator {
         databricks: 'SELECT city, COUNT(*) OVER () FROM dealer GROUP BY ALL',
       },
     });
+    this.validateAll('SELECT * FROM t GROUP BY ALL', {
+      write: {
+        exasol: 'SELECT DISTINCT * FROM t',
+        databricks: 'SELECT * FROM t GROUP BY ALL',
+      },
+    });
   }
 
   testExasolKeywords () {
@@ -1032,6 +1070,10 @@ class TestExasol extends Validator {
         trino: "SELECT JSON_VALUE('{\"d\":\"a\"}', '$.d' NULL ON ERROR) AS x",
       },
     });
+    // TODO: not yet supported - EMITS clause not parsed for JSON_EXTRACT
+    // this.validateIdentity(
+    //   "SELECT JSON_EXTRACT('{\"firstname\" : \"Ann\", \"surname\" : \"Smith\", \"age\" : 29}', '$.firstname', '$.surname', '$.age') EMITS (firstname VARCHAR(100), surname VARCHAR(100), age INT)",
+    // );
   }
 }
 

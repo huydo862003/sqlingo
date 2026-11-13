@@ -73,6 +73,17 @@ import type {
   BitLengthExpr,
   RtrimmedLengthExpr,
   ConcatWsExpr,
+
+  EncryptExpr,
+  DecryptExpr,
+  DecryptRawExpr,
+  EncryptRawExpr,
+  ParseUrlExpr,
+  ParseIpExpr,
+  SoundexExpr,
+  ArrayUnionAggExpr,
+  StuffExpr,
+  ReduceExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -157,6 +168,7 @@ import {
   IsNullValueExpr,
   JsonbExistsExpr,
   JsonbObjectAggExpr,
+  JsonArrayExpr,
   JsonExtractArrayExpr,
   JsonFormatExpr,
   JsonObjectAggExpr,
@@ -422,7 +434,6 @@ import {
   arrayCompactSql,
   arrayConcatSql,
   generateSeriesSql as generateSeriesSqlHelper,
-  jarowinklerSimilarity,
   renameFunc,
   removeFromArrayUsingFilter,
   noCommentColumnConstraintSql,
@@ -2383,6 +2394,8 @@ class DuckDBTokenizer extends Tokenizer {
     };
   }
 
+  static VAR_SINGLE_TOKENS = new Set(['$']);
+
   @cache
   static get COMMANDS (): Set<TokenType> {
     const commands = new Set(Tokenizer.COMMANDS);
@@ -2511,6 +2524,7 @@ class DuckDBParser extends Parser {
         }),
         JARO_WINKLER_SIMILARITY: (args: unknown[]) => JarowinklerSimilarityExpr.fromArgList(args),
         JSON: (args: unknown[]) => ParseJsonExpr.fromArgList(args),
+        JSON_ARRAY: (args: Expression[]) => new JsonArrayExpr({ expressions: args }),
         JSON_EXTRACT_PATH: buildExtractJsonWithPath(JsonExtractExpr),
         JSON_EXTRACT_STRING: buildExtractJsonWithPath(JsonExtractScalarExpr),
         LIST_APPEND: (args: unknown[]) => ArrayAppendExpr.fromArgList(args),
@@ -3204,12 +3218,6 @@ class DuckDBGenerator extends Generator {
         renameFunc('BIT_COUNT'),
       ],
       [
-        ByteLengthExpr,
-        function (this: Generator, e) {
-          return this.func('OCTET_LENGTH', [e.args.this]);
-        },
-      ],
-      [
         CommentColumnConstraintExpr,
         noCommentColumnConstraintSql,
       ],
@@ -3450,10 +3458,6 @@ class DuckDBGenerator extends Generator {
       [
         FloorExpr,
         ceilFloor,
-      ],
-      [
-        JarowinklerSimilarityExpr,
-        jarowinklerSimilarity('JARO_WINKLER_SIMILARITY'),
       ],
       [
         JsonbExistsExpr,
@@ -4539,6 +4543,64 @@ class DuckDBGenerator extends Generator {
     return this.functionFallbackSql(expression);
   }
 
+  encryptSql (expression: EncryptExpr): string {
+    this.unsupported('ENCRYPT is not supported in DuckDB');
+
+    return this.functionFallbackSql(expression);
+  }
+
+  decryptSql (expression: DecryptExpr): string {
+    const funcName = expression.args.safe ? 'TRY_DECRYPT' : 'DECRYPT';
+
+    this.unsupported(`${funcName} is not supported in DuckDB`);
+
+    return this.functionFallbackSql(expression);
+  }
+
+  decryptRawSql (expression: DecryptRawExpr): string {
+    const funcName = expression.args.safe ? 'TRY_DECRYPT_RAW' : 'DECRYPT_RAW';
+
+    this.unsupported(`${funcName} is not supported in DuckDB`);
+
+    return this.functionFallbackSql(expression);
+  }
+
+  encryptRawSql (expression: EncryptRawExpr): string {
+    this.unsupported('ENCRYPT_RAW is not supported in DuckDB');
+
+    return this.functionFallbackSql(expression);
+  }
+
+  parseUrlSql (expression: ParseUrlExpr): string {
+    this.unsupported('PARSE_URL is not supported in DuckDB');
+
+    return this.functionFallbackSql(expression);
+  }
+
+  parseIpSql (expression: ParseIpExpr): string {
+    this.unsupported('PARSE_IP is not supported in DuckDB');
+
+    return this.functionFallbackSql(expression);
+  }
+
+  jarowinklerSimilaritySql (expression: JarowinklerSimilarityExpr): string {
+    let thisExpr = expression.args.this as Expression;
+    let expr = expression.args.expression as Expression;
+
+    if (expression.args.caseInsensitive) {
+      thisExpr = new UpperExpr({ this: thisExpr });
+      expr = new UpperExpr({ this: expr });
+    }
+
+    let result: Expression = func('JARO_WINKLER_SIMILARITY', thisExpr, expr);
+
+    if (expression.args.integerScale) {
+      result = cast(new MulExpr({ this: result, expression: LiteralExpr.number(100) }), DataTypeExprKind.INT);
+    }
+
+    return this.sql(result);
+  }
+
   collateSql (expression: CollateExpr): string {
     const collationExpr = expression.args.expression as Expression | undefined;
 
@@ -4616,6 +4678,20 @@ class DuckDBGenerator extends Generator {
       seed: seedValue,
       length,
     }))})`;
+  }
+
+  reduceSql (expression: ReduceExpr): string {
+    unsupportedArgs.call(this, expression, 'finish');
+
+    const arrayArg = expression.args.this;
+    const initialValue = expression.args.initial;
+    const mergeLambda = expression.args.merge;
+
+    if (mergeLambda) {
+      mergeLambda.setArgKey('colon', true);
+    }
+
+    return this.func('list_reduce', [arrayArg, mergeLambda, initialValue]);
   }
 
   /**
@@ -4812,6 +4888,12 @@ class DuckDBGenerator extends Generator {
     const fromSql = from ? ` FROM ${from}` : '';
 
     return `SHOW ${expression.name}${fromSql}`;
+  }
+
+  soundexSql (expression: SoundexExpr): string {
+    this.unsupported('SOUNDEX is not supported in DuckDB');
+
+    return this.func('SOUNDEX', [expression.args.this]);
   }
 
   installSql (expression: InstallExpr): string {
@@ -5090,6 +5172,12 @@ class DuckDBGenerator extends Generator {
         }),
       }),
     );
+  }
+
+  arrayUnionAggSql (expression: ArrayUnionAggExpr): string {
+    this.unsupported('ARRAY_UNION_AGG is not supported in DuckDB');
+
+    return this.functionFallbackSql(expression);
   }
 
   arraydistinctSql (expression: ArrayDistinctExpr): string {
@@ -6422,6 +6510,16 @@ class DuckDBGenerator extends Generator {
     return 'RANDOM()';
   }
 
+  byteLengthSql (expression: ByteLengthExpr): string {
+    const arg = expression.args.this as Expression;
+
+    if (arg.isType(DataTypeExpr.TEXT_TYPES)) {
+      return this.func('OCTET_LENGTH', [new EncodeExpr({ this: arg })]);
+    }
+
+    return this.func('OCTET_LENGTH', [arg]);
+  }
+
   private leftRightSql (expression: LeftExpr | RightExpr, funcName: string): string {
     const arg = expression.args.this as Expression;
     const length = expression.args.expression as Expression;
@@ -6492,6 +6590,66 @@ class DuckDBGenerator extends Generator {
         position: TrimPosition.TRAILING,
       }),
     ]);
+  }
+
+  stuffSql (expression: StuffExpr): string {
+    const base = expression.args.this as Expression;
+    const start = expression.args.start as Expression;
+    const length = expression.args.length as Expression;
+    const insertion = expression.args.expression as Expression;
+    const isBin = isBinary(base);
+
+    let left: SubstringExpr;
+    let right: SubstringExpr;
+
+    if (isBin) {
+      const hexBase = new HexExpr({ this: base });
+      const hexInsertion = new HexExpr({ this: insertion });
+
+      left = new SubstringExpr({
+        this: hexBase.copy(),
+        start: LiteralExpr.number(1),
+        length: new MulExpr({
+          this: new SubExpr({ this: start.copy(), expression: LiteralExpr.number(1) }),
+          expression: LiteralExpr.number(2),
+        }),
+      });
+      right = new SubstringExpr({
+        this: hexBase.copy(),
+        start: new AddExpr({
+          this: new MulExpr({
+            this: new SubExpr({
+              this: new AddExpr({ this: start, expression: length }),
+              expression: LiteralExpr.number(1),
+            }),
+            expression: LiteralExpr.number(2),
+          }),
+          expression: LiteralExpr.number(1),
+        }),
+      });
+
+      return this.sql(new UnhexExpr({
+        this: new DPipeExpr({
+          this: new DPipeExpr({ this: left, expression: hexInsertion }),
+          expression: right,
+        }),
+      }));
+    }
+
+    left = new SubstringExpr({
+      this: base.copy(),
+      start: LiteralExpr.number(1),
+      length: new SubExpr({ this: start.copy(), expression: LiteralExpr.number(1) }),
+    });
+    right = new SubstringExpr({
+      this: base.copy(),
+      start: new AddExpr({ this: start, expression: length }),
+    });
+
+    return this.sql(new DPipeExpr({
+      this: new DPipeExpr({ this: left, expression: insertion }),
+      expression: right,
+    }));
   }
 
   base64EncodeSql (expression: Base64EncodeExpr): string {
@@ -7524,6 +7682,36 @@ class DuckDBGenerator extends Generator {
     }
 
     return strPositionSql.call(this, expression);
+  }
+
+  substringSql (expression: SubstringExpr): string {
+    if (expression.args.zeroStart) {
+      const start = expression.args.start;
+      const length = expression.args.length as Expression | undefined;
+
+      return this.func(
+        'SUBSTRING',
+        [
+          expression.args.this,
+          start !== undefined
+            ? new IfExpr({
+              this: new EqExpr({ this: start, expression: LiteralExpr.number(0) }),
+              true: LiteralExpr.number(1),
+              false: start,
+            })
+            : undefined,
+          length !== undefined
+            ? new IfExpr({
+              this: new LtExpr({ this: length, expression: LiteralExpr.number(0) }),
+              true: LiteralExpr.number(0),
+              false: length,
+            })
+            : undefined,
+        ],
+      );
+    }
+
+    return this.functionFallbackSql(expression);
   }
 
   strtokSql (expression: StrtokExpr): string {

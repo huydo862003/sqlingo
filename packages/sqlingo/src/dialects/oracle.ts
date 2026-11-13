@@ -821,6 +821,7 @@ export class OracleGenerator extends Generator {
   // port from _Dialect metaclass logic
   static SUPPORTS_UESCAPE = false;
   static LOCKING_READS_SUPPORTED = true;
+  static SUPPORTS_MERGE_WHERE = true;
   static JOIN_HINTS = false;
   static TABLE_HINTS = false;
   static DATA_TYPE_SPECIFIERS_ALLOWED = true;

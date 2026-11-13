@@ -28,6 +28,7 @@ import {
 } from './validator';
 import {
   Dialect,
+  NormalizationStrategy,
 } from '../../../src/dialects/dialect';
 
 // Register all dialects used in cross-dialect tests
@@ -1374,7 +1375,6 @@ class TestDialect extends Validator {
       {
         write: {
           trino: 'REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)',
-          duckdb: 'REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)',
           hive: 'REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)',
           spark: 'AGGREGATE(x, 0, (acc, x) -> acc + x, acc -> acc)',
           presto: 'REDUCE(x, 0, (acc, x) -> acc + x, acc -> acc)',
@@ -2252,6 +2252,101 @@ class TestDialect extends Validator {
       'STR_POSITION(haystack, needle)',
       {
         read: {
+          athena: 'POSITION(needle in haystack)',
+          clickhouse: 'POSITION(needle in haystack)',
+          databricks: 'POSITION(needle in haystack)',
+          drill: 'POSITION(needle in haystack)',
+          duckdb: 'POSITION(needle in haystack)',
+          materialize: 'POSITION(needle in haystack)',
+          mysql: 'POSITION(needle in haystack)',
+          postgres: 'POSITION(needle in haystack)',
+          presto: 'POSITION(needle in haystack)',
+          redshift: 'POSITION(needle in haystack)',
+          risingwave: 'POSITION(needle in haystack)',
+          snowflake: 'POSITION(needle in haystack)',
+          spark: 'POSITION(needle in haystack)',
+          spark2: 'POSITION(needle in haystack)',
+          teradata: 'POSITION(needle in haystack)',
+          trino: 'POSITION(needle in haystack)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
+          clickhouse: 'POSITION(haystack, needle)',
+          databricks: 'POSITION(needle, haystack)',
+          snowflake: 'POSITION(needle, haystack)',
+          spark2: 'POSITION(needle, haystack)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
+          athena: 'STRPOS(haystack, needle)',
+          bigquery: 'STRPOS(haystack, needle)',
+          drill: 'STRPOS(haystack, needle)',
+          duckdb: 'STRPOS(haystack, needle)',
+          postgres: 'STRPOS(haystack, needle)',
+          presto: 'STRPOS(haystack, needle)',
+          redshift: 'STRPOS(haystack, needle)',
+          trino: 'STRPOS(haystack, needle)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
+          bigquery: 'INSTR(haystack, needle)',
+          databricks: 'INSTR(haystack, needle)',
+          doris: 'INSTR(haystack, needle)',
+          duckdb: 'INSTR(haystack, needle)',
+          hive: 'INSTR(haystack, needle)',
+          mysql: 'INSTR(haystack, needle)',
+          oracle: 'INSTR(haystack, needle)',
+          spark: 'INSTR(haystack, needle)',
+          spark2: 'INSTR(haystack, needle)',
+          sqlite: 'INSTR(haystack, needle)',
+          starrocks: 'INSTR(haystack, needle)',
+          teradata: 'INSTR(haystack, needle)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
+          clickhouse: 'LOCATE(needle, haystack)',
+          databricks: 'LOCATE(needle, haystack)',
+          doris: 'LOCATE(needle, haystack)',
+          hive: 'LOCATE(needle, haystack)',
+          mysql: 'LOCATE(needle, haystack)',
+          spark: 'LOCATE(needle, haystack)',
+          spark2: 'LOCATE(needle, haystack)',
+          starrocks: 'LOCATE(needle, haystack)',
+          teradata: 'LOCATE(needle, haystack)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
+          athena: 'CHARINDEX(needle, haystack)',
+          databricks: 'CHARINDEX(needle, haystack)',
+          snowflake: 'CHARINDEX(needle, haystack)',
+          tsql: 'CHARINDEX(needle, haystack)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle)',
+      {
+        read: {
           tableau: 'FIND(haystack, needle)',
         },
         write: {
@@ -2282,6 +2377,103 @@ class TestDialect extends Validator {
       },
     );
     this.validateAll(
+      'STR_POSITION(haystack, needle, position)',
+      {
+        read: {
+          clickhouse: 'POSITION(haystack, needle, position)',
+          databricks: 'POSITION(needle, haystack, position)',
+          snowflake: 'POSITION(needle, haystack, position)',
+          spark: 'POSITION(needle, haystack, position)',
+          spark2: 'POSITION(needle, haystack, position)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle, position)',
+      {
+        read: {
+          doris: 'LOCATE(needle, haystack, position)',
+          hive: 'LOCATE(needle, haystack, position)',
+          mysql: 'LOCATE(needle, haystack, position)',
+          spark: 'LOCATE(needle, haystack, position)',
+          spark2: 'LOCATE(needle, haystack, position)',
+          starrocks: 'LOCATE(needle, haystack, position)',
+          teradata: 'LOCATE(needle, haystack, position)',
+          clickhouse: 'LOCATE(needle, haystack, position)',
+          databricks: 'LOCATE(needle, haystack, position)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle, position)',
+      {
+        read: {
+          bigquery: 'INSTR(haystack, needle, position)',
+          doris: 'INSTR(haystack, needle, position)',
+          oracle: 'INSTR(haystack, needle, position)',
+          teradata: 'INSTR(haystack, needle, position)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle, position)',
+      {
+        read: {
+          databricks: 'CHARINDEX(needle, haystack, position)',
+          snowflake: 'CHARINDEX(needle, haystack, position)',
+          tsql: 'CHARINDEX(needle, haystack, position)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle, position)',
+      {
+        write: {
+          athena: 'IF(STRPOS(SUBSTRING(haystack, position), needle) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle) + position - 1)',
+          bigquery: 'INSTR(haystack, needle, position)',
+          clickhouse: 'POSITION(haystack, needle, position)',
+          databricks: 'LOCATE(needle, haystack, position)',
+          doris: 'LOCATE(needle, haystack, position)',
+          drill: '`IF`(STRPOS(SUBSTRING(haystack, position), needle) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle) + position - 1)',
+          duckdb: 'CASE WHEN STRPOS(SUBSTRING(haystack, position), needle) = 0 THEN 0 ELSE STRPOS(SUBSTRING(haystack, position), needle) + position - 1 END',
+          hive: 'LOCATE(needle, haystack, position)',
+          materialize: 'CASE WHEN POSITION(needle IN SUBSTRING(haystack FROM position)) = 0 THEN 0 ELSE POSITION(needle IN SUBSTRING(haystack FROM position)) + position - 1 END',
+          mysql: 'LOCATE(needle, haystack, position)',
+          oracle: 'INSTR(haystack, needle, position)',
+          postgres: 'CASE WHEN POSITION(needle IN SUBSTRING(haystack FROM position)) = 0 THEN 0 ELSE POSITION(needle IN SUBSTRING(haystack FROM position)) + position - 1 END',
+          presto: 'IF(STRPOS(SUBSTRING(haystack, position), needle) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle) + position - 1)',
+          redshift: 'CASE WHEN POSITION(needle IN SUBSTRING(haystack FROM position)) = 0 THEN 0 ELSE POSITION(needle IN SUBSTRING(haystack FROM position)) + position - 1 END',
+          risingwave: 'CASE WHEN POSITION(needle IN SUBSTRING(haystack FROM position)) = 0 THEN 0 ELSE POSITION(needle IN SUBSTRING(haystack FROM position)) + position - 1 END',
+          snowflake: 'CHARINDEX(needle, haystack, position)',
+          spark: 'LOCATE(needle, haystack, position)',
+          spark2: 'LOCATE(needle, haystack, position)',
+          sqlite: 'IIF(INSTR(SUBSTRING(haystack, position), needle) = 0, 0, INSTR(SUBSTRING(haystack, position), needle) + position - 1)',
+          tableau: 'IF FIND(SUBSTRING(haystack, position), needle) = 0 THEN 0 ELSE FIND(SUBSTRING(haystack, position), needle) + position - 1 END',
+          teradata: 'INSTR(haystack, needle, position)',
+          trino: 'IF(STRPOS(SUBSTRING(haystack, position), needle) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle) + position - 1)',
+          tsql: 'CHARINDEX(needle, haystack, position)',
+        },
+      },
+    );
+    this.validateAll(
+      'STR_POSITION(haystack, needle, position, occurrence)',
+      {
+        read: {
+          bigquery: 'INSTR(haystack, needle, position, occurrence)',
+          oracle: 'INSTR(haystack, needle, position, occurrence)',
+          teradata: 'INSTR(haystack, needle, position, occurrence)',
+        },
+        write: {
+          bigquery: 'INSTR(haystack, needle, position, occurrence)',
+          oracle: 'INSTR(haystack, needle, position, occurrence)',
+          presto: 'IF(STRPOS(SUBSTRING(haystack, position), needle, occurrence) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle, occurrence) + position - 1)',
+          tableau: 'IF FINDNTH(SUBSTRING(haystack, position), needle, occurrence) = 0 THEN 0 ELSE FINDNTH(SUBSTRING(haystack, position), needle, occurrence) + position - 1 END',
+          teradata: 'INSTR(haystack, needle, position, occurrence)',
+          trino: 'IF(STRPOS(SUBSTRING(haystack, position), needle, occurrence) = 0, 0, STRPOS(SUBSTRING(haystack, position), needle, occurrence) + position - 1)',
+        },
+      },
+    );
+    this.validateAll(
       "CONCAT_WS('-', 'a', 'b')",
       {
         write: {
@@ -2308,6 +2500,28 @@ class TestDialect extends Validator {
       },
     );
     this.validateAll(
+      'CONCAT(a)',
+      {
+        write: {
+          clickhouse: 'CONCAT(a)',
+          presto: 'CAST(a AS VARCHAR)',
+          trino: 'CAST(a AS VARCHAR)',
+          tsql: 'a',
+        },
+      },
+    );
+    this.validateAll(
+      "CONCAT(COALESCE(a, ''))",
+      {
+        read: {
+          drill: 'CONCAT(a)',
+          duckdb: 'CONCAT(a)',
+          postgres: 'CONCAT(a)',
+          tsql: 'CONCAT(a)',
+        },
+      },
+    );
+    this.validateAll(
       'IF(x > 1, 1, 0)',
       {
         write: {
@@ -2317,6 +2531,67 @@ class TestDialect extends Validator {
           hive: 'IF(x > 1, 1, 0)',
           spark: 'IF(x > 1, 1, 0)',
           tableau: 'IF x > 1 THEN 1 ELSE 0 END',
+        },
+      },
+    );
+    this.validateAll(
+      'CASE WHEN 1 THEN x ELSE 0 END',
+      {
+        write: {
+          drill: 'CASE WHEN 1 THEN x ELSE 0 END',
+          duckdb: 'CASE WHEN 1 THEN x ELSE 0 END',
+          presto: 'CASE WHEN 1 THEN x ELSE 0 END',
+          hive: 'CASE WHEN 1 THEN x ELSE 0 END',
+          spark: 'CASE WHEN 1 THEN x ELSE 0 END',
+          tableau: 'CASE WHEN 1 THEN x ELSE 0 END',
+        },
+      },
+    );
+    this.validateAll(
+      'x[y]',
+      {
+        write: {
+          drill: 'x[y]',
+          duckdb: 'x[y]',
+          presto: 'x[y]',
+          hive: 'x[y]',
+          spark: 'x[y]',
+        },
+      },
+    );
+    this.validateAll(
+      '\'["x"]\'',
+      {
+        write: {
+          duckdb: '\'["x"]\'',
+          presto: '\'["x"]\'',
+          hive: '\'["x"]\'',
+          spark: '\'["x"]\'',
+        },
+      },
+    );
+    this.validateAll(
+      'true or null as "foo"',
+      {
+        write: {
+          bigquery: 'TRUE OR NULL AS `foo`',
+          drill: 'TRUE OR NULL AS `foo`',
+          duckdb: 'TRUE OR NULL AS "foo"',
+          presto: 'TRUE OR NULL AS "foo"',
+          hive: 'TRUE OR NULL AS `foo`',
+          spark: 'TRUE OR NULL AS `foo`',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) as foo FROM baz',
+      {
+        write: {
+          bigquery: 'SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz',
+          duckdb: 'SELECT CASE WHEN COALESCE(bar, 0) = 1 THEN TRUE ELSE FALSE END AS foo FROM baz',
+          presto: 'SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz',
+          hive: 'SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz',
+          spark: 'SELECT IF(COALESCE(bar, 0) = 1, TRUE, FALSE) AS foo FROM baz',
         },
       },
     );
@@ -2348,6 +2623,55 @@ class TestDialect extends Validator {
           snowflake: 'EDITDISTANCE(col1, col2)',
           sqlite: 'EDITDIST3(col1, col2)',
           trino: 'LEVENSHTEIN_DISTANCE(col1, col2)',
+        },
+      },
+    );
+    this.validateAll(
+      'LEVENSHTEIN(col1, col2, 1, 2, 3)',
+      {
+        write: {
+          bigquery: UnsupportedError,
+          clickhouse: UnsupportedError,
+          drill: UnsupportedError,
+          duckdb: UnsupportedError,
+          hive: UnsupportedError,
+          spark: UnsupportedError,
+          postgres: 'LEVENSHTEIN(col1, col2, 1, 2, 3)',
+          presto: UnsupportedError,
+          snowflake: UnsupportedError,
+          sqlite: UnsupportedError,
+          trino: UnsupportedError,
+        },
+      },
+    );
+    this.validateAll(
+      'LEVENSHTEIN(col1, col2, 1, 2, 3, 4)',
+      {
+        write: {
+          bigquery: UnsupportedError,
+          clickhouse: UnsupportedError,
+          drill: UnsupportedError,
+          duckdb: UnsupportedError,
+          hive: UnsupportedError,
+          spark: UnsupportedError,
+          postgres: 'LEVENSHTEIN_LESS_EQUAL(col1, col2, 1, 2, 3, 4)',
+          presto: UnsupportedError,
+          snowflake: UnsupportedError,
+          sqlite: UnsupportedError,
+          trino: UnsupportedError,
+        },
+      },
+    );
+    this.validateAll(
+      'LEVENSHTEIN(coalesce(col1, col2), coalesce(col2, col1))',
+      {
+        write: {
+          bigquery: 'EDIT_DISTANCE(COALESCE(col1, col2), COALESCE(col2, col1))',
+          duckdb: 'LEVENSHTEIN(COALESCE(col1, col2), COALESCE(col2, col1))',
+          drill: 'LEVENSHTEIN_DISTANCE(COALESCE(col1, col2), COALESCE(col2, col1))',
+          presto: 'LEVENSHTEIN_DISTANCE(COALESCE(col1, col2), COALESCE(col2, col1))',
+          hive: 'LEVENSHTEIN(COALESCE(col1, col2), COALESCE(col2, col1))',
+          spark: 'LEVENSHTEIN(COALESCE(col1, col2), COALESCE(col2, col1))',
         },
       },
     );
@@ -2389,12 +2713,50 @@ class TestDialect extends Validator {
       },
     );
     this.validateAll(
+      'MOD(a, b + 1)',
+      {
+        write: {
+          '': 'a % (b + 1)',
+          hive: 'a % (b + 1)',
+          presto: 'a % (b + 1)',
+          snowflake: 'a % (b + 1)',
+          bigquery: 'MOD(a, b + 1)',
+        },
+      },
+    );
+    this.validateAll(
       'ARRAY_FILTER(the_array, x -> x > 0)',
       {
         write: {
           presto: 'FILTER(the_array, x -> x > 0)',
           hive: 'FILTER(the_array, x -> x > 0)',
           spark: 'FILTER(the_array, x -> x > 0)',
+        },
+      },
+    );
+    this.validateAll(
+      'FILTER(the_array, x -> x > 0)',
+      {
+        write: {
+          presto: 'FILTER(the_array, x -> x > 0)',
+          starrocks: 'ARRAY_FILTER(the_array, x -> x > 0)',
+        },
+      },
+    );
+    this.validateAll(
+      'ARRAY_REMOVE(the_array, target)',
+      {
+        write: {
+          '': 'ARRAY_REMOVE(the_array, target)',
+          clickhouse: 'arrayFilter(_u -> _u <> target, the_array)',
+          duckdb: 'LIST_FILTER(the_array, _u -> _u <> target)',
+          bigquery: "ARRAY(SELECT '_u' FROM UNNEST(the_array) AS `_u` WHERE '_u' <> target)",
+          hive: 'ARRAY_REMOVE(the_array, target)',
+          postgres: 'ARRAY_REMOVE(the_array, target)',
+          presto: 'ARRAY_REMOVE(the_array, target)',
+          starrocks: 'ARRAY_REMOVE(the_array, target)',
+          databricks: 'ARRAY_REMOVE(the_array, target)',
+          snowflake: 'ARRAY_REMOVE(the_array, target)',
         },
       },
     );
@@ -2438,18 +2800,125 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      'SELECT x FROM y OFFSET 10 ROWS FETCH FIRST 3 ROWS ONLY',
+      {
+        write: {
+          oracle: 'SELECT x FROM y OFFSET 10 ROWS FETCH FIRST 3 ROWS ONLY',
+        },
+      },
+    );
+    this.validateAll(
+      '"x" + "y"',
+      {
+        read: {
+          clickhouse: '`x` + "y"',
+          sqlite: '`x` + "y"',
+          redshift: '"x" + "y"',
+        },
+      },
+    );
+    this.validateAll(
+      '[1, 2]',
+      {
+        write: {
+          bigquery: '[1, 2]',
+          clickhouse: '[1, 2]',
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT * FROM VALUES ('x'), ('y') AS t(z)",
+      {
+        write: {
+          spark: "SELECT * FROM VALUES ('x'), ('y') AS t(z)",
+        },
+      },
+    );
+    this.validateAll(
+      'CREATE TABLE t (c CHAR, nc NCHAR, v1 VARCHAR, v2 VARCHAR2, nv NVARCHAR, nv2 NVARCHAR2)',
+      {
+        write: {
+          duckdb: 'CREATE TABLE t (c TEXT, nc TEXT, v1 TEXT, v2 TEXT, nv TEXT, nv2 TEXT)',
+          hive: 'CREATE TABLE t (c STRING, nc STRING, v1 STRING, v2 STRING, nv STRING, nv2 STRING)',
+          oracle: 'CREATE TABLE t (c CHAR, nc NCHAR, v1 VARCHAR2, v2 VARCHAR2, nv NVARCHAR2, nv2 NVARCHAR2)',
+          postgres: 'CREATE TABLE t (c CHAR, nc CHAR, v1 VARCHAR, v2 VARCHAR, nv VARCHAR, nv2 VARCHAR)',
+          sqlite: 'CREATE TABLE t (c TEXT, nc TEXT, v1 TEXT, v2 TEXT, nv TEXT, nv2 TEXT)',
+        },
+      },
+    );
+    this.validateAll(
+      'POWER(1.2, 3.4)',
+      {
+        read: {
+          hive: 'pow(1.2, 3.4)',
+          postgres: 'power(1.2, 3.4)',
+        },
+      },
+    );
+    this.validateAll(
+      'CREATE INDEX my_idx ON tbl(a, b)',
+      {
+        read: {
+          hive: 'CREATE INDEX my_idx ON TABLE tbl(a, b)',
+          sqlite: 'CREATE INDEX my_idx ON tbl(a, b)',
+        },
+        write: {
+          hive: 'CREATE INDEX my_idx ON TABLE tbl(a, b)',
+          postgres: 'CREATE INDEX my_idx ON tbl(a NULLS FIRST, b NULLS FIRST)',
+          sqlite: 'CREATE INDEX my_idx ON tbl(a, b)',
+        },
+      },
+    );
+    this.validateAll(
+      'CREATE UNIQUE INDEX my_idx ON tbl(a, b)',
+      {
+        read: {
+          hive: 'CREATE UNIQUE INDEX my_idx ON TABLE tbl(a, b)',
+          sqlite: 'CREATE UNIQUE INDEX my_idx ON tbl(a, b)',
+        },
+        write: {
+          hive: 'CREATE UNIQUE INDEX my_idx ON TABLE tbl(a, b)',
+          postgres: 'CREATE UNIQUE INDEX my_idx ON tbl(a NULLS FIRST, b NULLS FIRST)',
+          sqlite: 'CREATE UNIQUE INDEX my_idx ON tbl(a, b)',
+        },
+      },
+    );
+    this.validateAll(
+      'CREATE TABLE t (b1 BINARY, b2 BINARY(1024), c1 TEXT, c2 TEXT(1024))',
+      {
+        write: {
+          duckdb: 'CREATE TABLE t (b1 BLOB, b2 BLOB(1024), c1 TEXT, c2 TEXT(1024))',
+          hive: 'CREATE TABLE t (b1 BINARY, b2 BINARY(1024), c1 STRING, c2 VARCHAR(1024))',
+          oracle: 'CREATE TABLE t (b1 BLOB, b2 BLOB(1024), c1 CLOB, c2 CLOB(1024))',
+          postgres: 'CREATE TABLE t (b1 BYTEA, b2 BYTEA(1024), c1 TEXT, c2 TEXT(1024))',
+          sqlite: 'CREATE TABLE t (b1 BLOB, b2 BLOB(1024), c1 TEXT, c2 TEXT(1024))',
+          redshift: 'CREATE TABLE t (b1 VARBYTE, b2 VARBYTE(1024), c1 VARCHAR(MAX), c2 VARCHAR(1024))',
+        },
+      },
+    );
   }
 
   testAlias () {
     this.validateAll(
-      'SELECT y x FROM my_table t',
+      'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x',
       {
         write: {
-          drill: 'SELECT y AS x FROM my_table AS t',
-          hive: 'SELECT y AS x FROM my_table AS t',
-          oracle: 'SELECT y AS x FROM my_table t',
-          postgres: 'SELECT y AS x FROM my_table AS t',
-          sqlite: 'SELECT y AS x FROM my_table AS t',
+          '': 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x',
+          hive: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x',
+          oracle: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x',
+          presto: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT x AS x FROM t GROUP BY x',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y',
+      {
+        write: {
+          '': 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y',
+          hive: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y',
+          oracle: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y',
+          presto: 'WITH t AS (SELECT 1 AS x, 2 AS y) SELECT SUM(x) AS y, y AS x FROM t GROUP BY y',
         },
       },
     );
@@ -2467,6 +2936,60 @@ class TestDialect extends Validator {
     for (const dialect of ['presto', 'hive', 'postgres', 'clickhouse', 'bigquery', 'snowflake', 'duckdb'] as const) {
       expect(() => parseOne("SELECT 1 'foo'", { read: dialect })).toThrow(ParseError);
     }
+
+    this.validateAll(
+      'SELECT y x FROM my_table t',
+      {
+        write: {
+          drill: 'SELECT y AS x FROM my_table AS t',
+          hive: 'SELECT y AS x FROM my_table AS t',
+          oracle: 'SELECT y AS x FROM my_table t',
+          postgres: 'SELECT y AS x FROM my_table AS t',
+          sqlite: 'SELECT y AS x FROM my_table AS t',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT * FROM (SELECT * FROM my_table AS t) AS tbl',
+      {
+        write: {
+          drill: 'SELECT * FROM (SELECT * FROM my_table AS t) AS tbl',
+          hive: 'SELECT * FROM (SELECT * FROM my_table AS t) AS tbl',
+          oracle: 'SELECT * FROM (SELECT * FROM my_table t) tbl',
+          postgres: 'SELECT * FROM (SELECT * FROM my_table AS t) AS tbl',
+          sqlite: 'SELECT * FROM (SELECT * FROM my_table AS t) AS tbl',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c',
+      {
+        write: {
+          hive: 'WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c',
+          oracle: 'WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 t CROSS JOIN cte2 WHERE cte1.a = cte2.c',
+          postgres: 'WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c',
+          sqlite: 'WITH cte1 AS (SELECT a, b FROM table1), cte2 AS (SELECT c, e AS d FROM table2) SELECT b, d AS dd FROM cte1 AS t CROSS JOIN cte2 WHERE cte1.a = cte2.c',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT * FROM (SELECT 1 AS col) AS apply',
+      {
+        read: {
+          '': 'SELECT * FROM (SELECT 1 AS col) apply',
+          hive: 'SELECT * FROM (SELECT 1 AS col) apply',
+          postgres: 'SELECT * FROM (SELECT 1 AS col) apply',
+          duckdb: 'SELECT * FROM (SELECT 1 AS col) apply',
+          presto: 'SELECT * FROM (SELECT 1 AS col) apply',
+          spark: 'SELECT * FROM (SELECT 1 AS col) apply',
+          spark2: 'SELECT * FROM (SELECT 1 AS col) apply',
+          trino: 'SELECT * FROM (SELECT 1 AS col) apply',
+          snowflake: 'SELECT * FROM (SELECT 1 AS col) apply',
+          bigquery: 'SELECT * FROM (SELECT 1 AS col) apply',
+          athena: 'SELECT * FROM (SELECT 1 AS col) apply',
+        },
+      },
+    );
   }
 
   testNullsafeEq () {
@@ -2511,6 +3034,26 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      `/* comment1 */
+SELECT
+  x, /* comment2 */
+  y /* comment3 */`,
+      {
+        read: {
+          mysql: `SELECT # comment1
+  x, # comment2
+  y # comment3`,
+          bigquery: `SELECT # comment1
+  x, # comment2
+  y # comment3`,
+          clickhouse: `SELECT # comment1
+  x, # comment2
+  y # comment3`,
+        },
+        pretty: true,
+      },
+    );
   }
 
   testTransactions () {
@@ -2529,6 +3072,28 @@ class TestDialect extends Validator {
           tsql: 'BEGIN TRANSACTION',
         },
       },
+    );
+    this.validateAll(
+      'BEGIN READ WRITE, ISOLATION LEVEL SERIALIZABLE',
+      {
+        read: {
+          presto: 'START TRANSACTION READ WRITE, ISOLATION LEVEL SERIALIZABLE',
+          trino: 'START TRANSACTION READ WRITE, ISOLATION LEVEL SERIALIZABLE',
+        },
+      },
+    );
+    this.validateAll(
+      'BEGIN ISOLATION LEVEL REPEATABLE READ',
+      {
+        read: {
+          presto: 'START TRANSACTION ISOLATION LEVEL REPEATABLE READ',
+          trino: 'START TRANSACTION ISOLATION LEVEL REPEATABLE READ',
+        },
+      },
+    );
+    this.validateAll(
+      'BEGIN IMMEDIATE TRANSACTION',
+      { write: { sqlite: 'BEGIN IMMEDIATE TRANSACTION' } },
     );
   }
 
@@ -2558,6 +3123,58 @@ class TestDialect extends Validator {
           bigquery: 'MERGE INTO target USING source ON target.id = source.id WHEN MATCHED AND source.is_deleted = 1 THEN DELETE WHEN MATCHED THEN UPDATE SET val = source.val WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)',
           snowflake: 'MERGE INTO target USING source ON target.id = source.id WHEN MATCHED AND source.is_deleted = 1 THEN DELETE WHEN MATCHED THEN UPDATE SET val = source.val WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)',
           spark: 'MERGE INTO target USING source ON target.id = source.id WHEN MATCHED AND source.is_deleted = 1 THEN DELETE WHEN MATCHED THEN UPDATE SET val = source.val WHEN NOT MATCHED THEN INSERT (id, val) VALUES (source.id, source.val)',
+        },
+      },
+    );
+    this.validateAll(
+      `
+      MERGE INTO target USING source ON target.id = source.id
+          WHEN MATCHED THEN UPDATE *
+          WHEN NOT MATCHED THEN INSERT *
+      `,
+      {
+        write: {
+          spark: 'MERGE INTO target USING source ON target.id = source.id WHEN MATCHED THEN UPDATE * WHEN NOT MATCHED THEN INSERT *',
+        },
+      },
+    );
+    this.validateAll(
+      `
+      MERGE a b USING c d ON b.id = d.id
+      WHEN MATCHED AND EXISTS (
+          SELECT b.name
+          EXCEPT
+          SELECT d.name
+      )
+      THEN UPDATE SET b.name = d.name
+      `,
+      {
+        write: {
+          bigquery: 'MERGE INTO a AS b USING c AS d ON b.id = d.id WHEN MATCHED AND EXISTS(SELECT b.name EXCEPT DISTINCT SELECT d.name) THEN UPDATE SET b.name = d.name',
+          snowflake: 'MERGE INTO a AS b USING c AS d ON b.id = d.id WHEN MATCHED AND EXISTS(SELECT b.name EXCEPT SELECT d.name) THEN UPDATE SET b.name = d.name',
+          spark: 'MERGE INTO a AS b USING c AS d ON b.id = d.id WHEN MATCHED AND EXISTS(SELECT b.name EXCEPT SELECT d.name) THEN UPDATE SET b.name = d.name',
+        },
+      },
+    );
+    this.validateAll(
+      `MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a
+      WHEN MATCHED AND target.a <> src.a THEN UPDATE SET target.b = 'FOO'
+      WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)`,
+      {
+        write: {
+          trino: "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED AND target.a <> src.a THEN UPDATE SET b = 'FOO' WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)",
+          postgres: "MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED AND target.a <> src.a THEN UPDATE SET b = 'FOO' WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)",
+        },
+      },
+    );
+    this.validateAll(
+      `MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a
+      WHEN MATCHED THEN UPDATE SET target.b = COALESCE(src.b, target.b)
+      WHEN NOT MATCHED THEN INSERT (target.a, target.b) VALUES (src.a, src.b)`,
+      {
+        write: {
+          trino: 'MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED THEN UPDATE SET b = COALESCE(src.b, target.b) WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)',
+          postgres: 'MERGE INTO foo AS target USING (SELECT a, b FROM tbl) AS src ON src.a = target.a WHEN MATCHED THEN UPDATE SET b = COALESCE(src.b, target.b) WHEN NOT MATCHED THEN INSERT (a, b) VALUES (src.a, src.b)',
         },
       },
     );
@@ -2629,6 +3246,33 @@ class TestDialect extends Validator {
       );
     }
     this.validateAll(
+      'LOG(x)',
+      {
+        read: {
+          duckdb: 'LOG(x)',
+          postgres: 'LOG(x)',
+          redshift: 'LOG(x)',
+          sqlite: 'LOG(x)',
+          teradata: 'LOG(x)',
+        },
+      },
+    );
+    this.validateAll(
+      'LN(x)',
+      {
+        read: {
+          dremio: 'LOG(x)',
+          bigquery: 'LOG(x)',
+          clickhouse: 'LOG(x)',
+          databricks: 'LOG(x)',
+          drill: 'LOG(x)',
+          hive: 'LOG(x)',
+          mysql: 'LOG(x)',
+          tsql: 'LOG(x)',
+        },
+      },
+    );
+    this.validateAll(
       'LOG(b, n)',
       {
         read: {
@@ -2675,6 +3319,23 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+      {
+        read: {
+          '': 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+          databricks: 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+          tsql: 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+        },
+        write: {
+          '': 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+          databricks: 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+          presto: 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+          sqlite: 'SELECT SUM(IIF(col % 2 = 0, 1, 0)) FILTER(WHERE col < 1000) FROM foo',
+          tsql: 'SELECT COUNT_IF(col % 2 = 0) FILTER(WHERE col < 1000) FROM foo',
+        },
+      },
+    );
   }
 
   testCastToUserDefinedType () {
@@ -2707,6 +3368,20 @@ class TestDialect extends Validator {
           oracle: 'SELECT * FROM (SELECT *, COUNT(*) OVER () AS _w FROM t) _t WHERE _w > 1',
           postgres: 'SELECT * FROM (SELECT *, COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1',
           tsql: 'SELECT * FROM (SELECT *, COUNT_BIG(*) OVER () AS _w FROM t) AS _t WHERE _w > 1',
+        },
+      },
+    );
+    this.validateAll(
+      'SELECT "user id", some_id, 1 as other_id, 2 as "2 nd id" FROM t QUALIFY COUNT(*) OVER () > 1',
+      {
+        write: {
+          duckdb: 'SELECT "user id", some_id, 1 AS other_id, 2 AS "2 nd id" FROM t QUALIFY COUNT(*) OVER () > 1',
+          snowflake: 'SELECT "user id", some_id, 1 AS other_id, 2 AS "2 nd id" FROM t QUALIFY COUNT(*) OVER () > 1',
+          clickhouse: 'SELECT "user id", some_id, 1 AS other_id, 2 AS "2 nd id" FROM t QUALIFY COUNT(*) OVER () > 1',
+          mysql: 'SELECT `user id`, some_id, other_id, `2 nd id` FROM (SELECT `user id`, some_id, 1 AS other_id, 2 AS `2 nd id`, COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1',
+          oracle: 'SELECT "user id", some_id, other_id, "2 nd id" FROM (SELECT "user id", some_id, 1 AS other_id, 2 AS "2 nd id", COUNT(*) OVER () AS _w FROM t) _t WHERE _w > 1',
+          postgres: 'SELECT "user id", some_id, other_id, "2 nd id" FROM (SELECT "user id", some_id, 1 AS other_id, 2 AS "2 nd id", COUNT(*) OVER () AS _w FROM t) AS _t WHERE _w > 1',
+          tsql: 'SELECT [user id], some_id, other_id, [2 nd id] FROM (SELECT [user id] AS [user id], some_id AS some_id, 1 AS other_id, 2 AS [2 nd id], COUNT_BIG(*) OVER () AS _w FROM t) AS _t WHERE _w > 1',
         },
       },
     );
@@ -2766,6 +3441,104 @@ class TestDialect extends Validator {
           trino: 'SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq',
           tsql: 'WITH t AS (SELECT 1 AS c) SELECT * FROM (SELECT c AS c FROM t) AS subq',
         },
+      },
+    );
+    this.validateAll(
+      'SELECT * FROM (SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq1) AS subq2',
+      {
+        write: {
+          bigquery: 'SELECT * FROM (SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq1) AS subq2',
+          duckdb: 'SELECT * FROM (SELECT * FROM (WITH t AS (SELECT 1 AS c) SELECT c FROM t) AS subq1) AS subq2',
+          hive: 'WITH t AS (SELECT 1 AS c) SELECT * FROM (SELECT * FROM (SELECT c FROM t) AS subq1) AS subq2',
+          tsql: 'WITH t AS (SELECT 1 AS c) SELECT * FROM (SELECT * FROM (SELECT c AS c FROM t) AS subq1) AS subq2',
+        },
+      },
+    );
+    this.validateAll(
+      'WITH t1(x) AS (SELECT 1) SELECT * FROM (WITH t2(y) AS (SELECT 2) SELECT y FROM t2) AS subq',
+      {
+        write: {
+          duckdb: 'WITH t1(x) AS (SELECT 1) SELECT * FROM (WITH t2(y) AS (SELECT 2) SELECT y FROM t2) AS subq',
+          tsql: 'WITH t1(x) AS (SELECT 1), t2(y) AS (SELECT 2) SELECT * FROM (SELECT y AS y FROM t2) AS subq',
+        },
+      },
+    );
+    this.validateAll(
+      `
+WITH c AS (
+  WITH b AS (
+    WITH a1 AS (
+      SELECT 1
+    ), a2 AS (
+      SELECT 2
+    )
+    SELECT * FROM a1, a2
+  )
+  SELECT *
+  FROM b
+)
+SELECT *
+FROM c`,
+      {
+        write: {
+          duckdb: 'WITH c AS (WITH b AS (WITH a1 AS (SELECT 1), a2 AS (SELECT 2) SELECT * FROM a1, a2) SELECT * FROM b) SELECT * FROM c',
+          hive: 'WITH a1 AS (SELECT 1), a2 AS (SELECT 2), b AS (SELECT * FROM a1, a2), c AS (SELECT * FROM b) SELECT * FROM c',
+        },
+      },
+    );
+    this.validateAll(
+      `
+WITH subquery1 AS (
+  WITH tmp AS (
+    SELECT
+      *
+    FROM table0
+  )
+  SELECT
+    *
+  FROM tmp
+), subquery2 AS (
+  WITH tmp2 AS (
+    SELECT
+      *
+    FROM table1
+    WHERE
+      a IN subquery1
+  )
+  SELECT
+    *
+  FROM tmp2
+)
+SELECT
+  *
+FROM subquery2
+`,
+      {
+        write: {
+          hive: `WITH tmp AS (
+  SELECT
+    *
+  FROM table0
+), subquery1 AS (
+  SELECT
+    *
+  FROM tmp
+), tmp2 AS (
+  SELECT
+    *
+  FROM table1
+  WHERE
+    a IN subquery1
+), subquery2 AS (
+  SELECT
+    *
+  FROM tmp2
+)
+SELECT
+  *
+FROM subquery2`,
+        },
+        pretty: true,
       },
     );
   }
@@ -2861,6 +3634,27 @@ class TestDialect extends Validator {
     this.validateIdentity(
       "CREATE OR REPLACE SEQUENCE IF NOT EXISTS seq COMMENT='test comment' ORDER",
     );
+    this.validateIdentity(
+      'CREATE SEQUENCE schema.seq SHARING=METADATA NOORDER NOKEEP SCALE EXTEND SHARD EXTEND SESSION',
+    );
+    this.validateIdentity(
+      'CREATE SEQUENCE schema.seq SHARING=DATA ORDER KEEP NOSCALE NOSHARD GLOBAL',
+    );
+    this.validateIdentity(
+      'CREATE SEQUENCE schema.seq SHARING=DATA NOCACHE NOCYCLE SCALE NOEXTEND',
+    );
+    this.validateIdentity(
+      'CREATE TEMPORARY SEQUENCE seq AS BIGINT INCREMENT BY 2 MINVALUE 1 CACHE 1 NOMAXVALUE NO CYCLE OWNED BY NONE',
+      'CREATE TEMPORARY SEQUENCE seq AS BIGINT INCREMENT BY 2 MINVALUE 1 CACHE 1 NOMAXVALUE NO CYCLE',
+    );
+    this.validateIdentity(
+      'CREATE TEMPORARY SEQUENCE seq START 1',
+      'CREATE TEMPORARY SEQUENCE seq START WITH 1',
+    );
+    this.validateIdentity(
+      'CREATE TEMPORARY SEQUENCE seq START WITH = 1 INCREMENT BY = 2',
+      'CREATE TEMPORARY SEQUENCE seq START WITH 1 INCREMENT BY 2',
+    );
   }
 
   testStringFunctions () {
@@ -2945,6 +3739,110 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      "LTRIM('Hello World', 'H')",
+      {
+        read: {
+          '': "LTRIM('Hello World', 'H')",
+          oracle: "LTRIM('Hello World', 'H')",
+          clickhouse: "TRIM(LEADING 'H' FROM 'Hello World')",
+          snowflake: "LTRIM('Hello World', 'H')",
+          bigquery: "LTRIM('Hello World', 'H')",
+          hive: "LTRIM('Hello World', 'H')",
+          spark2: "LTRIM('H', 'Hello World')",
+          spark: "LTRIM('H', 'Hello World')",
+          databricks: "LTRIM('H', 'Hello World')",
+        },
+        write: {
+          clickhouse: "TRIM(leading 'H' FROM 'Hello World')",
+          oracle: "LTRIM('Hello World', 'H')",
+          snowflake: "LTRIM('Hello World', 'H')",
+          bigquery: "LTRIM('Hello World', 'H')",
+          hive: "TRIM(leading 'H' FROM 'Hello World')",
+          spark2: "TRIM(leading 'H' FROM 'Hello World')",
+          spark: "TRIM(leading 'H' FROM 'Hello World')",
+          databricks: "TRIM(leading 'H' FROM 'Hello World')",
+        },
+      },
+    );
+    this.validateAll(
+      "RTRIM('Hello World', 'd')",
+      {
+        read: {
+          '': "RTRIM('Hello World', 'd')",
+          clickhouse: "TRIM(TRAILING 'd' FROM 'Hello World')",
+          oracle: "RTRIM('Hello World', 'd')",
+          snowflake: "RTRIM('Hello World', 'd')",
+          bigquery: "RTRIM('Hello World', 'd')",
+          hive: "RTRIM('Hello World', 'd')",
+          spark2: "RTRIM('d', 'Hello World')",
+          spark: "RTRIM('d', 'Hello World')",
+          databricks: "RTRIM('d', 'Hello World')",
+        },
+        write: {
+          clickhouse: "TRIM(trailing 'd' FROM 'Hello World')",
+          oracle: "RTRIM('Hello World', 'd')",
+          snowflake: "RTRIM('Hello World', 'd')",
+          bigquery: "RTRIM('Hello World', 'd')",
+          hive: "TRIM(trailing 'd' FROM 'Hello World')",
+          spark2: "TRIM(trailing 'd' FROM 'Hello World')",
+          spark: "TRIM(trailing 'd' FROM 'Hello World')",
+          databricks: "TRIM(trailing 'd' FROM 'Hello World')",
+        },
+      },
+    );
+    this.validateAll(
+      "LTRIM('Hello World')",
+      {
+        read: {
+          '': "LTRIM('Hello World')",
+          clickhouse: "LTRIM('Hello World')",
+          oracle: "LTRIM('Hello World')",
+          snowflake: "LTRIM('Hello World')",
+          bigquery: "LTRIM('Hello World')",
+          hive: "LTRIM('Hello World')",
+          spark2: "LTRIM('Hello World')",
+          spark: "LTRIM('Hello World')",
+          databricks: "LTRIM('Hello World')",
+        },
+        write: {
+          clickhouse: "LTRIM('Hello World')",
+          oracle: "LTRIM('Hello World')",
+          snowflake: "LTRIM('Hello World')",
+          bigquery: "LTRIM('Hello World')",
+          hive: "LTRIM('Hello World')",
+          spark2: "LTRIM('Hello World')",
+          spark: "LTRIM('Hello World')",
+          databricks: "LTRIM('Hello World')",
+        },
+      },
+    );
+    this.validateAll(
+      "RTRIM('Hello World')",
+      {
+        read: {
+          '': "RTRIM('Hello World')",
+          clickhouse: "RTRIM('Hello World')",
+          oracle: "RTRIM('Hello World')",
+          snowflake: "RTRIM('Hello World')",
+          bigquery: "RTRIM('Hello World')",
+          hive: "RTRIM('Hello World')",
+          spark2: "RTRIM('Hello World')",
+          spark: "RTRIM('Hello World')",
+          databricks: "RTRIM('Hello World')",
+        },
+        write: {
+          clickhouse: "RTRIM('Hello World')",
+          oracle: "RTRIM('Hello World')",
+          snowflake: "RTRIM('Hello World')",
+          bigquery: "RTRIM('Hello World')",
+          hive: "RTRIM('Hello World')",
+          spark2: "RTRIM('Hello World')",
+          spark: "RTRIM('Hello World')",
+          databricks: "RTRIM('Hello World')",
+        },
+      },
+    );
   }
 
   testUuid () {
@@ -2999,6 +3897,52 @@ class TestDialect extends Validator {
         {
           read: { [dialect]: 'SELECT 1 AS "x"""' },
           write: { [dialect]: 'SELECT 1 AS "x"""' },
+        },
+      );
+    }
+
+    for (const dialect of ['clickhouse', 'sqlite'] as const) {
+      this.validateAll(
+        'SELECT 1 AS "x`"',
+        {
+          read: { [dialect]: 'SELECT 1 AS `x```' },
+          write: { [dialect]: 'SELECT 1 AS "x`"' },
+        },
+      );
+    }
+
+    this.validateAll(
+      'SELECT 1 AS "x`"',
+      {
+        read: { clickhouse: 'SELECT 1 AS `x\\``' },
+        write: { clickhouse: 'SELECT 1 AS "x`"' },
+      },
+    );
+    for (const name of ['"x\\""', '`x"`']) {
+      this.validateAll(
+        'SELECT 1 AS "x"""',
+        {
+          read: { clickhouse: `SELECT 1 AS ${name}` },
+          write: { clickhouse: 'SELECT 1 AS "x"""' },
+        },
+      );
+    }
+
+    for (const name of ['[[x]]]', '"[x]"']) {
+      this.validateAll(
+        'SELECT 1 AS "[x]"',
+        {
+          read: { tsql: `SELECT 1 AS ${name}` },
+          write: { tsql: 'SELECT 1 AS [[x]]]' },
+        },
+      );
+    }
+    for (const name of ['[x"]', '"x"""']) {
+      this.validateAll(
+        'SELECT 1 AS "x"""',
+        {
+          read: { tsql: `SELECT 1 AS ${name}` },
+          write: { tsql: 'SELECT 1 AS [x"]' },
         },
       );
     }
@@ -3129,6 +4073,18 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      'SELECT x BETWEEN ASYMMETRIC 10 AND 2',
+      {
+        write: {
+          '': 'SELECT x BETWEEN 10 AND 2',
+          clickhouse: 'SELECT x BETWEEN 10 AND 2',
+          duckdb: 'SELECT x BETWEEN 10 AND 2',
+          mysql: 'SELECT x BETWEEN 10 AND 2',
+          postgres: 'SELECT x BETWEEN ASYMMETRIC 10 AND 2',
+        },
+      },
+    );
   }
 
   testLikeQuantifiers () {
@@ -3153,7 +4109,25 @@ class TestDialect extends Validator {
           },
         },
       );
+      this.validateAll(
+        `SELECT col ILIKE ${quantifier} (x, y, z)`,
+        {
+          write: {
+            '': `SELECT col ILIKE ${quantifier} (x, y, z)`,
+            duckdb: `SELECT (col ILIKE x ${connector} col ILIKE y) ${connector} col ILIKE z`,
+          },
+        },
+      );
     }
+    this.validateAll(
+      "SELECT 'foo' LIKE ANY((('bar', 'fo%')))",
+      {
+        write: {
+          '': "SELECT 'foo' LIKE ANY((('bar', 'fo%')))",
+          duckdb: "SELECT 'foo' LIKE 'bar' OR 'foo' LIKE 'fo%'",
+        },
+      },
+    );
   }
 
   testDateToUnixDate () {
@@ -3205,6 +4179,38 @@ class TestDialect extends Validator {
           bigquery: "JUSTIFY_DAYS(INTERVAL '1' DAY)",
           postgres: "JUSTIFY_DAYS(INTERVAL '1 DAY')",
           materialize: "JUSTIFY_DAYS(INTERVAL '1 DAY')",
+        },
+      },
+    );
+    this.validateAll(
+      "JUSTIFY_HOURS(INTERVAL '1' HOUR)",
+      {
+        read: {
+          '': "JUSTIFY_HOURS(INTERVAL '1' HOUR)",
+          bigquery: "JUSTIFY_HOURS(INTERVAL '1' HOUR)",
+          postgres: "JUSTIFY_HOURS(INTERVAL '1 HOUR')",
+          materialize: "JUSTIFY_HOURS(INTERVAL '1 HOUR')",
+        },
+        write: {
+          bigquery: "JUSTIFY_HOURS(INTERVAL '1' HOUR)",
+          postgres: "JUSTIFY_HOURS(INTERVAL '1 HOUR')",
+          materialize: "JUSTIFY_HOURS(INTERVAL '1 HOUR')",
+        },
+      },
+    );
+    this.validateAll(
+      "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)",
+      {
+        read: {
+          '': "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)",
+          bigquery: "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)",
+          postgres: "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')",
+          materialize: "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')",
+        },
+        write: {
+          bigquery: "JUSTIFY_INTERVAL(INTERVAL '1' HOUR)",
+          postgres: "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')",
+          materialize: "JUSTIFY_INTERVAL(INTERVAL '1 HOUR')",
         },
       },
     );
@@ -3362,6 +4368,26 @@ class TestDialect extends Validator {
         },
       },
     );
+    this.validateAll(
+      'GROUPING(col1, col2, col3)',
+      {
+        read: {
+          '': 'GROUPING(col1, col2, col3)',
+          snowflake: 'GROUPING(col1, col2, col3)',
+          mysql: 'GROUPING(col1, col2, col3)',
+          postgres: 'GROUPING(col1, col2, col3)',
+          clickhouse: 'GROUPING(col1, col2, col3)',
+          redshift: 'GROUPING(col1, col2, col3)',
+        },
+        write: {
+          snowflake: 'GROUPING(col1, col2, col3)',
+          mysql: 'GROUPING(col1, col2, col3)',
+          postgres: 'GROUPING(col1, col2, col3)',
+          clickhouse: 'GROUPING(col1, col2, col3)',
+          redshift: 'GROUPING(col1, col2, col3)',
+        },
+      },
+    );
   }
 
   testFarmFingerprint () {
@@ -3427,15 +4453,87 @@ class TestDialect extends Validator {
           bigquery: 'REGEXP_INSTR(src, reg)',
           snowflake: 'REGEXP_INSTR(src, reg)',
           oracle: 'REGEXP_INSTR(src, reg)',
+          spark: 'REGEXP_INSTR(src, reg)',
+          databricks: 'REGEXP_INSTR(src, reg)',
+          tsql: 'REGEXP_INSTR(src, reg)',
           mysql: 'REGEXP_INSTR(src, reg)',
           postgres: 'REGEXP_INSTR(src, reg)',
+          redshift: 'REGEXP_INSTR(src, reg)',
         },
         write: {
           bigquery: 'REGEXP_INSTR(src, reg)',
           snowflake: 'REGEXP_INSTR(src, reg)',
           oracle: 'REGEXP_INSTR(src, reg)',
+          spark: 'REGEXP_INSTR(src, reg)',
+          databricks: 'REGEXP_INSTR(src, reg)',
+          tsql: 'REGEXP_INSTR(src, reg)',
           mysql: 'REGEXP_INSTR(src, reg)',
           postgres: 'REGEXP_INSTR(src, reg)',
+          redshift: 'REGEXP_INSTR(src, reg)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_INSTR(src, reg, pos, occ, opt)',
+      {
+        read: {
+          '': 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          bigquery: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          mysql: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          redshift: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+        },
+        write: {
+          bigquery: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          mysql: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+          redshift: 'REGEXP_INSTR(src, reg, pos, occ, opt)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+      {
+        read: {
+          '': 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          mysql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          redshift: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+        },
+        write: {
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          mysql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+          redshift: 'REGEXP_INSTR(src, reg, pos, occ, opt, par)',
+        },
+      },
+    );
+    this.validateAll(
+      'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+      {
+        read: {
+          '': 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+        },
+        write: {
+          snowflake: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          oracle: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          tsql: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
+          postgres: 'REGEXP_INSTR(src, reg, pos, occ, opt, par, grp)',
         },
       },
     );
@@ -3592,8 +4690,18 @@ class TestDialect extends Validator {
         },
       },
     );
-    // TODO: IS NOT NULL::TYPE needs parser fix to call parseColumnOps for negate path
-    // without breaking ON CONFLICT...DO UPDATE parsing
+    // TODO: not yet supported - IS NOT NULL::TYPE needs parser fix to call parseColumnOps for negate path
+    // this.validateAll(
+    //   'SELECT CAST(NOT col IS NULL AS BOOLEAN) FROM (SELECT 1 AS col) AS t',
+    //   {
+    //     read: {
+    //       '': 'SELECT col IS NOT NULL::BOOLEAN FROM (SELECT 1 AS col) AS t',
+    //       duckdb: 'SELECT col IS NOT NULL::BOOLEAN FROM (SELECT 1 AS col) AS t',
+    //       redshift: 'SELECT col IS NOT NULL::BOOLEAN FROM (SELECT 1 AS col) AS t',
+    //       postgres: 'SELECT col IS NOT NULL::BOOLEAN FROM (SELECT 1 AS col) AS t',
+    //     },
+    //   },
+    // );
   }
 
   testRegexpReplace () {
@@ -3682,9 +4790,54 @@ class TestDialect extends Validator {
           bigquery: "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1' WEEK))",
           databricks: "SELECT * FROM EXPLODE(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1' WEEK))",
           duckdb: "SELECT * FROM UNNEST(CAST(GENERATE_SERIES(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1' WEEK) AS DATE[]))",
+          mysql: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates",
+          starrocks: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates",
+          postgres: "SELECT * FROM (SELECT CAST(value AS DATE) FROM GENERATE_SERIES(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1 WEEK') AS _t(value)) AS _unnested_generate_series",
           presto: "SELECT * FROM UNNEST(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), (1 * INTERVAL '7' DAY)))",
+          redshift: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates",
+          snowflake: "SELECT * FROM (SELECT DATEADD(WEEK, CAST(value AS INT), CAST(CAST('2020-01-01' AS DATE) AS DATE)) AS value FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _t0(seq, key, path, index, value, this))",
           spark: "SELECT * FROM EXPLODE(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), INTERVAL '1' WEEK))",
           trino: "SELECT * FROM UNNEST(SEQUENCE(CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE), (1 * INTERVAL '7' DAY)))",
+          tsql: "WITH _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_value AS date_value FROM _generated_dates) AS _generated_dates",
+        },
+      },
+    );
+    this.validateAll(
+      "WITH dates AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))) SELECT * FROM dates",
+      {
+        write: {
+          mysql: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)), dates AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates) SELECT * FROM dates",
+          redshift: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)), dates AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates) SELECT * FROM dates",
+          tsql: "WITH _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)), dates AS (SELECT * FROM (SELECT date_value AS date_value FROM _generated_dates) AS _generated_dates) SELECT * FROM dates",
+        },
+      },
+    );
+    this.validateAll(
+      "WITH dates1 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))), dates2 AS (SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-03-01', INTERVAL 1 MONTH))) SELECT * FROM dates1 CROSS JOIN dates2",
+      {
+        write: {
+          mysql: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_value, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)), _generated_dates_1(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATE_ADD(date_value, INTERVAL 1 MONTH) AS DATE) FROM _generated_dates_1 WHERE CAST(DATE_ADD(date_value, INTERVAL 1 MONTH) AS DATE) <= CAST('2020-03-01' AS DATE)), dates1 AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates), dates2 AS (SELECT * FROM (SELECT date_value FROM _generated_dates_1) AS _generated_dates_1) SELECT * FROM dates1 CROSS JOIN dates2",
+          redshift: "WITH RECURSIVE _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)), _generated_dates_1(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(MONTH, 1, date_value) AS DATE) FROM _generated_dates_1 WHERE CAST(DATEADD(MONTH, 1, date_value) AS DATE) <= CAST('2020-03-01' AS DATE)), dates1 AS (SELECT * FROM (SELECT date_value FROM _generated_dates) AS _generated_dates), dates2 AS (SELECT * FROM (SELECT date_value FROM _generated_dates_1) AS _generated_dates_1) SELECT * FROM dates1 CROSS JOIN dates2",
+          tsql: "WITH _generated_dates(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_value) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_value) AS DATE) <= CAST('2020-02-01' AS DATE)), _generated_dates_1(date_value) AS (SELECT CAST('2020-01-01' AS DATE) AS date_value UNION ALL SELECT CAST(DATEADD(MONTH, 1, date_value) AS DATE) FROM _generated_dates_1 WHERE CAST(DATEADD(MONTH, 1, date_value) AS DATE) <= CAST('2020-03-01' AS DATE)), dates1 AS (SELECT * FROM (SELECT date_value AS date_value FROM _generated_dates) AS _generated_dates), dates2 AS (SELECT * FROM (SELECT date_value AS date_value FROM _generated_dates_1) AS _generated_dates_1) SELECT * FROM dates1 CROSS JOIN dates2",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT * FROM UNNEST(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK)) AS _q(date_week)",
+      {
+        write: {
+          mysql: "WITH RECURSIVE _generated_dates(date_week) AS (SELECT CAST('2020-01-01' AS DATE) AS date_week UNION ALL SELECT CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) FROM _generated_dates WHERE CAST(DATE_ADD(date_week, INTERVAL 1 WEEK) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_week FROM _generated_dates) AS _generated_dates",
+          redshift: "WITH RECURSIVE _generated_dates(date_week) AS (SELECT CAST('2020-01-01' AS DATE) AS date_week UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_week) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_week) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_week FROM _generated_dates) AS _generated_dates",
+          snowflake: "SELECT * FROM (SELECT DATEADD(WEEK, CAST(date_week AS INT), CAST(CAST('2020-01-01' AS DATE) AS DATE)) AS date_week FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _q(seq, key, path, index, date_week, this)) AS _q(date_week)",
+          tsql: "WITH _generated_dates(date_week) AS (SELECT CAST('2020-01-01' AS DATE) AS date_week UNION ALL SELECT CAST(DATEADD(WEEK, 1, date_week) AS DATE) FROM _generated_dates WHERE CAST(DATEADD(WEEK, 1, date_week) AS DATE) <= CAST('2020-02-01' AS DATE)) SELECT * FROM (SELECT date_week AS date_week FROM _generated_dates) AS _generated_dates",
+        },
+      },
+    );
+    this.validateAll(
+      "SELECT ARRAY_LENGTH(GENERATE_DATE_ARRAY(DATE '2020-01-01', DATE '2020-02-01', INTERVAL 1 WEEK))",
+      {
+        write: {
+          snowflake: "SELECT ARRAY_SIZE((SELECT ARRAY_AGG(*) FROM (SELECT DATEADD(WEEK, CAST(value AS INT), CAST(CAST('2020-01-01' AS DATE) AS DATE)) AS value FROM TABLE(FLATTEN(INPUT => ARRAY_GENERATE_RANGE(0, DATEDIFF(WEEK, CAST('2020-01-01' AS DATE), CAST('2020-02-01' AS DATE)) + 1))) AS _t0(seq, key, path, index, value, this))))",
         },
       },
     );
@@ -3713,12 +4866,12 @@ class TestDialect extends Validator {
     // Check the varlen case
     const coalesce = this.parseOne('COALESCE(x, y, z)');
     expect(Array.isArray(coalesce.args.expressions)).toBe(true);
-    expect(coalesce.args.isNvl).toBeUndefined();
+    expect(coalesce.getArgKey('isNvl')).toBeUndefined();
 
     // Check Oracle's NVL which is decoupled from COALESCE
     const oracleNvl = parseOne('NVL(x, y)', { read: 'oracle' });
     expect(Array.isArray(oracleNvl.args.expressions)).toBe(true);
-    expect(oracleNvl.args.isNvl).toBeTruthy();
+    expect(oracleNvl.getArgKey('isNvl')).toBeTruthy();
 
     // Check T-SQL's ISNULL which is parsed into exp.Coalesce
     expect(Array.isArray(parseOne('ISNULL(x, y)', { read: 'tsql' }).args.expressions)).toBe(true);
@@ -3872,7 +5025,7 @@ class TestDialect extends Validator {
       );
     }
 
-    expect(parseOne('NORMALIZE(\'str\', NFD)').args.form).toBeInstanceOf(VarExpr);
+    expect(parseOne('NORMALIZE(\'str\', NFD)').getArgKey('form')).toBeInstanceOf(VarExpr);
   }
   testTypeddiv () {
     const typedDiv = new DivExpr({ this: column({ col: 'a' }), expression: column({ col: 'b' }), typed: true });
@@ -4222,6 +5375,72 @@ class TestDialect extends Validator {
     this.validateIdentity('SELECT 1 OPERATOR(+) /* foo */ 2');
     this.validateIdentity('SELECT 1 OPERATOR(pg_catalog.+) 2');
   }
+
+  testGetOrRaise () {
+    expect(Dialect.getOrRaise(Hive)).toBeInstanceOf(Hive);
+    expect(Dialect.getOrRaise(new Hive())).toBeInstanceOf(Hive);
+    expect(Dialect.getOrRaise('hive')).toBeInstanceOf(Hive);
+
+    expect(() => Dialect.getOrRaise(1 as any)).toThrow();
+
+    const defaultMysql = Dialect.getOrRaise('mysql');
+    expect(defaultMysql.normalizationStrategy).toBe(NormalizationStrategy.CASE_SENSITIVE);
+
+    const lowercaseMysql = Dialect.getOrRaise('mysql, normalization_strategy = lowercase');
+    expect(lowercaseMysql.normalizationStrategy).toBe(NormalizationStrategy.LOWERCASE);
+
+    expect(() => Dialect.getOrRaise('myqsl')).toThrow("Unknown dialect 'myqsl'.");
+    expect(() => Dialect.getOrRaise('asdfjasodiufjsd')).toThrow("Unknown dialect 'asdfjasodiufjsd'.");
+
+    const oracleWithSettings = Dialect.getOrRaise('oracle, normalization_strategy = lowercase, version = 19.5');
+    expect(oracleWithSettings.normalizationStrategy).toBe(NormalizationStrategy.LOWERCASE);
+    expect(oracleWithSettings.version).toEqual({ major: 19, minor: 5, patch: 0 });
+  }
+
+  testCompareDialects () {
+    const snowflakeClass = Dialect.get('snowflake')!;
+    const snowflakeObject = new Snowflake();
+    const bigqueryClass = Dialect.get('bigquery')!;
+    const bigqueryObject = new BigQuery();
+
+    // Static equals - class vs class/instance/string
+    expect(snowflakeClass.equals(snowflakeClass)).toBe(true);
+    expect(snowflakeClass.equals(snowflakeObject)).toBe(true);
+    expect(snowflakeClass.equals('snowflake')).toBe(true);
+
+    expect(snowflakeClass.equals(bigqueryClass)).toBe(false);
+    expect(snowflakeClass.equals(bigqueryObject)).toBe(false);
+    expect(snowflakeClass.equals('bigquery')).toBe(false);
+
+    // Instance equals
+    expect(snowflakeObject.equals(snowflakeObject)).toBe(true);
+    expect(snowflakeObject.equals(new Snowflake())).toBe(true);
+    expect(snowflakeObject.equals(bigqueryObject)).toBe(false);
+  }
+
+  testCompareDialectVersions () {
+    const ddbV1 = Dialect.getOrRaise('duckdb, version=1.0');
+    const ddbV1_2 = Dialect.getOrRaise('duckdb, normalization_strategy=case_sensitive, version=1.0');
+    const ddbV2 = Dialect.getOrRaise('duckdb, version=2.2.4');
+    const ddbLatest = Dialect.getOrRaise('duckdb');
+
+    // latest > v2
+    expect(ddbLatest.version.major > ddbV2.version.major
+      || (ddbLatest.version.major === ddbV2.version.major && ddbLatest.version.minor > ddbV2.version.minor)).toBe(true);
+    // v1 < v2
+    expect(ddbV1.version.major < ddbV2.version.major).toBe(true);
+    // v1 == v1_2 (same version, different settings)
+    expect(ddbV1.version).toEqual(ddbV1_2.version);
+    // latest == latest
+    expect(ddbLatest.version).toEqual(Dialect.getOrRaise('duckdb').version);
+  }
+
+  testReservedKeywords () {
+    this.validateIdentity(
+      'SELECT partition.d FROM t PARTITION (d)',
+      'SELECT partition.d FROM t AS PARTITION(d)',
+    );
+  }
 }
 
 const t = new TestDialect();
@@ -4316,4 +5535,8 @@ describe('TestDialect', () => {
   test('testTypeddiv', () => t.testTypeddiv());
   test('testUnderscoreScientificNotation', () => t.testUnderscoreScientificNotation());
   test('testSessionUser', () => t.testSessionUser());
+  test('testGetOrRaise', () => t.testGetOrRaise());
+  test('testCompareDialects', () => t.testCompareDialects());
+  test('testCompareDialectVersions', () => t.testCompareDialectVersions());
+  test('testReservedKeywords', () => t.testReservedKeywords());
 });
