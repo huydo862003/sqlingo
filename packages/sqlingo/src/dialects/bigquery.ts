@@ -159,6 +159,7 @@ import {
   UserDefinedFunctionExpr,
   MakeIntervalExpr,
   MlForecastExpr,
+  AiForecastExpr,
   PredictExpr,
   VectorSearchExpr,
   FeaturesAtTimeExpr,
@@ -1286,7 +1287,7 @@ export class BigQueryParser extends Parser {
           return (this as BigQueryParser).parseVectorSearch();
         },
         FORECAST: function (this: Parser) {
-          return (this as BigQueryParser).parseMl(MlForecastExpr);
+          return (this as BigQueryParser).parseForecast();
         },
       };
 
@@ -1391,6 +1392,34 @@ export class BigQueryParser extends Parser {
 
       // Get the LHS of the Kwarg and set the arg to that value, e.g
       // "num_rows => 1" sets the expr's `num_rows` arg
+      if (arg) {
+        const kwargThis = (arg as KwargExpr).args.this;
+
+        if (kwargThis) {
+          expr.setArgKey(snakeToCamelCase(kwargThis.name), arg);
+        }
+      }
+    }
+
+    return expr;
+  }
+
+  parseForecast (): AiForecastExpr | MlForecastExpr {
+    const token = this.tokens[this.index - 4];
+
+    if (token && token.text.toUpperCase() === 'ML') {
+      return this.parseMl(MlForecastExpr);
+    }
+
+    this.match(TokenType.TABLE);
+    const thisExpr = this.parseTable();
+    const expr = this.expression(AiForecastExpr, {
+      this: thisExpr,
+    });
+
+    while (this.match(TokenType.COMMA)) {
+      const arg = this.parseLambda();
+
       if (arg) {
         const kwargThis = (arg as KwargExpr).args.this;
 

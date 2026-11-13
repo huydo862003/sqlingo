@@ -150,6 +150,7 @@ import type {
   LockExpr,
   LogExpr,
   LowerHexExpr,
+  AiForecastExpr,
   MlForecastExpr,
   MlTranslateExpr,
   MaskingPolicyColumnConstraintExpr,
@@ -8257,6 +8258,28 @@ export class Generator {
 
   mlForecastSql (expression: MlForecastExpr): string {
     return this.mlSql(expression, 'FORECAST');
+  }
+
+  aiForecastSql (expression: AiForecastExpr): string {
+    const thisNode = expression.args.this;
+    let thisStr = this.sql(expression, 'this');
+
+    if (thisNode instanceof TableExpr) {
+      thisStr = `TABLE ${thisStr}`;
+    }
+
+    return this.func('FORECAST', [
+      thisStr,
+      expression.args.dataCol,
+      expression.args.timestampCol,
+      expression.args.model,
+      expression.args.idCols,
+      expression.args.horizon,
+      expression.args.forecastEndTimestamp,
+      expression.args.confidenceLevel,
+      expression.args.outputHistoricalTimeSeries,
+      expression.args.contextWindow,
+    ]);
   }
 
   featuresAtTimeSql (expression: FeaturesAtTimeExpr): string {

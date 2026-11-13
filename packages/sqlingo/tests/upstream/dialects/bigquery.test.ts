@@ -12,7 +12,7 @@ import type {
 import {
   DataTypeExpr, IdentifierExpr, JsonPathExpr, ParameterExpr,
   PredictExpr, FeaturesAtTimeExpr, VectorSearchExpr,
-  GenerateEmbeddingExpr, MlTranslateExpr, MlForecastExpr,
+  GenerateEmbeddingExpr, MlTranslateExpr, MlForecastExpr, AiForecastExpr,
   SafeFuncExpr, SubstringExpr, TimestampExpr, StrToDateExpr,
   StrToTimeExpr, ParseDatetimeExpr, NetFuncExpr, HostExpr,
   RegDomainExpr, PseudocolumnExpr, UnixSecondsExpr, TranslateExpr,
@@ -2584,6 +2584,14 @@ OPTIONS (
     );
     this.validateIdentity(
       'SELECT * FROM ML.FORECAST(MODEL `mydataset.mymodel`, (SELECT * FROM mydataset.query_table), STRUCT())',
+    );
+
+    const ast5 = this.validateIdentity(
+      "SELECT * FROM AI.FORECAST(TABLE citibike_trips, data_col => 'num_trips', timestamp_col => 'date', horizon => 30)",
+    );
+    expect((ast5 as any).find(AiForecastExpr)).toBeTruthy();
+    this.validateIdentity(
+      "SELECT * FROM AI.FORECAST((SELECT * FROM citibike_trips), data_col => 'num_trips', timestamp_col => 'date', horizon => 30)",
     );
 
     for (const name of ['GENERATE_EMBEDDING', 'GENERATE_TEXT_EMBEDDING']) {

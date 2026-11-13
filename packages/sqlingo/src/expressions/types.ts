@@ -35,6 +35,7 @@ export enum ExpressionKey {
   AGG_FUNC = 'aggFunc',
   AI_AGG = 'aiAgg',
   AI_CLASSIFY = 'aiClassify',
+  AI_FORECAST = 'aiForecast',
   AI_SUMMARIZE_AGG = 'aiSummarizeAgg',
   ALGORITHM_PROPERTY = 'algorithmProperty',
   ALIAS = 'alias',

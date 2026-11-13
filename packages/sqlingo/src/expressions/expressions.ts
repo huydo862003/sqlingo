@@ -27035,6 +27035,62 @@ export class MlForecastExpr extends FuncExpr {
   }
 }
 
+export type AiForecastExprArgs = Merge<[
+  FuncExprArgs,
+  {
+    this?: Expression;
+    dataCol?: Expression;
+    timestampCol?: Expression;
+    model?: Expression;
+    idCols?: Expression;
+    horizon?: Expression;
+    forecastEndTimestamp?: Expression;
+    confidenceLevel?: Expression;
+    outputHistoricalTimeSeries?: Expression;
+    contextWindow?: Expression;
+  },
+]>;
+
+export class AiForecastExpr extends FuncExpr {
+  static key = ExpressionKey.AI_FORECAST;
+
+  static availableArgs = new Set([
+    'this',
+    'dataCol',
+    'timestampCol',
+    'model',
+    'idCols',
+    'horizon',
+    'forecastEndTimestamp',
+    'confidenceLevel',
+    'outputHistoricalTimeSeries',
+    'contextWindow',
+  ]);
+
+  static argOrder = [
+    'this',
+    'dataCol',
+    'timestampCol',
+    'model',
+    'idCols',
+    'horizon',
+    'forecastEndTimestamp',
+    'confidenceLevel',
+    'outputHistoricalTimeSeries',
+    'contextWindow',
+  ];
+
+  declare args: AiForecastExprArgs;
+
+  constructor (args: AiForecastExprArgs = {}) {
+    super(args);
+  }
+
+  static {
+    this.register();
+  }
+}
+
 export type VectorSearchExprArgs = Merge<[
   FuncExprArgs,
   {
