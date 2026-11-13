@@ -60,7 +60,6 @@ import type {
   ArraySliceExpr,
   DateTruncExpr,
   SplitPartExpr,
-  StrPositionExpr,
   StrtokExpr,
 
   ArrayUniqueAggExpr,
@@ -140,6 +139,7 @@ import {
   EqualNullExpr,
   ExtractExpr,
   FloorExpr,
+  StrPositionExpr,
   GenerateTimestampArrayExpr,
   GroupConcatExpr,
   InlineExpr,
