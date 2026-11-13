@@ -5423,6 +5423,16 @@ class DuckDBGenerator extends Generator {
     return this.func('UNICODE', [expression.args.this]);
   }
 
+  truncSql (expression: TruncExpr): string {
+    let decimals = expression.args.decimals;
+
+    if (expression.args.fractionsSupported && decimals && !decimals.isType(DataTypeExprKind.INT)) {
+      decimals = cast(decimals, DataTypeExprKind.INT, { dialect: 'duckdb' });
+    }
+
+    return this.func('TRUNC', [expression.args.this, decimals]);
+  }
+
   normalSql (expression: NormalExpr): string {
     const mean = expression.args.this;
     const stddev = expression.args.stddev;

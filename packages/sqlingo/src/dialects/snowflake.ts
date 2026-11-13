@@ -1710,6 +1710,7 @@ class SnowflakeParser extends Parser {
           buildTrunc(args, {
             dialect,
             dateTruncRequiresPart: false,
+            fractionsSupported: true,
           }),
         TRUNCATE: (args: Expression[], {
           dialect,
@@ -1719,6 +1720,7 @@ class SnowflakeParser extends Parser {
           buildTrunc(args, {
             dialect,
             dateTruncRequiresPart: false,
+            fractionsSupported: true,
           }),
         TRY_DECRYPT: (args: Expression[]) =>
           new DecryptExpr({
