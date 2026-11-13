@@ -1524,6 +1524,7 @@ export class TSQLParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 55e13cc
   // T-SQL: INDEX is a valid unnamed constraint keyword inside CREATE TABLE
   @cache
   static get SCHEMA_UNNAMED_CONSTRAINTS (): Set<string> {
@@ -1534,6 +1535,7 @@ export class TSQLParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 55e13cc
   // T-SQL: parse inline INDEX definitions inside CREATE TABLE
   // Syntax: INDEX [idx_name] [UNIQUE] [CLUSTERED|NONCLUSTERED] (col, ...)
   @cache

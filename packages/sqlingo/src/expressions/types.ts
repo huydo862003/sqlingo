@@ -1046,6 +1046,7 @@ export enum CreateExprKind {
   SEQUENCE = 'sequence',
   TEMPORARY_VIEW = 'temporary view',
   // FIXME: not in upstream sqlglot - added so CREATE TYPE AS ENUM can be matched via enum instead of string
+  // Revert 475a4de (mixed commit)
   TYPE = 'TYPE',
 }
 

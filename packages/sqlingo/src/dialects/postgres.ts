@@ -1074,6 +1074,7 @@ class PostgresParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert e978b0a
   // PostgreSQL: ... USING INDEX [TABLESPACE name]
   // PostgreSQL: ... INCLUDE (col, ...)
   // PostgreSQL: ... [NOT] DEFERRABLE [INITIALLY {DEFERRED|IMMEDIATE}]
@@ -1097,6 +1098,7 @@ class PostgresParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert e978b0a
   // PostgreSQL: UNIQUE (...) INCLUDE (cols)
   override parseConstraint (): Expression | undefined {
     const result = super.parseConstraint();
@@ -1107,6 +1109,7 @@ class PostgresParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 55e13cc
   // PostgreSQL PARTITION BY RANGE/LIST/HASH (col [COLLATE coll] [opclass], ...)
   // Partition columns may include an optional collation and opclass after the column name
   // The base parsePartitionedBy uses a function-call parse path that cannot consume the opclass identifier after COLLATE
@@ -1451,6 +1454,7 @@ class PostgresGenerator extends Generator {
       ],
       [
         // FIXME: not in upstream sqlglot
+        // Revert e7547d4
         // PostgreSQL PARTITION BY: emit method(cols) when expressions are present
         PartitionedByPropertyExpr,
         function (this: Generator, e: PartitionedByPropertyExpr) {

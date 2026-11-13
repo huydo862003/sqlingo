@@ -3166,6 +3166,7 @@ export class Generator {
     }
 
     // FIXME: custom indexPrefix for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
+    // Revert f8d7cc5
     const indexPrefixSql = expression.args.indexPrefix ? ` ${expression.args.indexPrefix}` : '';
     const modifiers = `${clusteredSql}${replace}${refresh}${unique}${indexPrefixSql}${postcreatePropsSql}`;
 
@@ -3917,6 +3918,7 @@ export class Generator {
     const on = onRaw ? ` ON ${onRaw}` : '';
 
     // FIXME: custom reverse for Oracle REVERSE index, remove if sqlglot adds support upstream
+    // Revert 10f2e82
     const reverse = expression.args.reverse ? ' REVERSE' : '';
 
     return `${using}${columnsStr}${reverse}${include}${withStorage}${tablespace}${partitionBy}${where}${on}`;

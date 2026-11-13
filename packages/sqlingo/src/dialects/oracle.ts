@@ -178,6 +178,7 @@ export class OracleTokenizer extends Tokenizer {
 
 export class OracleParser extends Parser {
   // FIXME: upstream sqlglot doesn't handle Oracle constraint state modifiers
+  // Revert 16bb024 (mixed commit)
   // Oracle syntax: constraint_def [ENABLE|DISABLE] [VALIDATE|NOVALIDATE] [RELY|NORELY] [DEFERRABLE|NOT DEFERRABLE] [INITIALLY DEFERRED|INITIALLY IMMEDIATE]
   static CONSTRAINT_STATE_KEYWORDS = [
     'ENABLE',
@@ -189,6 +190,7 @@ export class OracleParser extends Parser {
   ];
 
   // FIXME: not in upstream sqlglot, used to skip unsupported Oracle clauses with nested parens
+  // Revert e978b0a
   // Consumes next keyword (e.g. HEAP, INDEX, EXTERNAL) then an optional balanced paren block
   consumeBalancedParens (): void {
     this.parseIdVar();
@@ -224,6 +226,7 @@ export class OracleParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 16bb024 (mixed commit)
   // Consumes Oracle constraint state modifiers after table-level constraints
   override parseConstraint (): Expression | undefined {
     const result = super.parseConstraint();
@@ -234,6 +237,7 @@ export class OracleParser extends Parser {
   }
 
   // FIXME: upstream sqlglot doesn't handle Oracle ALTER TABLE MODIFY
+  // Revert 10f2e82
   // Remove this if sqlglot adds support upstream
   @cache
   static get ALTER_PARSERS () {
@@ -273,6 +277,7 @@ export class OracleParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert e978b0a
   // LONG RAW
   // INTERVAL {YEAR|DAY}[(precision)] TO {MONTH|SECOND}[(precision)]
   override parseTypes (options: {
@@ -341,6 +346,7 @@ export class OracleParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert e978b0a
   // Oracle: PARTITION BY {RANGE|LIST|HASH} (cols) (PARTITION name VALUES {LESS THAN (expr) | (val,...)} [, ...])
   override parsePartitionedBy (): PartitionedByPropertyExpr {
     const result = super.parsePartitionedBy();
@@ -352,6 +358,7 @@ export class OracleParser extends Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 16bb024 (mixed commit)
   // Oracle 12c+: DEFAULT [ON NULL] <expr>
   @cache
   static get CONSTRAINT_PARSERS (): Partial<Record<string, (this: Parser, ...args: unknown[]) => Expression | Expression[] | undefined>> {
@@ -512,6 +519,7 @@ export class OracleParser extends Parser {
         return this.expression(ForcePropertyExpr, {});
       },
       // FIXME: not in upstream sqlglot
+      // Revert e978b0a
       // ORGANIZATION {HEAP | INDEX | EXTERNAL} [(...)]
       ORGANIZATION: function (this: Parser) {
         (this as OracleParser).consumeBalancedParens();
@@ -791,6 +799,7 @@ export class OracleParser extends Parser {
 export class OracleGenerator extends Generator {
   static ON_CONDITION_EMPTY_BEFORE_ERROR = false;
   static SUPPORTS_MODIFY_COLUMN = true; // FIXME: custom Oracle MODIFY support, remove if sqlglot adds upstream
+  // Revert 10f2e82
 
   @cache
   static get AFTER_HAVING_MODIFIER_TRANSFORMS () {
@@ -948,6 +957,7 @@ export class OracleGenerator extends Generator {
   }
 
   // FIXME: Oracle uses MODIFY (not MODIFY COLUMN), remove if sqlglot adds upstream
+  // Revert 10f2e82
   public modifyColumnSql (expression: ModifyColumnExpr): string {
     return `MODIFY ${this.sql(expression, 'this')}`;
   }

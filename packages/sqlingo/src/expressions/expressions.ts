@@ -2678,6 +2678,7 @@ export type CreateExprArgs = Merge<[
     refresh?: Expression;
     unique?: boolean;
     indexPrefix?: string; // FIXME: custom field for FULLTEXT/BITMAP/SPATIAL, remove if sqlglot adds support upstream
+    // Revert f8d7cc5
     indexes?: Expression[];
     noSchemaBinding?: Expression;
     begin?: Expression;
@@ -4989,6 +4990,7 @@ export type IndexParametersExprArgs = Merge<[
     where?: Expression;
     on?: Expression;
     reverse?: boolean; // FIXME: custom field for Oracle REVERSE index, remove if sqlglot adds support upstream
+    // Revert 10f2e82
   },
 ]>;
 

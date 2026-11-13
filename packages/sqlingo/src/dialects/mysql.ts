@@ -478,7 +478,9 @@ class MySQLTokenizer extends Tokenizer {
       'TIMESTAMP': TokenType.TIMESTAMPTZ,
       'TINYBLOB': TokenType.TINYBLOB,
       'TINYTEXT': TokenType.TINYTEXT,
-      'TYPE': TokenType.TYPE, // FIXME: enables CREATE TYPE AS ENUM parsing, remove if sqlglot adds MySQL support upstream
+      // FIXME: enables CREATE TYPE AS ENUM parsing, remove if sqlglot adds MySQL support upstream
+      // Revert efcd0d6
+      'TYPE': TokenType.TYPE,
       'UNLOCK TABLES': TokenType.COMMAND,
       'UNSIGNED': TokenType.UBIGINT,
       'UNSIGNED INTEGER': TokenType.UBIGINT,
@@ -928,6 +930,7 @@ class MySQLParser extends Parser {
         return this.expression(ZeroFillColumnConstraintExpr);
       },
       // FIXME: not in upstream sqlglot
+      // Revert 16bb024 (mixed commit)
       // MySQL: COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}
       COLUMN_FORMAT: function (this: Parser) {
         this.parseIdVar();
@@ -937,6 +940,7 @@ class MySQLParser extends Parser {
         });
       },
       // FIXME: not in upstream sqlglot
+      // Revert 16bb024 (mixed commit)
       // MySQL: STORAGE {DISK | MEMORY | DEFAULT}
       STORAGE: function (this: Parser) {
         this.parseIdVar();
@@ -946,6 +950,7 @@ class MySQLParser extends Parser {
         });
       },
       // FIXME: not in upstream sqlglot
+      // Revert 16bb024 (mixed commit)
       // MySQL 8.0+: INVISIBLE | VISIBLE
       INVISIBLE: function (this: Parser) {
         return this.expression(VarExpr, {
@@ -1566,6 +1571,7 @@ class MySQLParser extends Parser {
   }
 
   // FIXME: upstream sqlglot doesn't handle MySQL PRIMARY KEY [key_name] [USING method] (cols)
+  // Revert 91b6ae0
   // Remove this override if sqlglot adds support upstream
   public override parsePrimaryKey (
     options: {

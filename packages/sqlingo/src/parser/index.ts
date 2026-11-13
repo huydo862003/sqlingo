@@ -2282,6 +2282,7 @@ export class Parser {
   }
 
   // FIXME: not in upstream sqlglot, used by parseAsCommand in newline-delimited mode
+  // Revert 9841898
   @cache
   static get NEWLINE_BOUNDARY_TOKENS (): Set<TokenType> {
     return new Set(Object.keys(this.STATEMENT_PARSERS) as TokenType[]);
@@ -2762,6 +2763,7 @@ export class Parser {
         return this.expression(GlobalPropertyExpr, {});
       },
       // FIXME: not in upstream sqlglot, but PostgreSQL supports CREATE LOCAL TEMP TABLE
+      // Revert 16bb024 (mixed commit)
       // LOCAL <TEMPORARY | TEMP> TABLE
       'LOCAL': function (this: Parser) {
         return this.expression(TemporaryPropertyExpr, {});
@@ -4152,6 +4154,7 @@ export class Parser {
   protected _chunks: Token[][];
   protected _chunkIndex: number;
   // FIXME: not in upstream sqlglot, enables newline-delimited statement splitting
+  // Revert 9841898
   protected _newlineDelimited: boolean;
 
   constructor (options: ParseOptions = {}) {
@@ -4214,6 +4217,7 @@ export class Parser {
   }
 
   // FIXME: not in upstream sqlglot, custom feature for delimiter-free SQL dumps
+  // Revert 9841898
   parseNewlineDelimited (rawTokens: Token[], sql?: string): (Expression | undefined)[] {
     try {
       const result = this._parse({
@@ -4568,6 +4572,7 @@ export class Parser {
     const unique = this.match(TokenType.UNIQUE) || undefined;
 
     // FIXME: upstream sqlglot doesn't handle FULLTEXT/BITMAP/SPATIAL index qualifiers in CREATE INDEX
+    // Revert f8d7cc5
     // Remove this if sqlglot adds support upstream
     let indexPrefix: string | undefined;
 
@@ -7799,6 +7804,7 @@ export class Parser {
 
   parseIndexParams (): IndexParametersExpr {
     // FIXME: not in upstream sqlglot - consume USING INDEX [TABLESPACE name] before USING BTREE/HASH
+    // Revert e978b0a
     let usingIndexTablespace: Expression | undefined;
 
     if (this.matchTextSeq([
@@ -7830,6 +7836,7 @@ export class Parser {
       : undefined;
 
     // FIXME: upstream sqlglot doesn't handle USING after column list (e.g. CREATE INDEX idx ON t (a) USING BTREE)
+    // Revert 10f2e82
     // Remove this if sqlglot adds support upstream
     if (!using && this.match(TokenType.USING)) {
       using = this.parseVar({
@@ -7838,6 +7845,7 @@ export class Parser {
     }
 
     // FIXME: upstream sqlglot doesn't handle Oracle REVERSE index keyword
+    // Revert 10f2e82
     // Remove this if sqlglot adds support upstream
     const reverse = this.matchTextSeq('REVERSE') || undefined;
 
@@ -14245,6 +14253,7 @@ export class Parser {
     let thisExpr: Expression | undefined;
 
     // FIXME: upstream sqlglot only checks next === L_PAREN for namedPrimaryKey
+    // Revert 91b6ae0
     // We also accept next === USING to handle MySQL PRIMARY KEY key_name USING HASH (cols)
     // Remove this if sqlglot adds support upstream
     if (
@@ -14347,6 +14356,7 @@ export class Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 6efc702
   // SQL standard: [NOT] DEFERRABLE [INITIALLY {DEFERRED | IMMEDIATE}]
   // Used by both PostgreSQL and Oracle dialects
   protected consumeDeferrable (): void {
@@ -14378,6 +14388,7 @@ export class Parser {
   }
 
   // FIXME: not in upstream sqlglot
+  // Revert 6efc702
   // Skips a balanced paren block starting at the current token
   protected skipBalancedParens (): void {
     if (this.curr?.tokenType !== TokenType.L_PAREN) return;
@@ -14466,6 +14477,7 @@ export class Parser {
 
   parseForeignKey (): ForeignKeyExpr {
     // FIXME: upstream sqlglot doesn't handle MySQL FOREIGN KEY index_name (cols) syntax
+    // Revert efcd0d6
     // Remove this if sqlglot adds support upstream
     if (
       this.curr
@@ -15568,6 +15580,7 @@ export class Parser {
         parsePartition: this._constructor.ALTER_TABLE_PARTITIONS,
       });
       // FIXME: upstream sqlglot doesn't handle WITH NOCHECK (TSQL)
+      // Revert 10f2e82
       // Remove this if sqlglot adds support upstream
       check = this.matchTextSeq([
         'WITH',
@@ -16469,6 +16482,7 @@ export class Parser {
     };
 
     // FIXME: upstream sqlglot doesn't handle unnamed CHECK in ALTER TABLE ADD
+    // Revert f8d7cc5
     // Remove this if sqlglot adds support upstream
     if (this.matchTexts(['CHECK'], {
       advance: false,
@@ -16481,6 +16495,7 @@ export class Parser {
     }
 
     // FIXME: upstream sqlglot doesn't handle TSQL ADD [CONSTRAINT name] DEFAULT expr FOR col
+    // Revert 684da78
     // Remove this if sqlglot adds support upstream
     if (this.matchTexts(['DEFAULT'], {
       advance: false,
@@ -16525,6 +16540,7 @@ export class Parser {
   }
 
   // FIXME: not in upstream sqlglot, handles TSQL ADD DEFAULT expr FOR col
+  // Revert 684da78
   protected parseAlterTableAddDefault (): Expression[] {
     this.advance(); // consume DEFAULT
     const defaultExpr = this.curr?.tokenType === TokenType.L_PAREN
