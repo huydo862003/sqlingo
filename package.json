@@ -1,6 +1,6 @@
 {
 	"private": true,
-	"packageManager": "pnpm@12.3.4",
+	"packageManager": "pnpm@12.9.0",
 	"scripts": {
 		"test": "pnpm --filter sqlingo run test",
 		"build": "pnpm --filter sqlingo run build",
