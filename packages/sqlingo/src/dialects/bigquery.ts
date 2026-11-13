@@ -1881,7 +1881,7 @@ export class BigQueryGenerator extends Generator {
   static EXCEPT_INTERSECT_SUPPORT_ALL_CLAUSE = false;
   static SUPPORTS_UNIX_SECONDS = true;
 
-  static SAFE_JSON_PATH_KEY_RE = /^[_\-a-zA-Z][\-\w]*$/;
+  static SAFE_JSON_PATH_KEY_RE = /^[\-\w]*$/;
 
   static WINDOW_FUNCS_WITH_NULL_ORDERING: (typeof Expression)[] = [
     CumeDistExpr,
@@ -2838,6 +2838,7 @@ export class BigQueryJsonPathTokenizer extends JsonPathTokenizer {
   static get VAR_TOKENS () {
     return new Set([
       TokenType.DASH,
+      TokenType.NUMBER,
       TokenType.VAR,
     ]);
   }
@@ -2865,6 +2866,7 @@ export class BigQuery extends Dialect {
   static EXCLUDES_PSEUDOCOLUMNS_FROM_STAR = true;
   static QUERY_RESULTS_ARE_STRUCTS = true;
   static JSON_EXTRACT_SCALAR_SCALAR_ONLY = true;
+  static JSON_PATH_SINGLE_DOT_IS_WILDCARD = true;
   static LEAST_GREATEST_IGNORES_NULLS = false;
 
   @cache

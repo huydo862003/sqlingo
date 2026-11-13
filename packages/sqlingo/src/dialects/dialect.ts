@@ -559,6 +559,8 @@ export class Dialect {
   /** Whether failing to parse a JSON path expression will log a warning */
   static STRICT_JSON_PATH_SYNTAX = true;
 
+  static JSON_PATH_SINGLE_DOT_IS_WILDCARD = false;
+
   /** Whether empty ON condition should error before attempting to parse */
   static ON_CONDITION_EMPTY_BEFORE_ERROR = true;
 

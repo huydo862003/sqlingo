@@ -1238,6 +1238,8 @@ export class Tokenizer {
    */
   static NUMERIC_LITERALS: Record<string, string> = {};
 
+  static NUMBERS_CAN_HAVE_DECIMALS: boolean = true;
+
   /**
    * Array of comment delimiters
    */
@@ -1701,7 +1703,10 @@ export class Tokenizer {
       if (this.isDigit(this.peek)) {
         this.advance();
       } else if (this.peek === '.' && !decimal) {
-        if (this.tokens.length && this.tokens[this.tokens.length - 1].tokenType === TokenType.PARAMETER) {
+        if (
+          (this.tokens.length && this.tokens[this.tokens.length - 1].tokenType === TokenType.PARAMETER)
+          || !this._constructor.NUMBERS_CAN_HAVE_DECIMALS
+        ) {
           break;
         }
         decimal = true;

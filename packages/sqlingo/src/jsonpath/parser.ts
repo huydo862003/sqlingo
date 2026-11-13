@@ -38,7 +38,8 @@ export interface ParseJsonPathOptions {
 }
 
 export function parse (path: string, options?: ParseJsonPathOptions): JsonPathExpr {
-  const jsonPathTokenizer = Dialect.getOrRaise(options?.dialect).jsonpathTokenizer();
+  const dialectInst = Dialect.getOrRaise(options?.dialect);
+  const jsonPathTokenizer = dialectInst.jsonpathTokenizer();
   const tokens = jsonPathTokenizer.tokenize(path);
   const size = tokens.length;
 
@@ -255,7 +256,7 @@ export function parse (path: string, options?: ParseJsonPathOptions): JsonPathEx
         expressions.push(new JsonPathKeyExpr({
           this: value,
         }));
-      } else {
+      } else if (!dialectInst._constructor.JSON_PATH_SINGLE_DOT_IS_WILDCARD) {
         throw new ParseError(error('Expected key name or * after DOT'));
       }
     } else if (match(TokenType.L_BRACKET)) {
