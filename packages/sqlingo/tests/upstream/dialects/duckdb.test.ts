@@ -289,6 +289,19 @@ class TestDuckDB extends Validator {
         snowflake: 'SELECT GET_PATH(GET_PATH(PARSE_JSON(\'{"fruit": {"foo": "banana"}}\'), \'fruit\'), \'foo\')',
       },
     });
+    this.validateAll("CASE WHEN JSON_TYPE(x) = 'NULL' THEN NULL ELSE x END", {
+      read: {
+        snowflake: "STRIP_NULL_VALUE(x)",
+      },
+    });
+    this.validateAll(
+      "SELECT CASE WHEN JSON_TYPE(JSON('{\"a\": null}') -> '$.a') = 'NULL' THEN NULL ELSE JSON('{\"a\": null}') -> '$.a' END",
+      {
+        read: {
+          snowflake: "SELECT STRIP_NULL_VALUE(GET_PATH(PARSE_JSON('{\"a\": null}'), 'a'))",
+        },
+      },
+    );
     this.validateAll(
       'SELECT {\'bla\': column1, \'foo\': column2, \'bar\': column3} AS data FROM source_table',
       {
