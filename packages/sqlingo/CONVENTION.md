@@ -60,3 +60,28 @@ When a property needs both the original and merged versions, use `ORIGINAL_<NAME
 |---|---|
 | `KEYWORDS` (merged by metaclass) | `ORIGINAL_KEYWORDS` (raw) + `KEYWORDS` (merged, `@cache` getter) |
 | `TRANSFORMS` (merged by metaclass) | `ORIGINAL_TRANSFORMS` (raw) + `TRANSFORMS` (merged, `@cache` getter) |
+
+### Option Objects Instead of Positional Parameters
+
+Python uses keyword arguments and boolean flags as positional parameters. In TypeScript, use an options object instead:
+
+```python
+# Python
+def parse_field(self, any_token=False, anonymous_func=False):
+    ...
+```
+
+```ts
+// TypeScript
+parseField(options: { anyToken?: boolean; anonymousFunc?: boolean } = {}): ... {
+  const { anyToken = false, anonymousFunc = false } = options;
+  ...
+}
+```
+
+This applies to all internal methods with optional boolean/config parameters. Call sites use `{ anyToken: true }` instead of positional `true`.
+
+### Intentional Divergences
+
+- **Generator dispatch cache** (upstream `38957ccd6`): Python pre-builds an `EXPR_CLASSES` registry and a unified dispatch table to avoid slow `getattr`. TypeScript keeps the two-step lookup (TRANSFORMS map then `${key}Sql` property access) because V8 already optimizes property lookups well.
+- **`DType.into_expr()`** (upstream `247548f59`): Python adds a convenience method on the `DType` enum. TypeScript enums cannot have methods, so this would require a standalone helper function. Deferred as a convenience-only refactor touching 100+ call sites.
