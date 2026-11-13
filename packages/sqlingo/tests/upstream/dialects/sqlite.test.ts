@@ -405,6 +405,18 @@ class TestSQLite extends Validator {
       "CREATE VIRTUAL TABLE demo_index USING rtree(id, minX, maxX, minY, maxY)",
     );
     this.validateIdentity("CREATE VIRTUAL TABLE t USING module_name");
+    this.validateIdentity("PRAGMA table_info");
+    this.validateIdentity("PRAGMA schema");
+    this.validateIdentity("PRAGMA full_column_names = on");
+    this.validateIdentity("PRAGMA full_column_names = off");
+    this.validateIdentity("PRAGMA cache_size = 2000");
+    this.validateIdentity("PRAGMA foo = -2000");
+    this.validateIdentity("PRAGMA foo(-2000)", "PRAGMA foo = -2000");
+    this.validateIdentity("PRAGMA encoding = 'UTF-16'");
+    this.validateIdentity("PRAGMA main.cache_size");
+    this.validateIdentity("PRAGMA main.cache_size = 2000");
+    this.validateIdentity("PRAGMA cache_size(2000)", "PRAGMA cache_size = 2000");
+    this.validateIdentity("PRAGMA main.cache_size(2000)", "PRAGMA main.cache_size = 2000");
   }
 
   testCreateTrigger () {

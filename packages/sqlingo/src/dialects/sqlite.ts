@@ -86,6 +86,9 @@ import {
   JsonPathSubscriptExpr,
   JsonExtractScalarExpr,
   alias,
+  DotExpr,
+  EqExpr,
+  PragmaExpr,
 } from '../expressions';
 import {
   eliminateDistinctOn, eliminateQualify, eliminateSemiAndAntiJoins, preprocess,
@@ -346,6 +349,9 @@ class SQLiteParser extends Parser {
           isAttach: false,
         });
       },
+      [TokenType.PRAGMA]: function (this: Parser) {
+        return (this as SQLiteParser).parsePragma();
+      },
     };
   }
 
@@ -378,6 +384,41 @@ class SQLiteParser extends Parser {
     }
 
     return super.parseUnique();
+  }
+
+  parsePragma (): PragmaExpr {
+    let name: Expression = this.parseVar({
+      anyToken: true,
+    })!;
+
+    if (this.match(TokenType.DOT)) {
+      name = new DotExpr({
+        this: name,
+        expression: this.parseVar({
+          anyToken: true,
+        }),
+      });
+    }
+
+    this.match(TokenType.EQ);
+
+    const value = this.parseWrapped(
+      () => this.parseUnary() ?? this.parseVar({ anyToken: true }),
+      { optional: true },
+    );
+
+    if (value) {
+      return this.expression(PragmaExpr, {
+        this: new EqExpr({
+          this: name,
+          expression: value,
+        }),
+      });
+    }
+
+    return this.expression(PragmaExpr, {
+      this: name,
+    });
   }
 
   parseAttachDetach (options: {
