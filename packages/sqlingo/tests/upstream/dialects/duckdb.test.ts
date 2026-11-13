@@ -10,7 +10,7 @@ import {
 } from '../../../src/optimizer/annotate_types';
 import {
   TruncExpr, ArrayOverlapsExpr,
-  InstallExpr, ShowExpr,
+  InstallExpr, ShowExpr, CreateExpr,
   AnonymousExpr, ColumnExpr,
 } from '../../../src/expressions';
 import {
@@ -1980,7 +1980,20 @@ class TestDuckDB extends Validator {
       this.validateIdentity(`SELECT ${keyword}`);
       this.validateIdentity(`CREATE ${keyword} add(a, b) AS a + b`);
       this.validateIdentity(`CREATE ${keyword} ifelse(a, b, c) AS CASE WHEN a THEN b ELSE c END`);
+      this.validateIdentity(
+        `CREATE ${keyword} my_table_function(a, b) AS TABLE SELECT x, y FROM (VALUES (a, b)) AS tbl(x, y)`,
+      ).assertIs(CreateExpr);
     }
+
+    this.validateAll(
+      "CREATE OR REPLACE FUNCTION func(a INT, b FLOAT) AS TABLE SELECT a",
+      {
+        write: {
+          databricks: "CREATE OR REPLACE FUNCTION func(a INT, b FLOAT) RETURNS TABLE RETURN SELECT a",
+          duckdb: "CREATE OR REPLACE FUNCTION func(a INT, b FLOAT) AS TABLE SELECT a",
+        },
+      },
+    );
   }
 
   testBitwiseAgg () {
