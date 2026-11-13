@@ -99,6 +99,11 @@ import type {
   GtExpr,
   GapFillExpr,
   GenerateEmbeddingExpr,
+  GenerateTextExpr,
+  GenerateTableExpr,
+  GenerateBoolExpr,
+  GenerateIntExpr,
+  GenerateDoubleExpr,
   GeneratedAsIdentityColumnConstraintExpr,
   GeneratedAsRowColumnConstraintExpr,
   GetExtractExpr,
@@ -8231,7 +8236,7 @@ export class Generator {
     if (exprNode) {
       const raw = this.sql(expression, 'expression');
 
-      exprSql = !(exprNode instanceof SubqueryExpr) ? `TABLE ${raw}` : raw;
+      exprSql = exprNode instanceof TableExpr ? `TABLE ${raw}` : raw;
     }
     const parameters = this.sql(expression, 'paramsStruct') || undefined;
 
@@ -8250,6 +8255,26 @@ export class Generator {
     const name = expression.args.isText ? 'GENERATE_TEXT_EMBEDDING' : 'GENERATE_EMBEDDING';
 
     return this.mlSql(expression, name);
+  }
+
+  generateTextSql (expression: GenerateTextExpr): string {
+    return this.mlSql(expression, 'GENERATE_TEXT');
+  }
+
+  generateTableSql (expression: GenerateTableExpr): string {
+    return this.mlSql(expression, 'GENERATE_TABLE');
+  }
+
+  generateBoolSql (expression: GenerateBoolExpr): string {
+    return this.mlSql(expression, 'GENERATE_BOOL');
+  }
+
+  generateIntSql (expression: GenerateIntExpr): string {
+    return this.mlSql(expression, 'GENERATE_INT');
+  }
+
+  generateDoubleSql (expression: GenerateDoubleExpr): string {
+    return this.mlSql(expression, 'GENERATE_DOUBLE');
   }
 
   mlTranslateSql (expression: MlTranslateExpr): string {

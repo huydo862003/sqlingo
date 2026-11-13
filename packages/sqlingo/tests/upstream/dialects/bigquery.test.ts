@@ -2603,6 +2603,19 @@ OPTIONS (
       );
       expect((genAst as any).find(GenerateEmbeddingExpr)).toBeTruthy();
     }
+
+    this.validateIdentity(
+      "SELECT * FROM ML.GENERATE_TEXT(MODEL `mydataset.gemini_model`, TABLE `mydataset.prompt_table`, STRUCT(0.15 AS temperature))",
+    );
+    this.validateIdentity(
+      "SELECT * FROM AI.GENERATE_TEXT(MODEL `mydataset.gemini_model`, TABLE `mydataset.prompt_table`, STRUCT(0.15 AS temperature))",
+    );
+    this.validateIdentity(
+      "SELECT * FROM AI.GENERATE_TABLE(MODEL `mydataset.gemini_model`, (SELECT 'Q' AS prompt), STRUCT('name STRING' AS output_schema))",
+    );
+    this.validateIdentity(
+      "SELECT AI.GENERATE_BOOL(MODEL `mydataset.gemini_model`, 'Is sky blue?')",
+    );
   }
 
   testMerge () {

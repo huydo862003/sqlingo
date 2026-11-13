@@ -164,6 +164,11 @@ import {
   VectorSearchExpr,
   FeaturesAtTimeExpr,
   GenerateEmbeddingExpr,
+  GenerateTextExpr,
+  GenerateTableExpr,
+  GenerateBoolExpr,
+  GenerateIntExpr,
+  GenerateDoubleExpr,
   MlTranslateExpr,
   TranslateExpr,
   ForInExpr,
@@ -1283,6 +1288,21 @@ export class BigQueryParser extends Parser {
             isText: true,
           });
         },
+        GENERATE_TEXT: function (this: Parser) {
+          return (this as BigQueryParser).parseGenerate(GenerateTextExpr);
+        },
+        GENERATE_TABLE: function (this: Parser) {
+          return (this as BigQueryParser).parseGenerate(GenerateTableExpr);
+        },
+        GENERATE_BOOL: function (this: Parser) {
+          return (this as BigQueryParser).parseGenerate(GenerateBoolExpr);
+        },
+        GENERATE_INT: function (this: Parser) {
+          return (this as BigQueryParser).parseGenerate(GenerateIntExpr);
+        },
+        GENERATE_DOUBLE: function (this: Parser) {
+          return (this as BigQueryParser).parseGenerate(GenerateDoubleExpr);
+        },
         VECTOR_SEARCH: function (this: Parser) {
           return (this as BigQueryParser).parseVectorSearch();
         },
@@ -1366,6 +1386,30 @@ export class BigQueryParser extends Parser {
       expression,
       paramsStruct: this.parseBitwise(),
       ...kwargs,
+    });
+  }
+
+  parseGenerate<T extends Expression> (exprType: new (args: any) => T): T {
+    this.matchTextSeq('MODEL');
+    const thisExpr = this.parseTable();
+
+    this.match(TokenType.COMMA);
+
+    let expression: Expression | undefined;
+    if (this.matchTextSeq('TABLE')) {
+      expression = this.parseTable();
+    } else if (this.match(TokenType.L_PAREN, { advance: false })) {
+      expression = this.parseTable();
+    } else {
+      expression = this.parseBitwise() ?? undefined;
+    }
+
+    const paramsStruct = this.match(TokenType.COMMA) ? this.parseBitwise() ?? undefined : undefined;
+
+    return this.expression(exprType, {
+      this: thisExpr,
+      expression,
+      paramsStruct,
     });
   }
 
@@ -1823,16 +1867,33 @@ export class BigQueryParser extends Parser {
 
   parseColumnOps (thisNode?: Expression): Expression | undefined {
     const funcIndex = this.index + 1;
+
+    // AI.* and ML.* function calls can use custom BigQuery signatures that rely on
+    // function parsers, so re-parse the function in non-anonymous mode.
+    // Pre-check here because the super call uses anonymous mode which skips FUNCTION_PARSERS
+    // and throws when encountering MODEL keyword as a function argument.
+    const prefix = thisNode instanceof Expression ? thisNode.name?.toUpperCase() : undefined;
+    if ((prefix === 'AI' || prefix === 'ML') && this.curr?.tokenType === TokenType.DOT) {
+      const funcToken = this.tokens[this.index + 1];
+      if (funcToken && this._constructor.FUNCTION_PARSERS[funcToken.text.toUpperCase()]) {
+        this.advance(); // consume DOT
+        const parsed = this.parseFunction({ anyToken: true });
+        if (parsed) {
+          return new DotExpr({ this: thisNode!, expression: parsed });
+        }
+      }
+    }
+
     let result = super.parseColumnOps(thisNode);
 
     if (result instanceof DotExpr && result.args.expression instanceof FuncExpr) {
-      const prefix = result.args.this instanceof Expression ? result.args.this.name.toUpperCase() : undefined;
+      const detectedPrefix = result.args.this instanceof Expression ? result.args.this.name.toUpperCase() : undefined;
 
       let FuncClass: (new (args: any) => Expression) | undefined = undefined;
 
-      if (prefix === 'NET') {
+      if (detectedPrefix === 'NET') {
         FuncClass = NetFuncExpr;
-      } else if (prefix === 'SAFE') {
+      } else if (detectedPrefix === 'SAFE') {
         FuncClass = SafeFuncExpr;
       }
 
@@ -1844,6 +1905,13 @@ export class BigQueryParser extends Parser {
             anyToken: true,
           }),
         });
+      } else if (detectedPrefix === 'AI' || detectedPrefix === 'ML') {
+        // Fallback for cases where super succeeded but produced wrong results
+        this.retreat(funcIndex);
+        const parsed = this.parseFunction({ anyToken: true });
+        if (parsed) {
+          result = new DotExpr({ this: result.args.this, expression: parsed });
+        }
       }
     }
 
