@@ -2286,11 +2286,24 @@ class TestDialect extends Validator {
       {
         write: {
           clickhouse: "CONCAT_WS('-', 'a', 'b')",
-          duckdb: "CONCAT_WS('-', 'a', 'b')",
+          duckdb: "CASE WHEN '-' IS NULL OR 'a' IS NULL OR 'b' IS NULL THEN NULL ELSE CONCAT_WS('-', 'a', 'b') END",
           presto: "CONCAT_WS('-', CAST('a' AS VARCHAR), CAST('b' AS VARCHAR))",
           hive: "CONCAT_WS('-', 'a', 'b')",
           spark: "CONCAT_WS('-', 'a', 'b')",
           trino: "CONCAT_WS('-', CAST('a' AS VARCHAR), CAST('b' AS VARCHAR))",
+        },
+      },
+    );
+    this.validateAll(
+      "CONCAT_WS('-', x)",
+      {
+        write: {
+          clickhouse: "CONCAT_WS('-', x)",
+          duckdb: "CASE WHEN '-' IS NULL OR x IS NULL THEN NULL ELSE CONCAT_WS('-', x) END",
+          hive: "CONCAT_WS('-', x)",
+          presto: "CONCAT_WS('-', CAST(x AS VARCHAR))",
+          spark: "CONCAT_WS('-', x)",
+          trino: "CONCAT_WS('-', CAST(x AS VARCHAR))",
         },
       },
     );

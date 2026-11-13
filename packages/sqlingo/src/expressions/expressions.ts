@@ -1332,7 +1332,7 @@ export class Expression implements
 
   /**
    * Apply a function to this expression and return the result.
-   * `expr.pipe(fn, ...args)` is equivalent to `fn(expr, ...args)`.
+   * `expr.pipe(fn, ...args)` is equivalent to `fn(expr, ...args)`
    */
   pipe<R> (func: (expr: this, ...args: any[]) => R, ...args: any[]): R {
     return func(this, ...args);
@@ -1340,10 +1340,11 @@ export class Expression implements
 
   /**
    * Apply a function to this expression for side effects, then return this expression.
-   * Useful for inspecting intermediate expressions in a method chain.
+   * Useful for inspecting intermediate expressions in a method chain
    */
   apply (func: (expr: this, ...args: any[]) => void, ...args: any[]): this {
     func(this, ...args);
+
     return this;
   }
 
@@ -11793,7 +11794,10 @@ export type ModulePropertyExprArgs = Merge<[
 export class ModulePropertyExpr extends PropertyExpr {
   static key = ExpressionKey.MODULE_PROPERTY;
   static requiredArgs = new Set(['this']);
-  static availableArgs = new Set(['this', 'expressions']);
+  static availableArgs = new Set([
+    'this',
+    'expressions',
+  ]);
   declare args: ModulePropertyExprArgs;
   constructor (args: ModulePropertyExprArgs = {}) {
     super(args);
@@ -12640,8 +12644,14 @@ export type RowAccessPropertyExprArgs = Merge<[
 export class RowAccessPropertyExpr extends PropertyExpr {
   static key = ExpressionKey.ROW_ACCESS_PROPERTY;
   static requiredArgs = new Set<string>();
-  static availableArgs = new Set(['this', 'expressions']);
-  static argOrder = ['this', 'expressions'];
+  static availableArgs = new Set([
+    'this',
+    'expressions',
+  ]);
+  static argOrder = [
+    'this',
+    'expressions',
+  ];
   declare args: RowAccessPropertyExprArgs;
 }
 
@@ -12750,9 +12760,15 @@ export type UsingPropertyExprArgs = Merge<[
 export class UsingPropertyExpr extends PropertyExpr {
   static key = ExpressionKey.USING_PROPERTY;
 
-  static requiredArgs = new Set(['this', 'kind']);
+  static requiredArgs = new Set([
+    'this',
+    'kind',
+  ]);
 
-  static availableArgs = new Set(['this', 'kind']);
+  static availableArgs = new Set([
+    'this',
+    'kind',
+  ]);
 
   declare args: UsingPropertyExprArgs;
 
@@ -27027,16 +27043,28 @@ export class GenerateEmbeddingExpr extends FuncExpr {
   }
 }
 
-export type GenerateTextExprArgs = Merge<[FuncExprArgs, { this?: Expression; expression?: Expression; paramsStruct?: Expression }]>;
+export type GenerateTextExprArgs = Merge<[FuncExprArgs, {
+  this?: Expression;
+  expression?: Expression;
+  paramsStruct?: Expression;
+}]>;
 
 export class GenerateTextExpr extends FuncExpr {
   static key = ExpressionKey.GENERATE_TEXT;
 
   static requiredArgs = new Set(['this']);
 
-  static availableArgs = new Set(['this', 'expression', 'paramsStruct']);
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'paramsStruct',
+  ]);
 
-  static argOrder = ['this', 'expression', 'paramsStruct'];
+  static argOrder = [
+    'this',
+    'expression',
+    'paramsStruct',
+  ];
 
   declare args: GenerateTextExprArgs;
 
@@ -27049,16 +27077,28 @@ export class GenerateTextExpr extends FuncExpr {
   }
 }
 
-export type GenerateTableExprArgs = Merge<[FuncExprArgs, { this?: Expression; expression?: Expression; paramsStruct?: Expression }]>;
+export type GenerateTableExprArgs = Merge<[FuncExprArgs, {
+  this?: Expression;
+  expression?: Expression;
+  paramsStruct?: Expression;
+}]>;
 
 export class GenerateTableExpr extends FuncExpr {
   static key = ExpressionKey.GENERATE_TABLE;
 
   static requiredArgs = new Set(['this']);
 
-  static availableArgs = new Set(['this', 'expression', 'paramsStruct']);
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'paramsStruct',
+  ]);
 
-  static argOrder = ['this', 'expression', 'paramsStruct'];
+  static argOrder = [
+    'this',
+    'expression',
+    'paramsStruct',
+  ];
 
   declare args: GenerateTableExprArgs;
 
@@ -27071,16 +27111,28 @@ export class GenerateTableExpr extends FuncExpr {
   }
 }
 
-export type GenerateBoolExprArgs = Merge<[FuncExprArgs, { this?: Expression; expression?: Expression; paramsStruct?: Expression }]>;
+export type GenerateBoolExprArgs = Merge<[FuncExprArgs, {
+  this?: Expression;
+  expression?: Expression;
+  paramsStruct?: Expression;
+}]>;
 
 export class GenerateBoolExpr extends FuncExpr {
   static key = ExpressionKey.GENERATE_BOOL;
 
   static requiredArgs = new Set(['this']);
 
-  static availableArgs = new Set(['this', 'expression', 'paramsStruct']);
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'paramsStruct',
+  ]);
 
-  static argOrder = ['this', 'expression', 'paramsStruct'];
+  static argOrder = [
+    'this',
+    'expression',
+    'paramsStruct',
+  ];
 
   declare args: GenerateBoolExprArgs;
 
@@ -27093,16 +27145,28 @@ export class GenerateBoolExpr extends FuncExpr {
   }
 }
 
-export type GenerateIntExprArgs = Merge<[FuncExprArgs, { this?: Expression; expression?: Expression; paramsStruct?: Expression }]>;
+export type GenerateIntExprArgs = Merge<[FuncExprArgs, {
+  this?: Expression;
+  expression?: Expression;
+  paramsStruct?: Expression;
+}]>;
 
 export class GenerateIntExpr extends FuncExpr {
   static key = ExpressionKey.GENERATE_INT;
 
   static requiredArgs = new Set(['this']);
 
-  static availableArgs = new Set(['this', 'expression', 'paramsStruct']);
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'paramsStruct',
+  ]);
 
-  static argOrder = ['this', 'expression', 'paramsStruct'];
+  static argOrder = [
+    'this',
+    'expression',
+    'paramsStruct',
+  ];
 
   declare args: GenerateIntExprArgs;
 
@@ -27115,16 +27179,28 @@ export class GenerateIntExpr extends FuncExpr {
   }
 }
 
-export type GenerateDoubleExprArgs = Merge<[FuncExprArgs, { this?: Expression; expression?: Expression; paramsStruct?: Expression }]>;
+export type GenerateDoubleExprArgs = Merge<[FuncExprArgs, {
+  this?: Expression;
+  expression?: Expression;
+  paramsStruct?: Expression;
+}]>;
 
 export class GenerateDoubleExpr extends FuncExpr {
   static key = ExpressionKey.GENERATE_DOUBLE;
 
   static requiredArgs = new Set(['this']);
 
-  static availableArgs = new Set(['this', 'expression', 'paramsStruct']);
+  static availableArgs = new Set([
+    'this',
+    'expression',
+    'paramsStruct',
+  ]);
 
-  static argOrder = ['this', 'expression', 'paramsStruct'];
+  static argOrder = [
+    'this',
+    'expression',
+    'paramsStruct',
+  ];
 
   declare args: GenerateDoubleExprArgs;
 

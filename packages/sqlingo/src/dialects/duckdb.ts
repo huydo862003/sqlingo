@@ -69,6 +69,10 @@ import type {
   CompressExpr,
   CollationExpr,
   ToNumberExpr,
+
+  BitLengthExpr,
+  RtrimmedLengthExpr,
+  ConcatWsExpr,
 } from '../expressions';
 import {
   FirstValueExpr,
@@ -108,7 +112,6 @@ import {
   BitwiseOrExpr,
   BitwiseRightShiftExpr,
   BoolxorAggExpr,
-  BitLengthExpr,
   ByteLengthExpr,
   CeilExpr,
   CountIfExpr,
@@ -362,6 +365,7 @@ import {
   TrimExpr,
   OrderedExpr,
   ArrayAggExpr,
+  CollateExpr,
   ColumnExpr,
   ConcatExpr,
   DPipeExpr,
@@ -491,6 +495,28 @@ export const WEEK_START_DAY_TO_DOW: Record<string, number> = {
 };
 
 export const MAX_BIT_POSITION = LiteralExpr.number(32768);
+
+// cs/as/ps are Snowflake defaults; DuckDB already behaves the same way, so they are safe to drop
+// Note: "as" is also a reserved keyword in DuckDB, making it impossible to pass through
+const SNOWFLAKE_COLLATION_DEFAULTS = new Set([
+  'cs',
+  'as',
+  'ps',
+]);
+const SNOWFLAKE_COLLATION_UNSUPPORTED = new Set([
+  'ci',
+  'ai',
+  'upper',
+  'lower',
+  'utf8',
+  'bin',
+  'pi',
+  'fl',
+  'fu',
+  'trim',
+  'ltrim',
+  'rtrim',
+]);
 
 /**
  * SEQ function constants
@@ -2682,7 +2708,9 @@ class DuckDBParser extends Parser {
       return new PropertiesExpr({
         expressions: [
           new ReturnsPropertyExpr({
-            this: new SchemaExpr({ this: var_('TABLE') }),
+            this: new SchemaExpr({
+              this: var_('TABLE'),
+            }),
             isTable: true,
           }),
         ],
@@ -4501,12 +4529,54 @@ class DuckDBGenerator extends Generator {
 
   compressSql (expression: CompressExpr): string {
     this.unsupported('DuckDB does not support the COMPRESS() function');
+
     return this.functionFallbackSql(expression);
   }
 
   collationSql (expression: CollationExpr): string {
     this.unsupported('COLLATION function is not supported by DuckDB');
+
     return this.functionFallbackSql(expression);
+  }
+
+  collateSql (expression: CollateExpr): string {
+    const collationExpr = expression.args.expression as Expression | undefined;
+
+    if (!collationExpr?.isString) {
+      return super.collateSql(expression);
+    }
+
+    const raw = collationExpr.name;
+
+    if (!raw) {
+      return this.sql(expression.args.this);
+    }
+
+    const parts: string[] = [];
+
+    for (const part of raw.split('-')) {
+      const lower = part.toLowerCase();
+
+      if (!SNOWFLAKE_COLLATION_DEFAULTS.has(lower)) {
+        if (SNOWFLAKE_COLLATION_UNSUPPORTED.has(lower)) {
+          this.unsupported(`Snowflake collation specifier '${part}' has no DuckDB equivalent`);
+        }
+        parts.push(lower);
+      }
+    }
+
+    if (parts.length === 0) {
+      return this.sql(expression.args.this);
+    }
+
+    return super.collateSql(
+      new CollateExpr({
+        this: expression.args.this,
+        expression: new VarExpr({
+          this: parts.join('.'),
+        }),
+      }),
+    );
   }
 
   nthValueSql (expression: NthValueExpr): string {
@@ -4873,8 +4943,11 @@ class DuckDBGenerator extends Generator {
     }
 
     const blob = cast(arg, DataTypeExprKind.VARBINARY);
+
     return this.sql(new MulExpr({
-      this: new ByteLengthExpr({ this: blob }),
+      this: new ByteLengthExpr({
+        this: blob,
+      }),
       expression: LiteralExpr.number(8),
     }));
   }
@@ -5488,7 +5561,10 @@ class DuckDBGenerator extends Generator {
       return this.sql(
         new CaseExpr({})
           .when(arg.eq(LiteralExpr.string('')), LiteralExpr.number(0))
-          .else(new AnonymousExpr({ this: 'UNICODE', expressions: [arg] })),
+          .else(new AnonymousExpr({
+            this: 'UNICODE',
+            expressions: [arg],
+          })),
       );
     }
 
@@ -5506,7 +5582,10 @@ class DuckDBGenerator extends Generator {
       decimals = cast(decimals, DataTypeExprKind.INT);
     }
 
-    return this.func('TRUNC', [expression.args.this, decimals]);
+    return this.func('TRUNC', [
+      expression.args.this,
+      decimals,
+    ]);
   }
 
   normalSql (expression: NormalExpr): string {
@@ -6349,22 +6428,50 @@ class DuckDBGenerator extends Generator {
     const isBin = isBinary(arg);
 
     let result: Expression;
+
     if (isBin) {
-      const hexArg = new HexExpr({ this: arg });
-      const hexLength = new MulExpr({ this: length, expression: LiteralExpr.number(2) });
+      const hexArg = new HexExpr({
+        this: arg,
+      });
+      const hexLength = new MulExpr({
+        this: length,
+        expression: LiteralExpr.number(2),
+      });
+
       result = new UnhexExpr({
-        this: new AnonymousExpr({ this: funcName, expressions: [hexArg, hexLength] }),
+        this: new AnonymousExpr({
+          this: funcName,
+          expressions: [
+            hexArg,
+            hexLength,
+          ],
+        }),
       });
     } else {
-      result = new AnonymousExpr({ this: funcName, expressions: [arg, length] });
+      result = new AnonymousExpr({
+        this: funcName,
+        expressions: [
+          arg,
+          length,
+        ],
+      });
     }
 
     if (expression.args.negativeLengthReturnsEmpty) {
-      const empty: Expression = isBin ? new UnhexExpr({ this: LiteralExpr.string('') }) : LiteralExpr.string('');
+      const empty: Expression = isBin
+        ? new UnhexExpr({
+          this: LiteralExpr.string(''),
+        })
+        : LiteralExpr.string('');
+
       result = new CaseExpr({}).when(
-        new LtExpr({ this: length, expression: LiteralExpr.number(0) }),
+        new LtExpr({
+          this: length,
+          expression: LiteralExpr.number(0),
+        }),
         empty,
-      ).else(result);
+      )
+        .else(result);
     }
 
     return this.sql(result);
@@ -6376,6 +6483,15 @@ class DuckDBGenerator extends Generator {
 
   rightSql (expression: RightExpr): string {
     return this.leftRightSql(expression, 'RIGHT');
+  }
+
+  rtrimmedLengthSql (expression: RtrimmedLengthExpr): string {
+    return this.func('LENGTH', [
+      new TrimExpr({
+        this: expression.args.this as Expression,
+        position: TrimPosition.TRAILING,
+      }),
+    ]);
   }
 
   base64EncodeSql (expression: Base64EncodeExpr): string {
@@ -6872,6 +6988,35 @@ class DuckDBGenerator extends Generator {
     ]);
   }
 
+  concatWsSql (expression: ConcatWsExpr): string {
+    const expressions = expression.args.expressions || [];
+    const separator = seqGet(expressions, 0);
+    const args = expressions.slice(1);
+
+    if ((separator
+      ? [
+        separator,
+        ...args,
+      ]
+      : args).some((arg) => isBinary(arg))) {
+      let result: Expression = args[0] as Expression;
+
+      for (const arg of args.slice(1)) {
+        result = new DPipeExpr({
+          this: new DPipeExpr({
+            this: result,
+            expression: separator,
+          }),
+          expression: arg,
+        });
+      }
+
+      return this.sql(result);
+    }
+
+    return super.concatWsSql(expression);
+  }
+
   private regexpExtractCommon (expression: RegexpExtractExpr | RegexpExtractAllExpr): string {
     let thisNode: Expression = expression.args.this as Expression;
     const group = expression.args.group;
@@ -7346,12 +7491,22 @@ class DuckDBGenerator extends Generator {
 
     if (isBinary(thisNode)) {
       const hexStrpos = new StrPositionExpr({
-        this: new HexExpr({ this: thisNode }),
-        substr: new HexExpr({ this: substr }),
+        this: new HexExpr({
+          this: thisNode,
+        }),
+        substr: new HexExpr({
+          this: substr,
+        }),
       });
 
       return this.sql(cast(
-        new DivExpr({ this: new AddExpr({ this: hexStrpos, expression: LiteralExpr.number(1) }), expression: LiteralExpr.number(2) }),
+        new DivExpr({
+          this: new AddExpr({
+            this: hexStrpos,
+            expression: LiteralExpr.number(1),
+          }),
+          expression: LiteralExpr.number(2),
+        }),
         DataTypeExprKind.INT,
       ));
     }

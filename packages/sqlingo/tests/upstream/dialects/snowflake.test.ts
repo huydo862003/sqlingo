@@ -5112,6 +5112,9 @@ class TestSnowflake extends Validator {
         },
       },
     );
+    this.validateIdentity(
+      'CREATE OR REPLACE FUNCTION repro_fn() RETURNS INT LANGUAGE PYTHON HANDLER = \'fn\' RUNTIME_VERSION=\'3.11\' PACKAGES=() AS \'\\ndef fn():\\n    return 1\\n\'',
+    );
 
   }
 

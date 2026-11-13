@@ -2592,7 +2592,10 @@ export class Parser {
       },
       'DISTINCT': function (this: Parser, query: SelectExpr) {
         this.advance();
-        return query.distinct(undefined, { copy: false });
+
+        return query.distinct(undefined, {
+          copy: false,
+        });
       },
       'EXTEND': function (this: Parser, query: SelectExpr) {
         return this.parsePipeSyntaxExtend(query);
@@ -9457,7 +9460,7 @@ export class Parser {
       if (top) {
         const limitParen = this.match(TokenType.L_PAREN) || undefined;
 
-        expression = limitParen ? this.parseTerm() : this.parseNumber();
+        expression = limitParen ? (this.parseTerm() ?? this.parseSelect()) : this.parseNumber();
 
         if (limitParen) {
           this.matchRParen();

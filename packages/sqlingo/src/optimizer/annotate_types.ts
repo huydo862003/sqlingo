@@ -996,6 +996,7 @@ export class TypeAnnotator {
 
         if (narrowedExprType.isType(DataTypeExprKind.UNKNOWN)) {
           this.setType(expression, DataTypeExprKind.UNKNOWN);
+
           return;
         }
 

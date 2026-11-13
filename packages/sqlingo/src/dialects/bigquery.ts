@@ -1340,7 +1340,9 @@ export class BigQueryParser extends Parser {
     return this.expression(ExportExpr, {
       connection: this.matchTextSeq('WITH') && this.matchTextSeq('CONNECTION') && this.parseTableParts(),
       options: this.parseProperties(),
-      this: this.matchTextSeq('AS') && this.parseSelect({ nested: true }),
+      this: this.matchTextSeq('AS') && this.parseSelect({
+        nested: true,
+      }),
     });
   }
 
@@ -1396,9 +1398,12 @@ export class BigQueryParser extends Parser {
     this.match(TokenType.COMMA);
 
     let expression: Expression | undefined;
+
     if (this.matchTextSeq('TABLE')) {
       expression = this.parseTable();
-    } else if (this.match(TokenType.L_PAREN, { advance: false })) {
+    } else if (this.match(TokenType.L_PAREN, {
+      advance: false,
+    })) {
       expression = this.parseTable();
     } else {
       expression = this.parseBitwise() ?? undefined;
@@ -1869,17 +1874,25 @@ export class BigQueryParser extends Parser {
     const funcIndex = this.index + 1;
 
     // AI.* and ML.* function calls can use custom BigQuery signatures that rely on
-    // function parsers, so re-parse the function in non-anonymous mode.
+    // function parsers, so re-parse the function in non-anonymous mode
     // Pre-check here because the super call uses anonymous mode which skips FUNCTION_PARSERS
-    // and throws when encountering MODEL keyword as a function argument.
+    // and throws when encountering MODEL keyword as a function argument
     const prefix = thisNode instanceof Expression ? thisNode.name?.toUpperCase() : undefined;
+
     if ((prefix === 'AI' || prefix === 'ML') && this.curr?.tokenType === TokenType.DOT) {
       const funcToken = this.tokens[this.index + 1];
+
       if (funcToken && this._constructor.FUNCTION_PARSERS[funcToken.text.toUpperCase()]) {
         this.advance(); // consume DOT
-        const parsed = this.parseFunction({ anyToken: true });
+        const parsed = this.parseFunction({
+          anyToken: true,
+        });
+
         if (parsed) {
-          return new DotExpr({ this: thisNode!, expression: parsed });
+          return new DotExpr({
+            this: thisNode!,
+            expression: parsed,
+          });
         }
       }
     }
@@ -1908,9 +1921,15 @@ export class BigQueryParser extends Parser {
       } else if (detectedPrefix === 'AI' || detectedPrefix === 'ML') {
         // Fallback for cases where super succeeded but produced wrong results
         this.retreat(funcIndex);
-        const parsed = this.parseFunction({ anyToken: true });
+        const parsed = this.parseFunction({
+          anyToken: true,
+        });
+
         if (parsed) {
-          result = new DotExpr({ this: result.args.this, expression: parsed });
+          result = new DotExpr({
+            this: result.args.this,
+            expression: parsed,
+          });
         }
       }
     }

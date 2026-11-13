@@ -297,6 +297,7 @@ import type {
   AlterModifySqlSecurityExpr,
 
   UuidPropertyExpr,
+  SubqueryExpr,
 } from './expressions';
 import {
   DistinctExpr,
@@ -316,7 +317,7 @@ import {
   FuncExpr, PropertyExpr,
   CaseExpr, IfExpr, NullExpr, BooleanExpr,
   CastExpr, DivExpr, DataTypeExpr, DataTypeExprKind,
-  JoinExpr, SelectExpr, StarExpr, FromExpr, SubqueryExpr, TableAliasExpr,
+  JoinExpr, SelectExpr, StarExpr, FromExpr, TableAliasExpr,
   PropertiesExpr, PropertiesLocation,
   ArrayFilterExpr, ArraySizeExpr,
   ParenExpr, LikeExpr, ILikeExpr, AllExpr, AnyExpr, TupleExpr, ConditionExpr,
@@ -4263,7 +4264,9 @@ export class Generator {
   }
 
   modulePropertySql (expression: ModulePropertyExpr): string {
-    const expressions = this.expressions(expression, { flat: true });
+    const expressions = this.expressions(expression, {
+      flat: true,
+    });
     const exprStr = expressions ? `(${expressions})` : '';
 
     return `USING ${this.sql(expression, 'this')}${exprStr}`;
@@ -6359,6 +6362,26 @@ export class Generator {
   }
 
   concatWsSql (expression: ConcatWsExpr): string {
+    if (this.dialect._constructor.CONCAT_COALESCE && !expression.args.coalesce) {
+      // Dialect's CONCAT_WS function coalesces NULLs to empty strings, but the expression does not
+      // Wrap the entire call in a CASE expression that returns NULL if any input IS NULL
+      const allArgs = expression.args.expressions || [];
+
+      expression.setArgKey('coalesce', true);
+
+      return this.sql(
+        case_()
+          .when(
+            or(allArgs.map((arg) => arg.is(null_())), {
+              copy: false,
+              wrap: false,
+            }),
+            null_(),
+          )
+          .else(expression),
+      );
+    }
+
     const expressions = expression.args.expressions || [];
     const delimiter = expressions[0];
     const args = this.convertConcatArgs(expression);

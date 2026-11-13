@@ -843,8 +843,13 @@ class HiveParser extends Parser {
   }
 
   parseUsingProperty (): Expression {
-    if (this.matchTexts(['JAR', 'FILE', 'ARCHIVE'])) {
+    if (this.matchTexts([
+      'JAR',
+      'FILE',
+      'ARCHIVE',
+    ])) {
       const kind = (this.prev?.text ?? '').toUpperCase();
+
       return this.expression(UsingPropertyExpr, {
         this: this.parseString(),
         kind,

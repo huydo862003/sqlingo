@@ -32,6 +32,7 @@ class TestTSQL extends Validator {
     );
 
     this.validateIdentity('SELECT * FROM a..b');
+    this.validateIdentity('SELECT TOP (SELECT 1) * FROM t');
     this.validateIdentity('SELECT ATN2(x, y)');
     this.validateIdentity('SELECT EXP(1)');
     this.validateIdentity('SELECT SYSDATETIMEOFFSET()');

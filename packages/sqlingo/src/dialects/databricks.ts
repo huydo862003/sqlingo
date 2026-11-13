@@ -10,6 +10,8 @@ import {
 import type {
   ColumnDefExpr,
   JsonPathExpr,
+
+  CreateExpr,
 } from '../expressions';
 import {
   JsonExtractScalarExpr,
@@ -35,7 +37,6 @@ import {
   ConvertTimezoneExpr,
   ToCharExpr,
   CastExpr,
-  CreateExpr,
   CreateExprKind,
   CurrentCatalogExpr,
   GeneratedAsIdentityColumnConstraintExpr,
@@ -242,7 +243,9 @@ class DatabricksGenerator extends Spark.Generator {
       && expression.args.kind === CreateExprKind.FUNCTION
       && [...expression.findAll(ReturnsPropertyExpr)].some((p) => p.args.isTable)
     ) {
-      expression.setArgKey('expression', new ReturnExpr({ this: body }));
+      expression.setArgKey('expression', new ReturnExpr({
+        this: body,
+      }));
     }
 
     return super.createSql(expression);

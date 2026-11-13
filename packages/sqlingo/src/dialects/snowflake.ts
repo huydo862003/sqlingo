@@ -199,6 +199,7 @@ import {
   FileFormatPropertyExpr,
   FromTimeZoneExpr,
   GroupConcatExpr,
+  HandlerPropertyExpr,
   JsonExtractScalarExpr,
   JsonObjectExpr,
   JsonPathRootExpr,
@@ -1164,8 +1165,12 @@ function buildGenerator (args: Expression[]): GeneratorExpr {
   return new GeneratorExpr(genArgs);
 }
 
-function buildToNumber (args: Expression[], options: { safe?: boolean } = {}): ToNumberExpr {
-  const { safe = false } = options;
+function buildToNumber (args: Expression[], options: {
+  safe?: boolean;
+} = {}): ToNumberExpr {
+  const {
+    safe = false,
+  } = options;
   const secondArg = seqGet(args, 1);
   let fmt: Expression | undefined;
   let precision: Expression | undefined;
@@ -1785,9 +1790,15 @@ class SnowflakeParser extends Parser {
         TRY_TO_DATE: buildDatetime('TRY_TO_DATE', DataTypeExprKind.DATE, {
           safe: true,
         }),
-        TRY_TO_DECIMAL: (args: Expression[]) => buildToNumber(args, { safe: true }),
-        TRY_TO_NUMBER: (args: Expression[]) => buildToNumber(args, { safe: true }),
-        TRY_TO_NUMERIC: (args: Expression[]) => buildToNumber(args, { safe: true }),
+        TRY_TO_DECIMAL: (args: Expression[]) => buildToNumber(args, {
+          safe: true,
+        }),
+        TRY_TO_NUMBER: (args: Expression[]) => buildToNumber(args, {
+          safe: true,
+        }),
+        TRY_TO_NUMERIC: (args: Expression[]) => buildToNumber(args, {
+          safe: true,
+        }),
         TRY_TO_DOUBLE: (args: Expression[]) =>
           new ToDoubleExpr({
             this: seqGet(args, 0),
@@ -1856,7 +1867,10 @@ class SnowflakeParser extends Parser {
           emptyDelimiterReturnsWhole: true,
         }),
         SYSTIMESTAMP: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
-        UNICODE: (args: unknown[]) => new UnicodeExpr({ this: args[0] as Expression, emptyIsZero: true }),
+        UNICODE: (args: unknown[]) => new UnicodeExpr({
+          this: args[0] as Expression,
+          emptyIsZero: true,
+        }),
         WEEKISO: (args: unknown[]) => WeekOfYearExpr.fromArgList(args),
         WEEKOFYEAR: (args: unknown[]) => WeekExpr.fromArgList(args),
       };
@@ -1952,7 +1966,10 @@ class SnowflakeParser extends Parser {
         return (this as SnowflakeParser).parseLocationProperty();
       },
       ROW: function (this: Parser) {
-        return (this as SnowflakeParser).matchTextSeq(['ACCESS', 'POLICY'])
+        return (this as SnowflakeParser).matchTextSeq([
+          'ACCESS',
+          'POLICY',
+        ])
           ? (this as SnowflakeParser).parseRowAccessPolicy()
           : (this as SnowflakeParser).parseRow();
       },
@@ -2326,7 +2343,11 @@ class SnowflakeParser extends Parser {
       return this.parseTag();
     }
 
-    if (this.matchTextSeq(['ROW', 'ACCESS', 'POLICY'])) {
+    if (this.matchTextSeq([
+      'ROW',
+      'ACCESS',
+      'POLICY',
+    ])) {
       return this.parseRowAccessPolicy();
     }
 
@@ -2335,9 +2356,11 @@ class SnowflakeParser extends Parser {
 
   parseRowAccessPolicy (): RowAccessPropertyExpr {
     const policy = this.parseColumn();
+
     if (!this.match(TokenType.ON)) {
       this.raiseError('Expected ON after ROW ACCESS POLICY name');
     }
+
     return this.expression(RowAccessPropertyExpr, {
       this: policy instanceof ColumnExpr ? policy.toDot() : policy,
       expressions: this.parseWrappedCsv(() => this.parseIdVar()),
@@ -2387,7 +2410,9 @@ class SnowflakeParser extends Parser {
     haystackFirst?: boolean;
   } = {}): StrPositionExpr {
     const result = super.parsePosition(options);
+
     result.setArgKey('clampPosition', true);
+
     return result;
   }
 
@@ -3125,6 +3150,12 @@ class SnowflakeGenerator extends Generator {
       [
         EuclideanDistanceExpr,
         renameFunc('VECTOR_L2_DISTANCE'),
+      ],
+      [
+        HandlerPropertyExpr,
+        function (this: Generator, e: HandlerPropertyExpr) {
+          return `HANDLER = ${this.sql(e, 'this')}`;
+        },
       ],
       [
         FileFormatPropertyExpr,
@@ -3915,7 +3946,10 @@ class SnowflakeGenerator extends Generator {
     if (!expression.args.this) {
       return 'ROW ACCESS';
     }
-    const on = ` ON (${this.expressions(expression, { flat: true })})`;
+    const on = ` ON (${this.expressions(expression, {
+      flat: true,
+    })})`;
+
     return `WITH ROW ACCESS POLICY ${this.sql(expression, 'this')}${on}`;
   }
 

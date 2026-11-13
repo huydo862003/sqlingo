@@ -403,8 +403,12 @@ class SQLiteParser extends Parser {
     this.match(TokenType.EQ);
 
     const value = this.parseWrapped(
-      () => this.parseUnary() ?? this.parseVar({ anyToken: true }),
-      { optional: true },
+      () => this.parseUnary() ?? this.parseVar({
+        anyToken: true,
+      }),
+      {
+        optional: true,
+      },
     );
 
     if (value) {
