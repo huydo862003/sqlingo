@@ -22,10 +22,10 @@ class TestDuckDB extends Validator {
 
   testDuckdb () {
     this.validateIdentity('TRUNC(3.14)').assertIs(TruncExpr);
-    this.validateIdentity('TRUNC(3.14, 2)', 'TRUNC(3.14)').assertIs(TruncExpr);
-    this.validateAll('TRUNC(3.14159)', {
+    this.validateAll('TRUNC(3.14159, 2)', {
       read: {
         postgres: 'TRUNC(3.14159, 2)',
+        duckdb: 'TRUNC(3.14159, 2)',
       },
     });
 

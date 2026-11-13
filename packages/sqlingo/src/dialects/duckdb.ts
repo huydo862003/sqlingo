@@ -5468,11 +5468,6 @@ class DuckDBGenerator extends Generator {
     return this.func('UNICODE', [arg]);
   }
 
-  truncSql (expression: TruncExpr): string {
-    unsupportedArgs.call(this, expression, 'decimals');
-    return this.func('TRUNC', [expression.args.this]);
-  }
-
   normalSql (expression: NormalExpr): string {
     const mean = expression.args.this;
     const stddev = expression.args.stddev;
