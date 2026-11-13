@@ -1142,6 +1142,13 @@ class TestDuckDB extends Validator {
 
     this.validateIdentity('SELECT [1, 2, 3][1 + 1:LENGTH([1, 2, 3]) + -1]');
     this.validateIdentity('VERSION()');
+
+    this.validateIdentity("UNICODE(foo)");
+    this.validateAll("CASE WHEN foo = '' THEN 0 ELSE UNICODE(foo) END", {
+      read: {
+        snowflake: "UNICODE(foo)",
+      },
+    });
   }
 
   testArrayIndex () {
