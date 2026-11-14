@@ -1,5 +1,5 @@
 {
-  description = "slot.js - A JavaScript port of SQLGlot";
+  description = "sqlingo - A JavaScript port of SQLGlot";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -19,7 +19,7 @@
           ];
 
           shellHook = ''
-            echo "slot.js development environment"
+            echo "sqlingo development environment"
             echo "Node.js version: $(node --version)"
             echo "pnpm version: $(pnpm --version)"
           '';
