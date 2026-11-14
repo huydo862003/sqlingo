@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/sqlingo)](https://www.npmjs.com/package/sqlingo)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/huydo862003/sqlingo/blob/master/LICENSE)
-![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.1.0-blue)
+![SQLGlot](https://img.shields.io/badge/SQLGlot-v30.5.0-blue)
 <a href="https://github.com/huydo862003/Fck-AI-Slop#plan"><img src="https://img.shields.io/badge/human%20slop-90EE90"></a>
 
 A JavaScript/TypeScript port of [SQLGlot](https://github.com/tobymao/sqlglot) which is compatible with browser and Node runtimes.
@@ -29,37 +29,34 @@ NOTICE: AI is not the decision maker, designer or maintainer for this project. I
 ## Installation
 
 ```bash
-npm install sqlingo
-# or
-pnpm add sqlingo
+npm install sqlingo luxon
 ```
 
 Peer dependency: [`luxon`](https://www.npmjs.com/package/luxon) (^3.7.2) is required for date/time operations.
 
 ## Quick Start
 
-This example demonstrates transpiling a query from Spark to Postgres and then optimizing it.
-
 ```ts
 import { transpile, parseOne, optimize, MappingSchema } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
 import { Postgres } from "sqlingo/postgres";
-import { Spark } from "sqlingo/spark";
 
 // Transpile between dialects
-const [pgSql] = transpile("SELECT APPROX_COUNT_DISTINCT(x) FROM table", {
-  read: Spark,
+const [pgSql] = transpile("SELECT DATE_SUB(d, INTERVAL 1 DAY) FROM t", {
+  read: MySQL,
   write: Postgres,
 });
 console.log(pgSql);
-// Output: SELECT COUNT(DISTINCT x) FROM "table"
+// SELECT d - INTERVAL '1 DAY' FROM t
 
-// Optimize an expression
-const sql = "SELECT a, b FROM t WHERE a + 1 = 2";
+// Optimize a query with schema information
 const schema = new MappingSchema({ t: { a: "int", b: "int" } });
-
-const optimized = optimize(parseOne(sql), { schema });
+const optimized = optimize(
+  parseOne("SELECT * FROM t WHERE 1 = 1 AND a > 2"),
+  { schema },
+);
 console.log(optimized.sql());
-// Output: SELECT t.a AS a, t.b AS b FROM t AS t WHERE t.a = 1
+// SELECT "t"."a" AS "a", "t"."b" AS "b" FROM "t" AS "t" WHERE "t"."a" > 2
 ```
 
 ## Core Usage
@@ -75,7 +72,7 @@ import { parse, parseOne } from "sqlingo";
 const expressions = parse("SELECT 1; SELECT 2");
 
 // Parse a single statement
-const expr = parseOne("SELECT a, b FROM t WHERE a > 1");
+const ast = parseOne("SELECT a, b FROM t WHERE a > 1");
 ```
 
 ### Transpiling
@@ -91,7 +88,8 @@ const [result] = transpile("SELECT EPOCH_MS(1618088028295)", {
   read: DuckDB,
   write: Hive,
 });
-// Output: "SELECT FROM_UNIXTIME(1618088028295 / POW(10, 3))"
+console.log(result);
+// SELECT FROM_UNIXTIME(1618088028295 / POW(10, 3))
 ```
 
 ### Tokenizing
@@ -102,9 +100,7 @@ Extract tokens from a SQL string for lower-level analysis.
 import { tokenize } from "sqlingo";
 import { Postgres } from "sqlingo/postgres";
 
-const tokens = tokenize("SELECT 1", {
-  dialect: Postgres,
-});
+const tokens = tokenize("SELECT 1", Postgres);
 ```
 
 ## SQL Builder
@@ -115,14 +111,10 @@ Build queries programmatically using a fluent API.
 import { select, condition } from "sqlingo";
 import { MySQL } from "sqlingo/mysql";
 
-const query = select("a", "b").from("t").where(condition("a > 1")).limit(10);
+const query = select(["a", "b"]).from("t").where(condition("a > 1")).limit(10);
 
-console.log(
-  query.sql({
-    dialect: MySQL,
-  }),
-);
-// Output: SELECT a, b FROM t WHERE a > 1 LIMIT 10
+console.log(query.sql({ dialect: MySQL }));
+// SELECT a, b FROM t WHERE a > 1 LIMIT 10
 ```
 
 ## Optimization & Analysis
@@ -132,13 +124,13 @@ console.log(
 Simplify and normalize queries based on schema information.
 
 ```ts
-import { optimize, MappingSchema } from "sqlingo";
+import { optimize, parseOne, MappingSchema } from "sqlingo";
 
-const schema = new MappingSchema({
-  // define your schema
-});
-
+const schema = new MappingSchema({ t: { a: "int" } });
 const optimized = optimize(parseOne("SELECT * FROM t"), { schema });
+
+console.log(optimized.sql());
+// SELECT "t"."a" AS "a" FROM "t" AS "t"
 ```
 
 ### Column Lineage
@@ -149,8 +141,10 @@ Trace the origin of columns through subqueries and joins.
 import { lineage } from "sqlingo";
 
 const node = lineage("b", "SELECT a AS b FROM (SELECT x AS a FROM y)");
-console.log(node.source.name);
-// Output: "y"
+console.log(node.name);
+// "b"
+console.log(node.downstream[0].name);
+// "_0.a"
 ```
 
 ## Registering a Custom Dialect
@@ -181,7 +175,7 @@ Dialect.register(MyDialect);
 
 const [result] = transpile("SELECT ARRAY_AGG(x) FROM t", { write: MyDialect });
 console.log(result);
-// "SELECT GROUP_CONCAT(x) FROM t"
+// SELECT GROUP_CONCAT(x) FROM t
 ```
 
 ## Supported Dialects
@@ -190,7 +184,7 @@ Athena, BigQuery, ClickHouse, Databricks, Doris, Dremio, Drill, Druid, DuckDB, D
 
 ## SQLGlot Compatibility
 
-This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.0.0 (commit `a3929be`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CONVENTION.md) for details.
+This package tracks [SQLGlot](https://github.com/tobymao/sqlglot) v30.5.0 (commit `64d385f`). The API surface mirrors SQLGlot's Python API, adapted to TypeScript conventions. See [CONVENTION.md](https://github.com/huydo862003/sqlingo/blob/master/packages/sqlingo/CONVENTION.md) for details.
 
 ## License
 
