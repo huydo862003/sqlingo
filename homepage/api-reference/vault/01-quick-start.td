@@ -8,7 +8,7 @@ Get sqlingo running in under a minute. This page covers installation and the thr
 
 ## Install
 
-sqlingo ships as a single npm package. `luxon` is a peer dependency used for date and time operations.
+sqlingo ships as a single npm package. `luxon` is a peer dependency used internally for date and time literal handling across dialects.
 
 ```bash
 npm install sqlingo luxon
@@ -16,7 +16,7 @@ npm install sqlingo luxon
 
 ## Parse SQL
 
-Every SQL string becomes an AST (abstract syntax tree). You can inspect it, transform it, or turn it back into SQL.
+Parsing turns a SQL string into a tree you can inspect and manipulate. This is the entry point for everything else.
 
 ```typescript
 import { parseOne } from "sqlingo";
@@ -27,7 +27,7 @@ console.log(ast.sql()); // "SELECT a, b FROM users WHERE active = TRUE"
 
 ## Transpile between dialects
 
-To translate SQL from one database to another, import the dialect classes and pass them to `transpile`. Each dialect is a separate import, so your bundler only ships the ones you use.
+Transpiling converts SQL from one database to another. Pass the source and target dialect, and sqlingo handles function names, types, quoting, and syntax differences.
 
 ```typescript
 import { transpile } from "sqlingo";
@@ -44,7 +44,7 @@ console.log(sql);
 
 ## Optimize a query
 
-With schema information, the optimizer can qualify columns, simplify conditions, and remove dead code.
+The optimizer rewrites SQL to be more explicit. It needs schema information to know which tables and columns exist.
 
 ```typescript
 import { optimize, parseOne, MappingSchema } from "sqlingo";
@@ -59,8 +59,12 @@ console.log(optimized.sql());
 // SELECT "t"."a" AS "a", "t"."b" AS "b" FROM "t" AS "t" WHERE "t"."a" > 2
 ```
 
-Notice `SELECT *` expanded to named columns, `1 = 1` removed, and everything qualified.
+Three things happened:
+
+- `SELECT *` expanded to named columns (`a`, `b`)
+- `1 = 1` was removed (always true, dead condition)
+- All identifiers were qualified with table names (`a` became `"t"."a"`)
 
 ## Next steps
 
-These three operations are the foundation. The [Guide](02-guide/01-parsing-and-trees) explains what happens under the hood: how SQL becomes a tree, how you navigate that tree, and how the tree becomes SQL again.
+The [Guide](02-guide/01-parsing-and-trees) explains what happens under the hood: how the tree works, how you search and transform it, and how transpiling and optimizing build on the same cycle.

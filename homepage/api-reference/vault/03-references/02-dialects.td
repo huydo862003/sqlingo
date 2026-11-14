@@ -8,7 +8,7 @@ Dialects control how SQL is parsed and generated. The [Transpiling](../02-guide/
 
 ## Class-based (recommended)
 
-Pass dialect classes directly. No registration needed, fully tree-shakeable.
+Pass dialect classes directly to any function that accepts a dialect. No registration step needed, and your bundler can tree-shake unused dialects.
 
 ```typescript
 import { parse, transpile } from "sqlingo";

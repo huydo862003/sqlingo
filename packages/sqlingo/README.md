@@ -158,20 +158,30 @@ console.log(node.source.name);
 You can extend the library by registering custom dialects or overriding existing behavior.
 
 ```ts
-import { Dialect, Generator, transpile } from "sqlingo";
+import { Dialect, Generator, ArrayAggExpr, transpile } from "sqlingo";
+
+class MyGenerator extends Generator {
+  static get ORIGINAL_TRANSFORMS() {
+    return new Map([
+      ...Generator.TRANSFORMS,
+      // Rewrite ARRAY_AGG as GROUP_CONCAT in this dialect
+      [ArrayAggExpr, function (this: Generator, e: ArrayAggExpr) {
+        return `GROUP_CONCAT(${this.sql(e, "this")})`;
+      }],
+    ]);
+  }
+}
 
 class MyDialect extends Dialect {
   static DIALECT_NAME = "my_dialect";
-
-  static Generator = class extends Generator {
-    // Override how specific expressions are generated
-  };
+  static Generator = MyGenerator;
 }
 
-// Register for string-based lookup
 Dialect.register(MyDialect);
 
-const [result] = transpile("SELECT 1", { write: MyDialect });
+const [result] = transpile("SELECT ARRAY_AGG(x) FROM t", { write: MyDialect });
+console.log(result);
+// "SELECT GROUP_CONCAT(x) FROM t"
 ```
 
 ## Supported Dialects

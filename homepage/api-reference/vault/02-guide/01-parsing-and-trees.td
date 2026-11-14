@@ -1,12 +1,12 @@
 ---
 _label: "Parsing and trees"
 _icon: icon.tree
-description: "The core workflow: parsing SQL to an AST, searching and transforming nodes, generating SQL back, error handling, and column lineage."
+description: "The core workflow: parsing SQL to an AST, searching and transforming nodes, generating SQL back, and error handling."
 ---
 
-This page walks through the central concept in sqlingo: SQL goes in as a string, becomes a tree of objects, and comes back out as a string. Everything else (transpiling, optimizing, building) is a variation of this cycle.
+This page walks through the central concept in sqlingo: SQL goes in as a string, becomes a tree of objects, and comes back out as a string. Transpiling, optimizing, and building are all variations of this cycle.
 
-## SQL in, tree out
+## Parsing a statement
 
 `parseOne` turns a SQL string into an AST (abstract syntax tree). Each node in the tree represents a SQL concept: a column, a table, a WHERE clause, a function call.
 
@@ -16,14 +16,16 @@ import { parseOne } from "sqlingo";
 const ast = parseOne("SELECT a, b + 1 AS c FROM users WHERE active = true");
 ```
 
-The result is not a string. It is a tree of `Expression` objects that you can inspect and modify.
+The result is a tree of `Expression` objects, not a string. You can inspect it, search for specific nodes, transform parts of it, or generate SQL back from it.
 
-## Finding things in the tree
+## Searching the tree
 
-Use `.findAll(Type)` to search for specific node types. This is how you extract metadata from SQL without writing a parser.
+Once you have a tree, you can pull specific pieces out of it. Use `.findAll(Type)` to extract all nodes of a given type - column names, table references, function calls - without writing a parser yourself.
 
 ```typescript
-import { ColumnExpr, TableExpr } from "sqlingo";
+import { parseOne, ColumnExpr, TableExpr } from "sqlingo";
+
+const ast = parseOne("SELECT a, b + 1 AS c FROM users WHERE active = true");
 
 // Find all column references
 for (const col of ast.findAll(ColumnExpr)) {
@@ -38,29 +40,36 @@ for (const table of ast.findAll(TableExpr)) {
 // "users"
 ```
 
-`.find(Type)` returns the first match. `.walk()` iterates every node depth-first.
+You can also use `.find(Type)` to get just the first match, or `.walk()` to iterate every node depth-first.
 
-## Tree out, SQL back
+## Generating SQL back
 
-Call `.sql()` on any node to generate SQL. Without arguments, you get the base dialect. Pass a dialect to get dialect-specific output.
+Call `.sql()` on any node to turn the tree back into a SQL string. Pass a dialect to get database-specific output - different quoting, function names, and boolean conventions.
 
 ```typescript
-import { Postgres } from "sqlingo/postgres";
+import { parseOne } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+
+const ast = parseOne("SELECT a || b FROM t");
 
 console.log(ast.sql());
-// "SELECT a, b + 1 AS c FROM users WHERE active = TRUE"
+// "SELECT a || b FROM t"
 
-console.log(ast.sql({ dialect: Postgres }));
-// "SELECT a, b + 1 AS c FROM users WHERE active = TRUE"
+console.log(ast.sql({ dialect: MySQL }));
+// "SELECT CONCAT(a, b) FROM t"
 ```
 
-The base dialect uppercases booleans (`true` becomes `TRUE`). Each dialect knows its own conventions for booleans, identifier quoting, function names, and data types.
+Without a dialect argument, the base dialect is used. Each dialect applies its own conventions for quoting, operators, and syntax, so the same tree can produce different SQL depending on the target.
 
 ## Transforming the tree
 
-`.transform()` walks the tree and lets you replace nodes. Return a new node to replace the current one, or return it unchanged to keep it.
+You can rewrite the tree before generating SQL. `.transform()` walks every node and lets you replace specific ones - useful for renaming columns, swapping tables, or rewriting conditions.
 
 ```typescript
+import { parseOne, ColumnExpr } from "sqlingo";
+
+const ast = parseOne("SELECT a, b + 1 AS c FROM users WHERE active = true");
+
 const transformed = ast.transform((node) => {
   if (node instanceof ColumnExpr && node.name === "a") {
     return parseOne("id");
@@ -76,7 +85,7 @@ This is how transpilation works internally: the generator walks the tree and out
 
 ## Parsing multiple statements
 
-`parse` (not `parseOne`) handles multiple statements separated by semicolons.
+When your input contains more than one statement, use `parse` instead of `parseOne`. It returns an array of ASTs, one per statement.
 
 ```typescript
 import { parse } from "sqlingo";
@@ -85,21 +94,9 @@ const statements = parse("SELECT 1; SELECT 2; SELECT 3");
 console.log(statements.length); // 3
 ```
 
-## Column lineage
-
-The lineage tracer follows alias chains through subqueries, qualifying columns along the way. This is useful for data governance and impact analysis.
-
-```typescript
-import { lineage } from "sqlingo";
-
-const node = lineage("b", "SELECT a AS b FROM (SELECT x AS a FROM y)");
-console.log(node.name); // "b"
-console.log(node.downstream[0].name); // "_0.a"
-```
-
 ## Error handling
 
-When SQL cannot be parsed, a `ParseError` is thrown with structured details including the line and column of the error.
+When SQL cannot be parsed, sqlingo throws a `ParseError` with the line and column of the problem. Use this to surface parse errors in editors, linters, or migration tools.
 
 ```typescript
 import { parseOne, ParseError } from "sqlingo";

@@ -32,7 +32,7 @@ transpile("SELECT a || b", { read: Postgres, write: MySQL })[0];
 
 ## `transpile(sql, options?)`
 
-The main entry point for dialect-to-dialect translation. It returns one SQL string per statement in the input.
+`transpile` is the main entry point for dialect-to-dialect translation. It returns an array with one SQL string per statement in the input.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -46,7 +46,7 @@ When `read` is omitted, the input is parsed with the base dialect (a superset th
 
 ## Two-step transpilation
 
-If you need to inspect or modify the AST between parsing and generating, use `parseOne` and `.sql()` separately. This gives you full control over the tree before output.
+If you need to inspect or modify the AST between parsing and generating, use `parseOne` and `.sql()` separately instead of `transpile`. This gives you access to the tree before output.
 
 ```typescript
 import { parseOne } from "sqlingo";
@@ -60,12 +60,17 @@ console.log(ast.sql({ dialect: Postgres, pretty: true }));
 
 ## Unsupported features
 
-When a dialect does not support a feature, a warning is emitted rather than an error. The SQL is generated on a best-effort basis.
+When a source dialect uses a feature that the target dialect does not support, sqlingo emits a console warning and generates the SQL on a best-effort basis. The output may contain the original function name unchanged.
 
 ```typescript
+import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+import { Postgres } from "sqlingo/postgres";
+
 const [sql] = transpile("SELECT APPROX_DISTINCT(x) FROM t", {
   read: Postgres,
   write: MySQL,
 });
-// MySQL doesn't have APPROX_DISTINCT; a warning is logged
+// MySQL doesn't have APPROX_DISTINCT
+// A warning is logged and the function name is kept as-is
 ```

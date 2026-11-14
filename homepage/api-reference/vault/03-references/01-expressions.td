@@ -4,7 +4,7 @@ _icon: icon.code
 description: "The full Expression API: core methods, operator helpers, AST node types, searching, walking, and transforming."
 ---
 
-Every parsed SQL element is an `Expression`. The [Guide](../02-guide/01-parsing-and-trees) introduced `.find()`, `.transform()`, and `.sql()`. This page is the complete API reference.
+Every parsed SQL element is an `Expression` - the same type whether it represents a column, a table, a function call, or an entire SELECT statement. The [Guide](../02-guide/01-parsing-and-trees) introduced the core methods. This page is the complete API reference.
 
 ## Core methods
 
@@ -68,12 +68,20 @@ for (const col of ast.findAll(ColumnExpr)) {
 
 ## Example: dialect-specific output
 
-Pass a dialect to `.sql()` to get output that matches a specific database.
+Pass a dialect to `.sql()` to get output that matches a specific database:
 
 ```typescript
+import { parseOne } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
 import { Postgres } from "sqlingo/postgres";
 
-ast.sql({ dialect: Postgres });
+const ast = parseOne("SELECT a || b FROM t");
+
+console.log(ast.sql({ dialect: Postgres }));
+// "SELECT a || b FROM t"
+
+console.log(ast.sql({ dialect: MySQL }));
+// "SELECT CONCAT(a, b) FROM t"
 ```
 
 ## Example: pipe and apply

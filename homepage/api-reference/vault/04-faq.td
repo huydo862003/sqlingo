@@ -11,6 +11,9 @@ Answers to common questions that come up when using sqlingo.
 The base dialect normalizes SQL: booleans are uppercased (`true` becomes `TRUE`), and some syntax is canonicalized. To preserve a specific dialect's conventions, pass `write` explicitly.
 
 ```typescript
+import { transpile } from "sqlingo";
+import { MySQL } from "sqlingo/mysql";
+
 transpile("SELECT true", { read: MySQL, write: MySQL })[0];
 // "SELECT TRUE"
 ```
