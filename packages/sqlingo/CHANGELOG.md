@@ -1,5 +1,14 @@
 # sqlingo
 
+## 0.15.1
+
+### Patch Changes
+
+- 15c6a06: Fix issue #51
+  
+  - Use stable class identifier internally when specifying dialects
+  - Fix MySQL UNIQUE (col) transpiling to UNIQUE (col NULLS FIRST)
+
 ## 0.15.0
 
 ### Minor Changes
