@@ -118,7 +118,7 @@ function buildToTimestamp (args: Expression[]): StrToTimeExpr | AnonymousExpr {
   }
 
   return buildFormattedTime(StrToTimeExpr, {
-    dialect: Dialects.ORACLE,
+    dialect: Oracle,
   })(args);
 }
 
@@ -428,7 +428,7 @@ export class OracleParser extends Parser {
       TO_CHAR: buildTimeToStrOrToChar,
       TO_TIMESTAMP: buildToTimestamp,
       TO_DATE: buildFormattedTime(StrToDateExpr, {
-        dialect: Dialects.ORACLE,
+        dialect: Oracle,
       }),
       TRUNC: (args: Expression[], {
         dialect,

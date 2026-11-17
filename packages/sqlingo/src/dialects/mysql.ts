@@ -648,7 +648,7 @@ class MySQLParser extends Parser {
         this: new TsOrDsToTimestampExpr({
           this: seqGet(args, 0),
         }),
-        format: Dialect.getOrRaise(Dialects.MYSQL)._constructor.formatTime(seqGet(args, 1)),
+        format: MySQL.formatTime(seqGet(args, 1)),
       }),
       DATE_SUB: (args: Expression[]) => buildDateDeltaWithInterval(DateSubExpr)(args),
       DAY: (args: Expression[]): DayExpr =>
@@ -677,7 +677,7 @@ class MySQLParser extends Parser {
         }),
       FORMAT: (args: unknown[]) => NumberToStrExpr.fromArgList(args),
       FROM_UNIXTIME: buildFormattedTime(UnixToTimeExpr, {
-        dialect: Dialects.MYSQL,
+        dialect: MySQL,
       }),
       ISNULL: isnullToIsNull,
       LENGTH: (args: Expression[]): LengthExpr =>
@@ -1097,6 +1097,7 @@ class MySQLParser extends Parser {
     });
   }
 
+  // FIXME: not in upstream sqlglot (16bb024), uses parseColumn instead of base parseSchema to support ((expr)) expression indexes
   // MySQL: UNIQUE [INDEX | KEY] [name] [index_type] (key_part,...) [index_option]
   // key_part supports ((expr)) for expression indexes
   override parseUnique (): UniqueColumnConstraintExpr {
@@ -1116,7 +1117,7 @@ class MySQLParser extends Parser {
       });
     }
 
-    const expressions = this.parseWrappedCsv(this.parseOrdered.bind(this));
+    const expressions = this.parseWrappedCsv(this.parseColumn.bind(this));
 
     return this.expression(UniqueColumnConstraintExpr, {
       this: this.expression(SchemaExpr, {

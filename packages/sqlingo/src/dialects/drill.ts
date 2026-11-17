@@ -126,7 +126,7 @@ class DrillParser extends Parser {
       REPEATED_COUNT: (args: unknown[]) => ArraySizeExpr.fromArgList(args),
       TO_TIMESTAMP: (args: unknown[]) => TimeStrToTimeExpr.fromArgList(args),
       TO_CHAR: buildFormattedTime(TimeToStrExpr, {
-        dialect: 'drill',
+        dialect: Drill,
       }),
       LEVENSHTEIN_DISTANCE: (args: unknown[]) => LevenshteinExpr.fromArgList(args),
     };

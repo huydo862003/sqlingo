@@ -153,7 +153,7 @@ class DatabricksParser extends Spark.Parser {
       }),
       NOW: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
       TO_DATE: buildFormattedTime(TsOrDsToDateExpr, {
-        dialect: Dialects.DATABRICKS,
+        dialect: Databricks,
       }),
       UNIFORM: (args: Expression[]) => new UniformExpr({
         this: seqGet(args, 0),

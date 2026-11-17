@@ -621,19 +621,19 @@ class ExasolParser extends Parser {
           length: LiteralExpr.number(512),
         }),
         TRUNC: (args: Expression[]) => buildTrunc(args, {
-          dialect: Dialects.EXASOL,
+          dialect: Exasol,
         }),
         TRUNCATE: (args: Expression[]) => buildTrunc(args, {
-          dialect: Dialects.EXASOL,
+          dialect: Exasol,
         }),
         USER: (args: unknown[]) => CurrentUserExpr.fromArgList(args),
         VAR_POP: (args: unknown[]) => VariancePopExpr.fromArgList(args),
         APPROXIMATE_COUNT_DISTINCT: (args: unknown[]) => ApproxDistinctExpr.fromArgList(args),
         TO_CHAR: (args: Expression[]) => buildTimeToStrOrToChar(args, {
-          dialect: Dialects.EXASOL,
+          dialect: Exasol,
         }),
         TO_DATE: buildFormattedTime(TsOrDsToDateExpr, {
-          dialect: Dialects.EXASOL,
+          dialect: Exasol,
         }),
         CONVERT_TZ: (args: Expression[]) => new ConvertTimezoneExpr({
           timestamp: args[0],

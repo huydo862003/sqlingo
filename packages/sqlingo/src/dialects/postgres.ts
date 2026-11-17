@@ -393,7 +393,7 @@ function buildToTimestamp (args: Expression[]): UnixToTimeExpr | StrToTimeExpr {
   }
 
   return buildFormattedTime(StrToTimeExpr, {
-    dialect: 'postgres',
+    dialect: Postgres,
   })(args);
 }
 
@@ -730,10 +730,10 @@ class PostgresParser extends Parser {
       NOW: (args: unknown[]) => CurrentTimestampExpr.fromArgList(args),
       REGEXP_REPLACE: buildRegexpReplace,
       TO_CHAR: buildFormattedTime(TimeToStrExpr, {
-        dialect: 'postgres',
+        dialect: Postgres,
       }),
       TO_DATE: buildFormattedTime(StrToDateExpr, {
-        dialect: 'postgres',
+        dialect: Postgres,
       }),
       TO_TIMESTAMP: buildToTimestamp,
       UNNEST: (args: unknown[]) => ExplodeExpr.fromArgList(args),

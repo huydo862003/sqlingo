@@ -248,14 +248,14 @@ class DremioParser extends Parser {
       BIT_OR: (args: unknown[]) => BitwiseOrAggExpr.fromArgList(args),
       DATE_ADD: buildDateDeltaWithCastInterval(DateAddExpr),
       DATE_FORMAT: buildFormattedTime(TimeToStrExpr, {
-        dialect: 'dremio',
+        dialect: Dremio,
       }),
       DATE_SUB: buildDateDeltaWithCastInterval(DateSubExpr),
       REGEXP_MATCHES: (args: unknown[]) => RegexpLikeExpr.fromArgList(args),
       REPEATSTR: (args: unknown[]) => RepeatExpr.fromArgList(args),
       TO_CHAR: toCharIsNumericHandler,
       TO_DATE: buildFormattedTime(TsOrDsToDateExpr, {
-        dialect: 'dremio',
+        dialect: Dremio,
       }),
       DATE_PART: (args: unknown[]) => ExtractExpr.fromArgList(args),
       DATETYPE: dateTypeHandler,

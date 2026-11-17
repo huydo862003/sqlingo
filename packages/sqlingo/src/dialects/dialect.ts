@@ -2279,7 +2279,7 @@ export function buildFormattedTime<T extends Expression> (
 
   ExpClass: new (args: any) => T,
   options: {
-    dialect: string;
+    dialect: typeof Dialect | string;
     defaultValue?: boolean | string;
   },
 
@@ -2288,23 +2288,27 @@ export function buildFormattedTime<T extends Expression> (
     dialect, defaultValue,
   } = options;
 
+  const resolved = typeof dialect === 'string' ? Dialect.get(dialect) : dialect;
+
   return (args: any) => {
     return new ExpClass({
       this: seqGet(args, 0),
-      format: Dialect.get(dialect)?.formatTime(
-        seqGet(args, 1) || (defaultValue === true ? Dialect.get(dialect)?.TIME_FORMAT : undefined),
+      format: resolved?.formatTime(
+        seqGet(args, 1) || (defaultValue === true ? resolved?.TIME_FORMAT : undefined),
       ),
     });
   };
 }
 
 export function timeFormat (
-  dialect?: string,
+  dialect?: typeof Dialect | string,
 ): (this: Generator, expression: UnixToStrExpr | StrToUnixExpr) => string | undefined {
+  const resolved = typeof dialect === 'string' ? Dialect.get(dialect) : dialect;
+
   return function (this: Generator, expression: UnixToStrExpr | StrToUnixExpr) {
     const format = this.formatTime(expression);
 
-    return format !== Dialect.getOrRaise(dialect)?._constructor.TIME_FORMAT ? format : undefined;
+    return format !== resolved?.TIME_FORMAT ? format : undefined;
   };
 }
 
@@ -3661,18 +3665,14 @@ export function buildTimeToStrOrToChar (args: any[], {
       dialect: dialect,
     });
     if (thisArg.isType(DataTypeExpr.TEMPORAL_TYPES)) {
-      let dialectName: string;
-
-      if (typeof dialect === 'string') {
-        dialectName = dialect;
-      } else if (typeof dialect === 'function') {
-        dialectName = dialect.name.toLowerCase();
-      } else {
-        dialectName = dialect.constructor.name.toLowerCase();
-      }
+      const resolvedDialect: typeof Dialect | string = typeof dialect === 'string'
+        ? dialect
+        : typeof dialect === 'function'
+          ? dialect
+          : dialect.constructor as typeof Dialect;
 
       return buildFormattedTime(TimeToStrExpr, {
-        dialect: dialectName,
+        dialect: resolvedDialect,
         defaultValue: true,
       })(args);
     }

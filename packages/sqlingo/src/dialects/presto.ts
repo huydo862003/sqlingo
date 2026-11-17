@@ -690,10 +690,10 @@ class PrestoParser extends Parser {
           unit: seqGet(args, 0),
         }),
       DATE_FORMAT: buildFormattedTime(TimeToStrExpr, {
-        dialect: Dialects.PRESTO,
+        dialect: Presto,
       }),
       DATE_PARSE: buildFormattedTime(StrToTimeExpr, {
-        dialect: Dialects.PRESTO,
+        dialect: Presto,
       }),
       DATE_TRUNC: dateTruncToTime,
       DAY_OF_WEEK: (args: unknown[]) => DayOfWeekIsoExpr.fromArgList(args),

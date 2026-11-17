@@ -442,7 +442,7 @@ export function pushdownCteColumnNames (expression: Expression): Expression {
  */
 export function buildParseTimestamp (args: Expression[]): StrToTimeExpr {
   const thisExpr = buildFormattedTime(StrToTimeExpr, {
-    dialect: Dialects.BIGQUERY,
+    dialect: BigQuery,
   })([
     seqGet(args, 1),
     seqGet(args, 0),
@@ -709,7 +709,7 @@ function jsonExtractSql (this: Generator, expression: JsonExtractType): string {
 function buildFormatTime (exprType: new (args: any) => Expression): (args: Expression[]) => Expression {
   return (args: Expression[]) => {
     const formatted = buildFormattedTime(TimeToStrExpr, {
-      dialect: Dialects.BIGQUERY,
+      dialect: BigQuery,
     })(
       [
         new exprType({
@@ -1176,7 +1176,7 @@ export class BigQueryParser extends Parser {
         OCTET_LENGTH: (args: unknown[]) => ByteLengthExpr.fromArgList(args),
         TO_HEX: buildToHex,
         PARSE_DATE: (args) => buildFormattedTime(StrToDateExpr, {
-          dialect: Dialects.BIGQUERY,
+          dialect: BigQuery,
         })(
           [
             seqGet(args, 1),
@@ -1184,7 +1184,7 @@ export class BigQueryParser extends Parser {
           ],
         ),
         PARSE_TIME: (args) => buildFormattedTime(ParseTimeExpr, {
-          dialect: Dialects.BIGQUERY,
+          dialect: BigQuery,
         })(
           [
             seqGet(args, 1),
@@ -1193,7 +1193,7 @@ export class BigQueryParser extends Parser {
         ),
         PARSE_TIMESTAMP: buildParseTimestamp,
         PARSE_DATETIME: (args) => buildFormattedTime(ParseDatetimeExpr, {
-          dialect: Dialects.BIGQUERY,
+          dialect: BigQuery,
         })(
           [
             seqGet(args, 1),

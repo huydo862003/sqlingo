@@ -1626,7 +1626,7 @@ function isBinary (arg: unknown): boolean {
 function genWithCastToBlob (this: Generator, expression: Expression, resultSql: string): string {
   if (isBinary(expression)) {
     const blob = DataTypeExpr.build('BLOB', {
-      dialect: 'duckdb',
+      dialect: DuckDB,
     });
 
     resultSql = this.sql(new CastExpr({
@@ -1965,7 +1965,7 @@ function bitshiftSql (this: Generator, expression: BitwiseLeftShiftExpr | Bitwis
     resultSql = this.sql(new CastExpr({
       this: resultSql,
       to: DataTypeExpr.build('BLOB', {
-        dialect: 'duckdb',
+        dialect: DuckDB,
       }),
     }));
   }
@@ -2567,13 +2567,13 @@ class DuckDBParser extends Parser {
           length: LiteralExpr.number(256),
         }),
         STRFTIME: buildFormattedTime(TimeToStrExpr, {
-          dialect: 'duckdb',
+          dialect: DuckDB,
         }),
         STRING_SPLIT: (args: unknown[]) => SplitExpr.fromArgList(args),
         STRING_SPLIT_REGEX: (args: unknown[]) => RegexpSplitExpr.fromArgList(args),
         STRING_TO_ARRAY: (args: unknown[]) => SplitExpr.fromArgList(args),
         STRPTIME: buildFormattedTime(StrToTimeExpr, {
-          dialect: 'duckdb',
+          dialect: DuckDB,
         }),
         STRUCT_PACK: (args: unknown[]) => StructExpr.fromArgList(args),
         STR_SPLIT: (args: unknown[]) => SplitExpr.fromArgList(args),
@@ -2895,7 +2895,7 @@ class DuckDBParser extends Parser {
     }
 
     return pivotColumnNames(aggregations, {
-      dialect: 'duckdb',
+      dialect: DuckDB,
     });
   }
 
@@ -3840,7 +3840,7 @@ class DuckDBGenerator extends Generator {
         ToVariantExpr,
         function (this: Generator, e: ToVariantExpr) {
           return this.sql(cast(e.args.this, DataTypeExpr.build('VARIANT', {
-            dialect: 'duckdb',
+            dialect: DuckDB,
           })));
         },
       ],
@@ -4526,7 +4526,7 @@ class DuckDBGenerator extends Generator {
 
     if (!fmt && precision && scale) {
       return this.sql(cast(expression.args.this as Expression, `DECIMAL(${precision.name}, ${scale.name})`, {
-        dialect: 'duckdb',
+        dialect: DuckDB,
       }));
     }
 
@@ -5000,7 +5000,7 @@ class DuckDBGenerator extends Generator {
     const timeFormat = this.formatTime(expression);
     const safe = expression.args.safe;
     const timeType = DataTypeExpr.build(DataTypeExprKind.TIME, {
-      dialect: 'duckdb',
+      dialect: DuckDB,
     });
     const CastClass = safe ? TryCastExpr : CastExpr;
 
@@ -5898,7 +5898,7 @@ class DuckDBGenerator extends Generator {
               expression: LiteralExpr.number(1000),
             }),
             to: DataTypeExpr.build(castType, {
-              dialect: 'duckdb',
+              dialect: DuckDB,
             }),
           }),
         );
@@ -5925,7 +5925,7 @@ class DuckDBGenerator extends Generator {
             ],
           }),
           to: DataTypeExpr.build(castType, {
-            dialect: 'duckdb',
+            dialect: DuckDB,
           }),
         }),
       );
@@ -5942,7 +5942,7 @@ class DuckDBGenerator extends Generator {
         result = new CastExpr({
           this: result,
           to: DataTypeExpr.build(DataTypeExprKind.BIGINT, {
-            dialect: 'duckdb',
+            dialect: DuckDB,
           }),
         });
       }

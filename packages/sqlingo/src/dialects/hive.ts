@@ -367,7 +367,7 @@ function arraySortSql (this: Generator, expression: ArraySortExpr): string {
 function strToUnixSql (this: Generator, expression: StrToUnixExpr): string {
   return this.func('UNIX_TIMESTAMP', [
     expression.args.this,
-    timeFormat('hive').call(this, expression),
+    timeFormat(Hive).call(this, expression),
   ]);
 }
 
@@ -448,7 +448,7 @@ export function buildWithIgnoreNulls (ExpClass: typeof Expression) {
 
 function buildToDate (args: Expression[]): TsOrDsToDateExpr {
   const expr = buildFormattedTime(TsOrDsToDateExpr, {
-    dialect: 'hive',
+    dialect: Hive,
   })(args);
 
   expr.setArgKey('safe', true);
@@ -610,7 +610,7 @@ class HiveParser extends Parser {
         }),
       }),
       DATE_FORMAT: (args: Expression[]) => buildFormattedTime(TimeToStrExpr, {
-        dialect: 'hive',
+        dialect: Hive,
       })([
         new TimeStrToTimeExpr({
           this: seqGet(args, 0),
@@ -634,7 +634,7 @@ class HiveParser extends Parser {
       FIRST: buildWithIgnoreNulls(FirstExpr),
       FIRST_VALUE: buildWithIgnoreNulls(FirstValueExpr),
       FROM_UNIXTIME: buildFormattedTime(UnixToStrExpr, {
-        dialect: 'hive',
+        dialect: Hive,
         defaultValue: true,
       }),
       GET_JSON_OBJECT: (args: Expression[], {
@@ -690,7 +690,7 @@ class HiveParser extends Parser {
       TRUNC: (args: unknown[]) => TimestampTruncExpr.fromArgList(args),
       UNBASE64: (args: unknown[]) => FromBase64Expr.fromArgList(args),
       UNIX_TIMESTAMP: (args: Expression[]) => buildFormattedTime(StrToUnixExpr, {
-        dialect: 'hive',
+        dialect: Hive,
         defaultValue: true,
       })(
         0 < args.length
@@ -1419,7 +1419,7 @@ class HiveGenerator extends Generator {
         function (this: Generator, e: UnixToStrExpr) {
           return this.func('FROM_UNIXTIME', [
             e.args.this,
-            timeFormat('hive').call(this, e),
+            timeFormat(Hive).call(this, e),
           ]);
         },
       ],

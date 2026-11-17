@@ -233,7 +233,7 @@ const TIMESTAMP_TRUNC_UNITS = new Set([
 function buildDateTimeFormat<E extends Expression> (exprType: new (args: any) => E): (args: Expression[]) => E {
   return (args: Expression[]) => {
     const expr = buildFormattedTime(exprType, {
-      dialect: Dialects.CLICKHOUSE,
+      dialect: ClickHouse,
     })(args);
     const timezone = seqGet(args, 2);
 

@@ -207,19 +207,19 @@ class SingleStoreParser extends MySQL.Parser {
       const functions = {
         ...MySQL.Parser.FUNCTIONS,
         TO_DATE: buildFormattedTime(TsOrDsToDateExpr, {
-          dialect: 'singlestore',
+          dialect: SingleStore,
         }),
         TO_TIMESTAMP: buildFormattedTime(StrToTimeExpr, {
-          dialect: 'singlestore',
+          dialect: SingleStore,
         }),
         TO_CHAR: buildFormattedTime(ToCharExpr, {
-          dialect: 'singlestore',
+          dialect: SingleStore,
         }),
         STR_TO_DATE: buildFormattedTime(StrToDateExpr, {
-          dialect: 'mysql',
+          dialect: MySQL,
         }),
         DATE_FORMAT: buildFormattedTime(TimeToStrExpr, {
-          dialect: 'mysql',
+          dialect: MySQL,
         }),
         TIME_FORMAT: (args: Expression[]) =>
           new TimeToStrExpr({
@@ -271,7 +271,7 @@ class SingleStoreParser extends MySQL.Parser {
           }).mod(7),
         UNIX_TIMESTAMP: (args: unknown[]) => StrToUnixExpr.fromArgList(args),
         FROM_UNIXTIME: buildFormattedTime(UnixToTimeExpr, {
-          dialect: 'mysql',
+          dialect: MySQL,
         }),
         TIME_BUCKET: (args: Expression[]) =>
           new DateBinExpr({

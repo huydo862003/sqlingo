@@ -420,7 +420,7 @@ function buildDatetime (
           });
 
           unixExpr.setArgKey('targetType', DataTypeExpr.build(kind, {
-            dialect: 'snowflake',
+            dialect: Snowflake,
           }));
 
           return unixExpr;
@@ -428,12 +428,12 @@ function buildDatetime (
         if (scaleOrFmt && !intScaleOrFmt) {
           // Format string provided (e.g., 'YYYY-MM-DD'), use StrToTime
           const strtotimeExpr = buildFormattedTime(StrToTimeExpr, {
-            dialect: 'snowflake',
+            dialect: Snowflake,
           })(args);
 
           strtotimeExpr.setArgKey('safe', safe);
           strtotimeExpr.setArgKey('targetType', DataTypeExpr.build(kind, {
-            dialect: 'snowflake',
+            dialect: Snowflake,
           }));
 
           return strtotimeExpr;
@@ -450,7 +450,7 @@ function buildDatetime (
     ) {
       const Klass = kind === DataTypeExprKind.DATE ? TsOrDsToDateExpr : TsOrDsToTimeExpr;
       const formattedExp = buildFormattedTime(Klass, {
-        dialect: 'snowflake',
+        dialect: Snowflake,
       })(args);
 
       formattedExp.setArgKey('safe', safe);

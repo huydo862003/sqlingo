@@ -568,7 +568,7 @@ class DorisGenerator extends MySQL.Generator {
         function (this: Generator, e: UnixToStrExpr) {
           return this.func('FROM_UNIXTIME', [
             e.args.this,
-            timeFormat('doris').call(this, e),
+            timeFormat(Doris).call(this, e),
           ]);
         },
       ],
