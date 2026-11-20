@@ -84,7 +84,7 @@ describe('#58: class-based dialects without Dialect.register()', () => {
   test('BigQuery TO_CODE_POINTS parses without register', () => {
     expect(() => {
       parseOne(
-        "SELECT TO_CODE_POINTS('abc') FROM t",
+        'SELECT TO_CODE_POINTS(\'abc\') FROM t',
         {
           read: BigQuery,
         },
@@ -120,7 +120,7 @@ describe('#58: class-based dialects without Dialect.register()', () => {
   test('Spark2 TO_TIMESTAMP with format parses without register', () => {
     expect(() => {
       parseOne(
-        "SELECT TO_TIMESTAMP(s, 'yyyy-MM-dd') FROM t",
+        'SELECT TO_TIMESTAMP(s, \'yyyy-MM-dd\') FROM t',
         {
           read: Spark2,
         },
@@ -144,7 +144,7 @@ describe('#58: class-based dialects without Dialect.register()', () => {
 
   test('Spark2 TO_TIMESTAMP transpiles to Postgres without register', () => {
     const [sql] = transpile(
-      "SELECT TO_TIMESTAMP(s, 'yyyy-MM-dd') FROM t",
+      'SELECT TO_TIMESTAMP(s, \'yyyy-MM-dd\') FROM t',
       {
         read: Spark2,
         write: Postgres,
