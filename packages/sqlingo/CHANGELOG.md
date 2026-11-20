@@ -1,5 +1,11 @@
 # sqlingo
 
+## 0.15.2
+
+### Patch Changes
+
+- 9e66f11: Fix issue #58
+
 ## 0.15.1
 
 ### Patch Changes
