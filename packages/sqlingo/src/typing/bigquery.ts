@@ -440,7 +440,7 @@ export class BigQueryTyping {
 
     map.set(GenerateTimestampArrayExpr, {
       annotator: (s: TypeAnnotator, e: GenerateTimestampArrayExpr) => s.setType(e, DataTypeExpr.build('ARRAY<TIMESTAMP>', {
-        dialect: 'bigquery',
+        dialect: s.dialect._constructor,
       })),
     });
 
@@ -450,13 +450,13 @@ export class BigQueryTyping {
 
     map.set(JsonKeysAtDepthExpr, {
       annotator: (s: TypeAnnotator, e: JsonKeysAtDepthExpr) => s.setType(e, DataTypeExpr.build('ARRAY<VARCHAR>', {
-        dialect: 'bigquery',
+        dialect: s.dialect._constructor,
       })),
     });
 
     map.set(JsonValueArrayExpr, {
       annotator: (s: TypeAnnotator, e: JsonValueArrayExpr) => s.setType(e, DataTypeExpr.build('ARRAY<VARCHAR>', {
-        dialect: 'bigquery',
+        dialect: s.dialect._constructor,
       })),
     });
 
@@ -478,7 +478,7 @@ export class BigQueryTyping {
 
     map.set(ToCodePointsExpr, {
       annotator: (s: TypeAnnotator, e: ToCodePointsExpr) => s.setType(e, DataTypeExpr.build('ARRAY<BIGINT>', {
-        dialect: 'bigquery',
+        dialect: s.dialect._constructor,
       })),
     });
 

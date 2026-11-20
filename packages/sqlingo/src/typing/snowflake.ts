@@ -187,7 +187,7 @@ function annotateMedian (this: TypeAnnotator, expression: MedianExpr): MedianExp
     const newScale = Math.min(scale + 3, MAX_SCALE);
 
     const newType = DataTypeExpr.build(`NUMBER(${newPrecision}, ${newScale})`, {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     });
 
     this.setType(expression, newType);
@@ -205,7 +205,7 @@ function annotateVariance (this: TypeAnnotator, expression: Expression): Express
 
   if (inputType.isType(DataTypeExprKind.DECFLOAT)) {
     this.setType(expression, DataTypeExpr.build('DECFLOAT', {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     }));
   } else if (inputType.isType([
     DataTypeExprKind.FLOAT,
@@ -218,7 +218,7 @@ function annotateVariance (this: TypeAnnotator, expression: Expression): Express
     const newScale = scale === 0 ? 6 : Math.max(12, scale);
 
     const newType = DataTypeExpr.build(`NUMBER(${MAX_PRECISION}, ${newScale})`, {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     });
 
     this.setType(expression, newType);
@@ -234,7 +234,7 @@ function annotateKurtosis (this: TypeAnnotator, expression: KurtosisExpr): Kurto
 
   if (!isInstanceOf(inputType, DataTypeExpr)) {
     this.setType(expression, DataTypeExpr.build(`NUMBER(${MAX_PRECISION}, 12)`, {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     }));
 
     return expression;
@@ -242,7 +242,7 @@ function annotateKurtosis (this: TypeAnnotator, expression: KurtosisExpr): Kurto
 
   if (inputType.isType(DataTypeExprKind.DECFLOAT)) {
     this.setType(expression, DataTypeExpr.build('DECFLOAT', {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     }));
   } else if (inputType.isType([
     DataTypeExprKind.FLOAT,
@@ -251,7 +251,7 @@ function annotateKurtosis (this: TypeAnnotator, expression: KurtosisExpr): Kurto
     this.setType(expression, DataTypeExprKind.DOUBLE);
   } else {
     this.setType(expression, DataTypeExpr.build(`NUMBER(${MAX_PRECISION}, 12)`, {
-      dialect: 'snowflake',
+      dialect: this.dialect._constructor,
     }));
   }
 
@@ -400,7 +400,7 @@ export class SnowflakeTyping {
       ToNumberExpr,
     ], {
       annotator: (s: TypeAnnotator, e: Expression) => s.setType(e, DataTypeExpr.build('NUMBER', {
-        dialect: 'snowflake',
+        dialect: s.dialect._constructor,
       })),
     });
 
@@ -610,7 +610,7 @@ export class SnowflakeTyping {
 
     map.set(HashAggExpr, {
       annotator: (s: TypeAnnotator, e: Expression) => s.setType(e, DataTypeExpr.build('NUMBER(19, 0)', {
-        dialect: 'snowflake',
+        dialect: s.dialect._constructor,
       })),
     });
 

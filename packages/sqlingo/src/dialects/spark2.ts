@@ -327,11 +327,15 @@ class Spark2Parser extends Hive.Parser {
       STRING: buildAsCast('string'),
       SLICE: (args: unknown[]) => ArraySliceExpr.fromArgList(args),
       TIMESTAMP: buildAsCast('timestamp'),
-      TO_TIMESTAMP: (args: Expression[]) =>
+      TO_TIMESTAMP: (args: Expression[], {
+        dialect,
+      }: {
+        dialect: Dialect;
+      }) =>
         args.length === 1
           ? buildAsCast('timestamp')(args)
           : buildFormattedTime(StrToTimeExpr, {
-            dialect: 'spark',
+            dialect: dialect._constructor,
           })(args),
       TO_UNIX_TIMESTAMP: (args: unknown[]) => StrToUnixExpr.fromArgList(args),
       TO_UTC_TIMESTAMP: (args: Expression[], {
@@ -411,7 +415,7 @@ class Spark2Parser extends Hive.Parser {
     }
 
     return pivotColumnNames(aggregations, {
-      dialect: 'spark',
+      dialect: this.dialect._constructor,
     });
   }
 
