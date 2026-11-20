@@ -65,7 +65,6 @@ import type {
   Sha2DigestExpr,
   ExpressionValue,
   DecodeCaseExpr,
-
   BracketExpr,
   JarowinklerSimilarityExpr,
 } from '../expressions';
