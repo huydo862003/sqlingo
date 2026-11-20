@@ -732,12 +732,9 @@ export class Dialect {
     return supported.includes(this.DIALECT_NAME);
   }
 
-  // --- Autofilled by metaclass in Python, set as instance properties in TypeScript ---
-  static _tokenizerClassCache = new WeakMap<typeof Dialect, typeof Tokenizer>();
+  /* Autofilled by metaclass in Python, set as instance properties in TypeScript */
+  @cache
   static get tokenizerClass (): typeof Tokenizer {
-    const cached = this._tokenizerClassCache.get(this);
-
-    if (cached) return cached;
     if (Object.prototype.hasOwnProperty.call(this, 'Tokenizer')) {
 
       return (this as any).Tokenizer;
@@ -746,21 +743,15 @@ export class Dialect {
     const baseTokenizer = base?.tokenizerClass as typeof Tokenizer;
 
     if (!baseTokenizer) {
-      this._tokenizerClassCache.set(this, Tokenizer);
-
       return Tokenizer;
     }
     class DerivedTokenizer extends baseTokenizer {}
-    this._tokenizerClassCache.set(this, DerivedTokenizer);
 
     return DerivedTokenizer;
   }
 
-  static _jsonpathTokenizerClassCache = new WeakMap<typeof Dialect, typeof JsonPathTokenizer>();
+  @cache
   static get jsonpathTokenizerClass (): typeof JsonPathTokenizer {
-    const cached = this._jsonpathTokenizerClassCache.get(this);
-
-    if (cached) return cached;
     if (Object.prototype.hasOwnProperty.call(this, 'JsonPathTokenizer')) {
 
       return (this as any).JsonPathTokenizer;
@@ -769,25 +760,17 @@ export class Dialect {
     const baseJsonpathTokenizer = base?.JsonPathTokenizer as typeof JsonPathTokenizer;
 
     if (!baseJsonpathTokenizer) {
-      this._jsonpathTokenizerClassCache.set(this, JsonPathTokenizer);
-
       return JsonPathTokenizer;
     }
     class DerivedJsonPathTokenizer extends baseJsonpathTokenizer {}
-    this._jsonpathTokenizerClassCache.set(this, DerivedJsonPathTokenizer);
 
     return DerivedJsonPathTokenizer;
   }
 
-  static _parserClassCache = new WeakMap<typeof Dialect, typeof Parser>();
-
   // NOTE: These logic should be handled in the respective dialect files:
   // - https://github.com/tobymao/sqlglot/blob/264e95f04d95f2cd7bcf255ee7ae160db36882a7/sqlglot/dialects/dialect.py#L317-L380
+  @cache
   static get parserClass (): typeof Parser {
-    const cached = this._parserClassCache.get(this);
-
-    if (cached) return cached;
-
     if (Object.prototype.hasOwnProperty.call(this, 'Parser')) {
 
       return (this as any).Parser;
@@ -797,26 +780,18 @@ export class Dialect {
     const baseParser = base?.parserClass as typeof Parser;
 
     if (!baseParser) {
-      this._parserClassCache.set(this, Parser);
-
       return Parser;
     }
 
     class DerivedParser extends baseParser {}
-    this._parserClassCache.set(this, DerivedParser);
 
     return DerivedParser;
   }
 
-  static _generatorClassCache = new WeakMap<typeof Dialect, typeof Generator>();
-
   // NOTE: These logic should be handled in the respective dialect files:
   // - https://github.com/tobymao/sqlglot/blob/264e95f04d95f2cd7bcf255ee7ae160db36882a7/sqlglot/dialects/dialect.py#L300-L326
+  @cache
   static get generatorClass (): typeof Generator {
-    const cached = this._generatorClassCache.get(this);
-
-    if (cached) return cached;
-
     if (Object.prototype.hasOwnProperty.call(this, 'Generator')) {
 
       return (this as any).Generator;
@@ -826,13 +801,10 @@ export class Dialect {
     const baseGenerator = base?.generatorClass as typeof Generator;
 
     if (!baseGenerator) {
-      this._generatorClassCache.set(this, Generator);
-
       return Generator;
     }
 
     class DerivedGenerator extends baseGenerator {}
-    this._generatorClassCache.set(this, DerivedGenerator);
 
     return DerivedGenerator;
   }
