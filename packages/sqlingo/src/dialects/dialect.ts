@@ -2247,13 +2247,11 @@ export function monthsBetweenSql (this: Generator, expression: MonthsBetweenExpr
 }
 
 export function buildFormattedTime<T extends Expression> (
-
   ExpClass: new (args: any) => T,
   options: {
     dialect: typeof Dialect | string;
     defaultValue?: boolean | string;
   },
-
 ): (args: any) => T {
   const {
     dialect, defaultValue,
@@ -2962,10 +2960,10 @@ export function dateDeltaToBinaryIntervalOp (
 
     if (shouldCast) {
       if (expression instanceof TsOrDsAddExpr) {
-        const rt = expression.returnType;
+        const returnType = expression.returnType;
 
-        assertIsInstanceOf(rt, DataTypeExpr);
-        toType = rt;
+        assertIsInstanceOf(returnType, DataTypeExpr);
+        toType = returnType;
       } else if (thisArg?.isString) {
         toType = (expression instanceof DatetimeAddExpr || expression instanceof DatetimeSubExpr)
           ? DataTypeExprKind.DATETIME
