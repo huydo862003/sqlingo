@@ -81,6 +81,27 @@ parseField(options: { anyToken?: boolean; anonymousFunc?: boolean } = {}): ... {
 
 This applies to all internal methods with optional boolean/config parameters. Call sites use `{ anyToken: true }` instead of positional `true`.
 
+### Plain Objects Keyed by SQL Identifiers
+
+Python dicts do not have prototype pollution. JavaScript `{}` does: `'constructor' in {}` is `true` because `Object.prototype.constructor` exists. This breaks any code that uses `in` to check whether a SQL identifier has been seen, since table or column names like `constructor`, `toString`, or `hasOwnProperty` collide with inherited properties.
+
+When building a plain object keyed by SQL names (table names, column names, aliases), apply both defenses:
+
+1. Create with `Object.create(null)` so the object has no prototype chain.
+2. Check membership with `Object.hasOwn(obj, key)` instead of `key in obj`.
+
+```ts
+// Wrong
+const seen: Record<string, boolean> = {};
+if (name in seen) { ... }
+
+// Correct
+const seen: Record<string, boolean> = Object.create(null) as Record<string, boolean>;
+if (Object.hasOwn(seen, name)) { ... }
+```
+
+Prefer `Map` when possible, since it has no prototype issue and clearer semantics. Use null-prototype objects only when the code mirrors upstream Python dicts that are accessed with bracket notation.
+
 ### Intentional Divergences
 
 - **Generator dispatch cache** (upstream `38957ccd6`): Python pre-builds an `EXPR_CLASSES` registry and a unified dispatch table to avoid slow `getattr`. TypeScript keeps the two-step lookup (TRANSFORMS map then `${key}Sql` property access) because V8 already optimizes property lookups well.

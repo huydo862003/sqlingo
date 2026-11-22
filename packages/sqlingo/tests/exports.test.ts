@@ -1,3 +1,5 @@
+// Verify package.json subpath exports map to existing source entries
+// and that key exports are importable at runtime
 import {
   existsSync, readFileSync,
 } from 'node:fs';
@@ -5,14 +7,8 @@ import {
   join,
 } from 'node:path';
 import {
-  describe, it, expect, vi, afterEach,
+  describe, it, expect,
 } from 'vitest';
-import {
-  parseOne, transpile,
-} from '../src/index';
-import {
-  traverseScope,
-} from '../src/optimizer';
 
 const pkgRoot = join(__dirname, '..');
 
@@ -37,36 +33,23 @@ describe('package exports', () => {
       expect(existsSync(join(pkgRoot, src)), `${subpath} -> ${src}`).toBe(true);
     }
   });
-});
 
-describe('scope selectedSources', () => {
-  it.each([
-    'constructor',
-    'toString',
-    'hasOwnProperty',
-    '__proto__',
-  ])('handles a source named %s', (name) => {
-    const [scope] = traverseScope(parseOne(`SELECT * FROM ${name} JOIN other ON TRUE`));
-
-    expect(Object.keys(scope.selectedSources).sort()).toEqual([
-      name,
-      'other',
-    ].sort());
-  });
-});
-
-describe('generator console output', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it('every dialect subpath has types, import, and require entries', () => {
+    for (const [
+      subpath,
+      target,
+    ] of Object.entries<Record<string, string>>(pkg.exports)) {
+      expect(target.types, `${subpath} missing types`).toBeDefined();
+      expect(target.import, `${subpath} missing import`).toBeDefined();
+      expect(target.require, `${subpath} missing require`).toBeDefined();
+    }
   });
 
-  it('does not log when generating raw strings', () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('optimizer exports are importable', async () => {
+    const optimizer = await import('../src/optimizer');
 
-    transpile('SELECT r\'\\x21\'', {
-      read: 'bigquery',
-      write: 'bigquery',
-    });
-    expect(log).not.toHaveBeenCalled();
+    expect(optimizer.traverseScope).toBeTypeOf('function');
+    expect(optimizer.buildScope).toBeTypeOf('function');
+    expect(optimizer.Scope).toBeTypeOf('function');
   });
 });

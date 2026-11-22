@@ -377,11 +377,11 @@ function expandUsing (scope: Scope, resolver: Resolver): Map<string, string[]> {
   }
 
   // column name -> first source name that has it
-  const columns: Record<string, string> = {};
+  const columns: Record<string, string> = Object.create(null) as Record<string, string>;
 
   const updateSourceColumns = (sourceName: string): void => {
     for (const colName of resolver.getSourceColumns(sourceName)) {
-      if (!(colName in columns)) {
+      if (!Object.hasOwn(columns, colName)) {
         columns[colName] = sourceName;
       }
     }
@@ -423,7 +423,7 @@ function expandUsing (scope: Scope, resolver: Resolver): Map<string, string[]> {
       let table = columns[identifier];
 
       if (!table || !joinColumns.includes(identifier)) {
-        if (0 < Object.keys(columns).length && !('*' in columns) && 0 < joinColumns.length) {
+        if (0 < Object.keys(columns).length && !Object.hasOwn(columns, '*') && 0 < joinColumns.length) {
           throw new OptimizeError(`Cannot automatically join: ${identifier}`);
         }
       }
@@ -868,7 +868,7 @@ function addRenameColumns (
   const rename = expression.getArgKey('rename') as Expression[] | undefined;
 
   if (!rename || rename.length === 0) return;
-  const columns: Record<string, string> = {};
+  const columns: Record<string, string> = Object.create(null) as Record<string, string>;
 
   for (const e of rename) {
     if (e instanceof Expression) {
@@ -892,7 +892,7 @@ function addReplaceColumns (
   const replace = expression.getArgKey('replace') as Expression[] | undefined;
 
   if (!replace || replace.length === 0) return;
-  const columns: Record<string, AliasExpr> = {};
+  const columns: Record<string, AliasExpr> = Object.create(null) as Record<string, AliasExpr>;
 
   for (const e of replace) {
     if (e instanceof AliasExpr) {

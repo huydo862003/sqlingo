@@ -277,14 +277,14 @@ function pushdownDnf (
 
   const conditions = new Map<string, Expression>();
 
-  let nodes = {};
+  let nodes: Record<string, Expression> = Object.create(null) as Record<string, Expression>;
 
   // Pushdown all predicates to their respective nodes
   for (const table of Array.from(pushdownTables).sort()) {
     for (const predicate of predicates) {
       nodes = nodesForPredicate(predicate, sources, scopeRefCount);
 
-      if (!(table in nodes)) {
+      if (!Object.hasOwn(nodes, table)) {
         continue;
       }
 
@@ -345,7 +345,7 @@ function nodesForPredicate (
   sources: Record<string, [Expression, Scope | Expression]>,
   scopeRefCount: Map<Expression | Scope, number>,
 ): Record<string, Expression> {
-  const nodes: Record<string, Expression> = {};
+  const nodes: Record<string, Expression> = Object.create(null) as Record<string, Expression>;
   const tables = columnTableNames(predicate);
   const whereCondition = predicate.findAncestor<JoinExpr | WhereExpr>(JoinExpr, WhereExpr) instanceof WhereExpr;
 
