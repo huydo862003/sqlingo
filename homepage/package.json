@@ -32,7 +32,7 @@
     "@vitejs/plugin-vue": "^6.0.9",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vite": "^7.3.7",
+    "vite": "^8.3.8",
     "vite-ssg": "^28.3.0",
     "vitest": "^5.0.3",
     "vue-tsc": "^3.3.11"
