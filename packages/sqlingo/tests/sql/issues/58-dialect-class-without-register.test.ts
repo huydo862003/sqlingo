@@ -4,22 +4,22 @@ import {
 } from 'vitest';
 import {
   parse, parseOne, transpile,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   Dialect,
-} from '../../src/dialects/dialect';
+} from '../../../src/dialects/dialect';
 import {
   BigQuery,
-} from '../../src/dialects/bigquery';
+} from '../../../src/dialects/bigquery';
 import {
   Snowflake,
-} from '../../src/dialects/snowflake';
+} from '../../../src/dialects/snowflake';
 import {
   Spark2,
-} from '../../src/dialects/spark2';
+} from '../../../src/dialects/spark2';
 import {
   Postgres,
-} from '../../src/dialects/postgres';
+} from '../../../src/dialects/postgres';
 
 describe('#58: class-based dialects without Dialect.register()', () => {
   const saved = new Map<string, typeof Dialect>();

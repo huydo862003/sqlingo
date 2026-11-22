@@ -4,19 +4,19 @@ import {
 } from 'vitest';
 import {
   transpile,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   Dialect,
-} from '../../src/dialects/dialect';
+} from '../../../src/dialects/dialect';
 import {
   MySQL,
-} from '../../src/dialects/mysql';
+} from '../../../src/dialects/mysql';
 import {
   Postgres,
-} from '../../src/dialects/postgres';
+} from '../../../src/dialects/postgres';
 import {
   Oracle,
-} from '../../src/dialects/oracle';
+} from '../../../src/dialects/oracle';
 
 describe('Class-based dialects without Dialect.register()', () => {
   const saved = new Map<string, typeof Dialect>();
