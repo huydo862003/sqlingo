@@ -693,7 +693,7 @@ export class Scope {
    */
   get selectedSources (): Record<string, [Expression, TableExpr | Scope]> {
     if (this._selectedSources === undefined) {
-      this._selectedSources = {};
+      this._selectedSources = Object.create(null) as Record<string, [Expression, TableExpr | Scope]>;
 
       for (const [
         name,
@@ -703,7 +703,7 @@ export class Scope {
           continue;
         }
 
-        if (name in this._selectedSources) {
+        if (Object.hasOwn(this._selectedSources, name)) {
           throw new OptimizeError(`Alias already used: ${name}`);
         }
 

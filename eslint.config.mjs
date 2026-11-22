@@ -28,6 +28,12 @@ export default [
     ],
   },
   {
+    files: ['packages/sqlingo/**/*.ts'],
+    rules: {
+      '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
+    },
+  },
+  {
     files: ['packages/sqlingo/tests/**/*.ts'],
     rules: {
       'id-length': 'off',

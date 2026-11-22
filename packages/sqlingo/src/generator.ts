@@ -3584,10 +3584,6 @@ export class Generator {
   rawStringSql (expression: RawStringExpr): string {
     let string = expression.args.this?.toString() || '';
 
-    if (string.includes('x21')) {
-      console.log('DEBUG rawStringSql: chars=', [...string].map((c) => c.charCodeAt(0)));
-    }
-
     if (this.dialect._constructor.tokenizerClass.STRING_ESCAPES.includes('\\')) {
       string = string?.replace(/\\/g, '\\\\');
     }

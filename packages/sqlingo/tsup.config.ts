@@ -10,6 +10,7 @@ const dialectEntries = globSync('src/dialects/!(dialect).ts');
 export default defineConfig({
   entry: [
     'src/index.ts',
+    'src/optimizer/index.ts',
     ...dialectEntries,
   ],
   format: [
