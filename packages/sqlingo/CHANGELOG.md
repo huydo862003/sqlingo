@@ -1,5 +1,14 @@
 # sqlingo
 
+## 0.15.3
+
+### Patch Changes
+
+- 1d137a9: Fix issue #60: Postgres `CREATE TRIGGER ... EXECUTE FUNCTION` now parses schema-qualified function names like `public.f()`. Forward-port of upstream sqlglot `8e5e2557c` (v30.10.0).
+- 96108f8: - Export the optimizer (including the scope API, `RULES`, `qualify`, and all individual rules) as `sqlingo/optimizer` (#61)
+  - Fix `Scope.selectedSources` for sources named like `Object.prototype` members (e.g. `constructor`)
+  - Remove a leftover debug `console.log` in raw string generation
+
 ## 0.15.2
 
 ### Patch Changes
