@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 import {
   parseOne,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   AlterColumnExpr, AlterExpr, CommandExpr, ForeignKeyExpr,
-} from '../../src/expressions';
+} from '../../../src/expressions';
 
 describe('TSQL custom fixes', () => {
   // FIXME: upstream sqlglot doesn't handle WITH NOCHECK

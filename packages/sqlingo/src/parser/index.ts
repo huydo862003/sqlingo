@@ -5165,10 +5165,8 @@ export class Parser {
       this.raiseError('Expected FUNCTION or PROCEDURE after EXECUTE');
     }
 
-    const funcCall = this.parseFunction({
-      anonymous: true,
-      optionalParens: false,
-    });
+    // Forward-port of upstream sqlglot 8e5e2557c (closes #7527)
+    const funcCall = this.parseColumn();
 
     return this.expression(TriggerExecuteExpr, {
       this: funcCall,

@@ -4,13 +4,13 @@ import {
 } from 'vitest';
 import {
   transpile,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   MySQL,
-} from '../../src/dialects/mysql';
+} from '../../../src/dialects/mysql';
 import {
   Postgres,
-} from '../../src/dialects/postgres';
+} from '../../../src/dialects/postgres';
 
 describe('MySQL UNIQUE constraint should not add NULLS FIRST', () => {
   // #51: MySQL UNIQUE (a, b) to Postgres adds spurious NULLS FIRST
