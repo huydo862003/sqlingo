@@ -693,7 +693,9 @@ export class Scope {
    */
   get selectedSources (): Record<string, [Expression, TableExpr | Scope]> {
     if (this._selectedSources === undefined) {
-      this._selectedSources = {};
+      // Keys are SQL source names, so use a null-prototype object: otherwise names such as
+      // `constructor` or `toString` collide with Object.prototype and trip the alias check
+      this._selectedSources = Object.create(null) as Record<string, [Expression, TableExpr | Scope]>;
 
       for (const [
         name,

@@ -19,6 +19,11 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
+		"./optimizer": {
+			"types": "./dist/optimizer/index.d.ts",
+			"import": "./dist/optimizer/index.js",
+			"require": "./dist/optimizer/index.cjs"
+		},
 		"./athena": {
 			"types": "./dist/dialects/athena.d.ts",
 			"import": "./dist/dialects/athena.js",
