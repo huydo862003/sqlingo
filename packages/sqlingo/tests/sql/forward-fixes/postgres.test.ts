@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 import {
   parseOne,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   AlterExpr, CommandExpr, CreateExpr, ForeignKeyExpr,
-} from '../../src/expressions';
+} from '../../../src/expressions';
 
 describe('Postgres custom fixes', () => {
   // FIXME: upstream sqlglot doesn't handle ALTER TABLE ADD CHECK (unnamed)

@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 import {
   parseNewlineDelimited,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   AlterExpr, CreateExpr,
-} from '../../src/expressions';
+} from '../../../src/expressions';
 
 describe('parseNewlineDelimited', () => {
   describe('newline-delimited statements', () => {

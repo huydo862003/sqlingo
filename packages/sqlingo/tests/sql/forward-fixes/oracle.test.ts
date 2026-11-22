@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 import {
   parseOne, transpile,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   CreateExpr, CommandExpr, AlterExpr, ModifyColumnExpr,
-} from '../../src/expressions';
+} from '../../../src/expressions';
 
 describe('Oracle custom fixes', () => {
   // FIXME: upstream sqlglot doesn't handle ENABLE/DISABLE/VALIDATE/NOVALIDATE

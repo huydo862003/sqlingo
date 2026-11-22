@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 import {
   parseOne, transpile,
-} from '../../src/index';
+} from '../../../src/index';
 import {
   AlterExpr, CreateExpr, CommandExpr, ForeignKeyExpr, IndexColumnConstraintExpr, ColumnDefExpr,
-} from '../../src/expressions';
+} from '../../../src/expressions';
 
 describe('MySQL custom fixes', () => {
   // FIXME: upstream sqlglot doesn't handle CREATE FULLTEXT INDEX
