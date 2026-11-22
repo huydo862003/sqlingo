@@ -17,8 +17,14 @@ import {
 } from '../../../src/dialects/postgres';
 
 const schema = new MappingSchema({
-  doc: { id: 'INT', is_folder: 'BOOLEAN' },
-  new: { id: 'INT', doc_id: 'INT' },
+  doc: {
+    id: 'INT',
+    is_folder: 'BOOLEAN',
+  },
+  new: {
+    id: 'INT',
+    doc_id: 'INT',
+  },
 });
 
 describe('#61: optimizer rule exports', () => {
@@ -54,15 +60,19 @@ describe('#61: optimizer rule exports', () => {
 
   it('qualify alone qualifies columns but preserves subquery shape', () => {
     const ast = parseOne(
-      "SELECT (SELECT is_folder FROM doc WHERE id = new.doc_id) = TRUE FROM new",
-      { read: Postgres },
+      'SELECT (SELECT is_folder FROM doc WHERE id = new.doc_id) = TRUE FROM new',
+      {
+        read: Postgres,
+      },
     );
 
     const sql = optimize(ast, {
       schema,
       dialect: Postgres,
       rules: [qualify],
-    }).sql({ dialect: Postgres });
+    }).sql({
+      dialect: Postgres,
+    });
 
     expect(sql).toBe(
       'SELECT (SELECT doc.is_folder AS is_folder FROM doc AS doc WHERE doc.id = new.doc_id) = TRUE AS _col_0 FROM new AS new',
@@ -71,9 +81,20 @@ describe('#61: optimizer rule exports', () => {
 
   it('qualify + simplify expands star and removes dead conditions', () => {
     const sql = optimize(
-      parseOne('SELECT * FROM doc WHERE 1 = 1 AND id > 2', { read: Postgres }),
-      { schema, dialect: Postgres, rules: [qualify, simplify] },
-    ).sql({ dialect: Postgres });
+      parseOne('SELECT * FROM doc WHERE 1 = 1 AND id > 2', {
+        read: Postgres,
+      }),
+      {
+        schema,
+        dialect: Postgres,
+        rules: [
+          qualify,
+          simplify,
+        ],
+      },
+    ).sql({
+      dialect: Postgres,
+    });
 
     expect(sql).toBe(
       'SELECT doc.id AS id, doc.is_folder AS is_folder FROM doc AS doc WHERE doc.id > 2',
@@ -83,7 +104,10 @@ describe('#61: optimizer rule exports', () => {
   it('simplify alone removes dead conditions but does not qualify', () => {
     const sql = optimize(
       parseOne('SELECT * FROM doc WHERE 1 = 1 AND id > 2'),
-      { schema, rules: [simplify] },
+      {
+        schema,
+        rules: [simplify],
+      },
     ).sql();
 
     expect(sql).toBe(
@@ -93,9 +117,16 @@ describe('#61: optimizer rule exports', () => {
 
   it('full optimize rewrites subquery into CTE + LEFT JOIN', () => {
     const sql = optimize(
-      parseOne("SELECT (SELECT is_folder FROM doc WHERE id = new.doc_id) = TRUE FROM new", { read: Postgres }),
-      { schema, dialect: Postgres },
-    ).sql({ dialect: Postgres });
+      parseOne('SELECT (SELECT is_folder FROM doc WHERE id = new.doc_id) = TRUE FROM new', {
+        read: Postgres,
+      }),
+      {
+        schema,
+        dialect: Postgres,
+      },
+    ).sql({
+      dialect: Postgres,
+    });
 
     expect(sql).toBe(
       'WITH "_u_0" AS (SELECT ARRAY_AGG("doc"."is_folder") AS "is_folder", "doc"."id" AS "_u_1" FROM "doc" AS "doc" GROUP BY "doc"."id")'

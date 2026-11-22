@@ -10,9 +10,6 @@ import {
 import {
   traverseScope,
 } from '../../../src/optimizer';
-import {
-  Postgres,
-} from '../../../src/dialects/postgres';
 
 describe('#59: scope selectedSources prototype collision', () => {
   it.each([
