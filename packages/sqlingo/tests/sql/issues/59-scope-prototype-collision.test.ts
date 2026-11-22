@@ -1,6 +1,6 @@
 // #59: Scope.selectedSources collides with Object.prototype members
 // A table named "constructor", "toString", etc. triggers "Alias already used"
-// because `name in {}` finds Object.prototype properties.
+// because `name in {}` finds Object.prototype properties
 import {
   describe, it, expect,
 } from 'vitest';
@@ -49,10 +49,17 @@ describe('#59: scope selectedSources prototype collision', () => {
   });
 
   it('prototype-named tables work with the optimizer', () => {
-    const schema = new MappingSchema({ users: { id: 'INT', name: 'TEXT' } });
+    const schema = new MappingSchema({
+      users: {
+        id: 'INT',
+        name: 'TEXT',
+      },
+    });
     const optimized = optimize(
       parseOne('SELECT * FROM users AS constructor'),
-      { schema },
+      {
+        schema,
+      },
     );
 
     expect(optimized.sql()).toContain('"constructor"');
@@ -69,10 +76,17 @@ describe('#59: scope selectedSources prototype collision', () => {
   });
 
   it('prototype-named columns resolve in qualify_columns', () => {
-    const schema = { t: { id: 'INT', value: 'TEXT' } };
+    const schema = {
+      t: {
+        id: 'INT',
+        value: 'TEXT',
+      },
+    };
     const optimized = optimize(
       parseOne('SELECT * FROM t AS constructor'),
-      { schema },
+      {
+        schema,
+      },
     );
     const sql = optimized.sql();
 
