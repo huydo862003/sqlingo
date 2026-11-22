@@ -1,6 +1,6 @@
 # sqlingo
 
-## 0.15.3
+## 0.16.0
 
 ### Patch Changes
 
